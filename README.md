@@ -354,12 +354,22 @@ Author a custom connector library
 Contributing
 ============
 
+Want to help improve this library? Thank you! Here are some steps to get started with running this repository on your own machine:
+
+* Make sure you have [Node.js] and the latest [yarn] installed
 * Clone the code
 * `cd` into the repo
-* Make sure you have the latest version of [Node.js] and [yarn] installed
-* Run `yarn install`
 
-This app uses Yarn 2 (aka "Berry") and TypeScript. Check out [this helpful blog](https://medium.com/swlh/getting-started-with-yarn-2-and-typescript-43321a3acdee) for getting started with the combo. You will probably want to run `yarn pnpify --sdk vim` or `yarn pnpify --sdk vscode`, as that blog explains more.
+This project uses [Yarn 2](https://yarnpkg.com/getting-started/migration) in [Zero-Install mode](https://yarnpkg.com/features/zero-installs) so you shouldn't have to run `yarn install` when you first clone this repository.
+
+If you use an editor other than VS Code or vim to work on this codebase, you may want to add Yarn 2 editor support to your local project [using `yarn dlx @yarnpkg/pnpify --sdk`](https://yarnpkg.com/getting-started/editor-sdks). Settings for VS Code & vim are checked into the repo.
+
+Now you should be able to run project scripts:
+
+* `yarn lint`
+* `yarn build`
+
+You should also see eslint & TypeScript support in your editor.
 
   [Node.js]: https://nodejs.org/en/download/package-manager/
   [yarn]: https://yarnpkg.com/
