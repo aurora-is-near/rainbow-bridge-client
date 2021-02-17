@@ -2,9 +2,13 @@
   "name": "@near~eth/client",
   "version": "0.1.0",
   "license": "(MIT AND Apache-2.0)",
+  "main": "dist/index.js",
+  "files": ["/dist"],
   "scripts": {
     "build": "rm -rf dist && tsc --build tsconfig.json",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "prerelease": "build",
+    "release": "yarn npm publish"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",
