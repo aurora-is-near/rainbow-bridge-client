@@ -215,6 +215,8 @@ async function lock (transfer) {
 }
 
 async function checkLock (transfer) {
+  const web3 = new Web3(getEthProvider())
+
   const lockHash = last(transfer.lockHashes)
   const lockReceipt = await web3.eth.getTransactionReceipt(
     lockHash
