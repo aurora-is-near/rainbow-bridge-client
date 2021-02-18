@@ -1,6 +1,6 @@
 {
   "name": "@near~eth/nep141-erc20",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "(MIT AND Apache-2.0)",
   "main": "dist/index.js",
   "files": [
@@ -35,6 +35,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/near/rainbow-bridge-lib/tree/main/packages/nep141-erc20"
+    "url": "https://github.com/near/rainbow-bridge-client/tree/main/packages/nep141-erc20"
   }
 }
