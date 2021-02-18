@@ -27,15 +27,15 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         "reference": "workspace:packages/client"
       },
       {
-        "name": "@near~eth/nep141~erc20",
-        "reference": "workspace:packages/nep141~erc20"
+        "name": "@near~eth/nep141-erc20",
+        "reference": "workspace:packages/nep141-erc20"
       }
     ],
     "enableTopLevelFallback": true,
     "ignorePatternData": "(^(?:\\.yarn\\/sdks(?:\\/(?!\\.)(?:(?:(?!(?:^|\\/)\\.).)*?)|$))$)",
     "fallbackExclusionList": [
       ["@near~eth/client", ["workspace:packages/client"]],
-      ["@near~eth/nep141~erc20", ["workspace:packages/nep141~erc20"]],
+      ["@near~eth/nep141-erc20", ["workspace:packages/nep141-erc20"]],
       ["rainbow-bridge-lib-monorepo", ["workspace:."]]
     ],
     "fallbackPool": [
@@ -583,18 +583,18 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "linkType": "SOFT",
         }]
       ]],
-      ["@near~eth/nep141~erc20", [
-        ["workspace:packages/nep141~erc20", {
-          "packageLocation": "./packages/nep141~erc20/",
+      ["@near~eth/nep141-erc20", [
+        ["workspace:packages/nep141-erc20", {
+          "packageLocation": "./packages/nep141-erc20/",
           "packageDependencies": [
-            ["@near~eth/nep141~erc20", "workspace:packages/nep141~erc20"],
+            ["@near~eth/nep141-erc20", "workspace:packages/nep141-erc20"],
             ["@commitlint/cli", "npm:12.0.0"],
             ["@commitlint/config-conventional", "npm:12.0.0"],
             ["@commitlint/travis-cli", "npm:12.0.0"],
             ["@near~eth/client", "portal:/Users/chadoh/code/r/client/packages/client::locator=rainbow-bridge-lib-monorepo%40workspace%3A."],
             ["@types/bn.js", "npm:5.1.0"],
             ["@types/node", "npm:14.14.28"],
-            ["@yarnpkg/pnpify", "virtual:d9b2f552c1d2dd5e611334228c2d16b3800a1d198a0924edf0e6ef4f5e23dd148167b6c7814dabaa5b7b5643113d382ae14a8d17c5767f7a37cbbea08e73c1cd#npm:2.4.0"],
+            ["@yarnpkg/pnpify", "virtual:985d1fe85be5607492cd4856d0b81badc3e9c1907f3979bcad0ab913f3075188d47cbe46e16c0e69a2d712eabaaa84491072d64b599ef692016ad12182f75047#npm:2.4.0"],
             ["bn.js", "npm:5.1.3"],
             ["bs58", "npm:4.0.1"],
             ["eth-object", "https://github.com/near/eth-object.git#commit=54e03b8aac8208cf724e206d49ffb8bdd30451d7"],
@@ -1121,10 +1121,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           ],
           "linkType": "SOFT",
         }],
-        ["virtual:d9b2f552c1d2dd5e611334228c2d16b3800a1d198a0924edf0e6ef4f5e23dd148167b6c7814dabaa5b7b5643113d382ae14a8d17c5767f7a37cbbea08e73c1cd#npm:2.4.0", {
-          "packageLocation": "./.yarn/$$virtual/@yarnpkg-pnpify-virtual-909d1a9acd/0/cache/@yarnpkg-pnpify-npm-2.4.0-f9312c18ed-89bbbe7f62.zip/node_modules/@yarnpkg/pnpify/",
+        ["virtual:985d1fe85be5607492cd4856d0b81badc3e9c1907f3979bcad0ab913f3075188d47cbe46e16c0e69a2d712eabaaa84491072d64b599ef692016ad12182f75047#npm:2.4.0", {
+          "packageLocation": "./.yarn/$$virtual/@yarnpkg-pnpify-virtual-2dbca21c3a/0/cache/@yarnpkg-pnpify-npm-2.4.0-f9312c18ed-89bbbe7f62.zip/node_modules/@yarnpkg/pnpify/",
           "packageDependencies": [
-            ["@yarnpkg/pnpify", "virtual:d9b2f552c1d2dd5e611334228c2d16b3800a1d198a0924edf0e6ef4f5e23dd148167b6c7814dabaa5b7b5643113d382ae14a8d17c5767f7a37cbbea08e73c1cd#npm:2.4.0"],
+            ["@yarnpkg/pnpify", "virtual:985d1fe85be5607492cd4856d0b81badc3e9c1907f3979bcad0ab913f3075188d47cbe46e16c0e69a2d712eabaaa84491072d64b599ef692016ad12182f75047#npm:2.4.0"],
             ["@types/eslint", null],
             ["@types/typescript", null],
             ["@yarnpkg/core", "npm:2.4.0"],

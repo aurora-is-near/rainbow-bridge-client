@@ -486,9 +486,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@near~eth/nep141~erc20@workspace:packages/nep141~erc20":
+"@near~eth/nep141-erc20@workspace:packages/nep141-erc20":
   version: 0.0.0-use.local
-  resolution: "@near~eth/nep141~erc20@workspace:packages/nep141~erc20"
+  resolution: "@near~eth/nep141-erc20@workspace:packages/nep141-erc20"
   dependencies:
     "@commitlint/cli": "*"
     "@commitlint/config-conventional": "*"
