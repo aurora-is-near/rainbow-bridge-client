@@ -558,6 +558,18 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["@near~eth/client", [
+        ["portal:/Users/chadoh/code/r/client/packages/client::locator=rainbow-bridge-lib-monorepo%40workspace%3A.", {
+          "packageLocation": "./packages/client/",
+          "packageDependencies": [
+            ["@near~eth/client", "portal:/Users/chadoh/code/r/client/packages/client::locator=rainbow-bridge-lib-monorepo%40workspace%3A."],
+            ["@types/bn.js", "npm:5.1.0"],
+            ["@types/node", "npm:14.14.28"],
+            ["bn.js", "npm:5.1.3"],
+            ["near-api-js", "https://github.com/near/near-api-js.git#commit=063981f288043fb694b1dceb5fb36b893d4e2b78"],
+            ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
+          ],
+          "linkType": "SOFT",
+        }],
         ["workspace:packages/client", {
           "packageLocation": "./packages/client/",
           "packageDependencies": [
@@ -565,6 +577,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@types/bn.js", "npm:5.1.0"],
             ["@types/node", "npm:14.14.28"],
             ["bn.js", "npm:5.1.3"],
+            ["near-api-js", "https://github.com/near/near-api-js.git#commit=063981f288043fb694b1dceb5fb36b893d4e2b78"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
           ],
           "linkType": "SOFT",
@@ -578,7 +591,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@commitlint/cli", "npm:12.0.0"],
             ["@commitlint/config-conventional", "npm:12.0.0"],
             ["@commitlint/travis-cli", "npm:12.0.0"],
-            ["@near~eth/client", "workspace:packages/client"],
+            ["@near~eth/client", "portal:/Users/chadoh/code/r/client/packages/client::locator=rainbow-bridge-lib-monorepo%40workspace%3A."],
             ["@types/bn.js", "npm:5.1.0"],
             ["@types/node", "npm:14.14.28"],
             ["@yarnpkg/pnpify", "virtual:d9b2f552c1d2dd5e611334228c2d16b3800a1d198a0924edf0e6ef4f5e23dd148167b6c7814dabaa5b7b5643113d382ae14a8d17c5767f7a37cbbea08e73c1cd#npm:2.4.0"],
@@ -5387,6 +5400,25 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["near-api-js", [
+        ["https://github.com/near/near-api-js.git#commit=063981f288043fb694b1dceb5fb36b893d4e2b78", {
+          "packageLocation": "./.yarn/cache/near-api-js-https-d5d81ff92a-058a89c010.zip/node_modules/near-api-js/",
+          "packageDependencies": [
+            ["near-api-js", "https://github.com/near/near-api-js.git#commit=063981f288043fb694b1dceb5fb36b893d4e2b78"],
+            ["@types/bn.js", "npm:4.11.6"],
+            ["bn.js", "npm:5.1.3"],
+            ["borsh", "npm:0.3.1"],
+            ["bs58", "npm:4.0.1"],
+            ["depd", "npm:2.0.0"],
+            ["error-polyfill", "npm:0.1.2"],
+            ["http-errors", "npm:1.8.0"],
+            ["js-sha256", "npm:0.9.0"],
+            ["mustache", "npm:4.1.0"],
+            ["node-fetch", "npm:2.6.1"],
+            ["text-encoding-utf-8", "npm:1.0.2"],
+            ["tweetnacl", "npm:1.0.3"]
+          ],
+          "linkType": "HARD",
+        }],
         ["npm:0.36.3", {
           "packageLocation": "./.yarn/cache/near-api-js-npm-0.36.3-b43ccdb0b0-724c77a27c.zip/node_modules/near-api-js/",
           "packageDependencies": [

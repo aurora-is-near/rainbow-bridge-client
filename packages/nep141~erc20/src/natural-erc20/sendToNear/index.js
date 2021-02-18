@@ -2,9 +2,9 @@ import BN from 'bn.js'
 import getRevertReason from 'eth-revert-reason'
 import Web3 from 'web3'
 import { track } from '@near~eth/client'
-import { stepsFor } from '@near~eth/client/i18nHelpers'
-import * as status from '@near~eth/client/statuses'
-import { getEthProvider, getNearAccount } from '@near~eth/client/utils'
+import { stepsFor } from '@near~eth/client/lib/i18nHelpers'
+import * as status from '@near~eth/client/lib/statuses'
+import { getEthProvider, getNearAccount } from '@near~eth/client/lib/utils'
 import getNep141Balance from '../../bridged-nep141/getBalance'
 import getName from '../getName'
 import findProof from './findProof'
@@ -41,6 +41,7 @@ export const i18n = {
         switch (transfer.completedStep) {
           case APPROVE: return 'Ready to lock in Ethereum'
           case SYNC: return 'Ready to mint in NEAR'
+          default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
         }
       }
       switch (transfer.completedStep) {
@@ -49,6 +50,7 @@ export const i18n = {
         case LOCK: return `Syncing block ${transfer.completedConfirmations + 1}/${transfer.neededConfirmations}`
         case SYNC: return 'Minting in NEAR'
         case MINT: return 'Transfer complete'
+        default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
       }
     },
     callToAction: transfer => {
@@ -57,6 +59,7 @@ export const i18n = {
       switch (transfer.completedStep) {
         case APPROVE: return 'Lock'
         case SYNC: return 'Mint'
+        default: return null
       }
     }
   }
@@ -69,7 +72,7 @@ export function act (transfer) {
     case APPROVE: return lock(transfer)
     case LOCK: return checkSync(transfer)
     case SYNC: return mint(transfer)
-    default: throw new Error(`Don't know how to act on transfer: ${JSON.stringify(transfer)}`)
+    default: throw new Error(`Don't know how to act on transfer: ${transfer.id}`)
   }
 }
 
@@ -80,6 +83,7 @@ export function checkStatus (transfer) {
     case APPROVE: return checkLock(transfer)
     case LOCK: return checkSync(transfer)
     case SYNC: return checkMint(transfer)
+    default: throw new Error(`Don't know how to checkStatus for transfer ${transfer.id}`)
   }
 }
 

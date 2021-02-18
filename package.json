@@ -3,6 +3,7 @@
   "license": "(MIT AND Apache-2.0)",
   "private": true,
   "scripts": {
+    "build": "yarn workspaces foreach run build",
     "lint": "eslint packages/**/src"
   },
   "devDependencies": {
@@ -26,5 +27,8 @@
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "resolutions": {
+    "@near~eth/client": "portal:/Users/chadoh/code/r/client/packages/client"
+  }
 }

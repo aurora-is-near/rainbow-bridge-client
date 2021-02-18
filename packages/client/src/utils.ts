@@ -1,4 +1,7 @@
-let ethProvider, nearConnection
+import { ConnectedWalletAccount, WalletConnection } from 'near-api-js'
+
+let ethProvider: any // TODO add proper Ethereum Provider typing
+let nearConnection: WalletConnection
 
 /**
  * Set ethProvider
@@ -17,7 +20,7 @@ let ethProvider, nearConnection
  *
  * @returns `provider`
  */
-export function setEthProvider (provider) {
+export function setEthProvider (provider: any) {
   ethProvider = provider
   // TODO: verify provider meets expectations
   return ethProvider
@@ -43,7 +46,7 @@ export function setEthProvider (provider) {
  *
  * @returns `connection`
  */
-export function setNearConnection (connection) {
+export function setNearConnection (connection: WalletConnection) {
   nearConnection = connection
   // TODO: verify connection meets expectations
   return nearConnection
@@ -78,19 +81,20 @@ export function getEthProvider () {
  * `authAgainst` contract, and not just any contract address.
  *
  * @param {object} params Object with named arguments
- * @param params.authAgainst string (optional) The address of a NEAR contract
+ * @param params.authAgainst [undefined] string (optional) The address of a NEAR contract
  *   to authenticate against. If provided, will trigger a page redirect to NEAR
  *   Wallet if the user is not authenticated against ANY contract, whether this
  *   contract or not.
- * @param params.strict boolean (optional) Will trigger a page redirect to NEAR
+ * @param params.strict [false] boolean (optional) Will trigger a page redirect to NEAR
  *   Wallet if the user is not authenticated against the specific contract
  *   provided in `authAgainst`.
  *
- * @returns a NEAR account object, when it doesn't trigger a page redirect.
+ * @returns WalletAccount a NEAR account object, when it doesn't trigger a page redirect.
  */
 export async function getNearAccount (
-  { authAgainst, strict } = { authAgainst: undefined, strict: false }
-) {
+  { authAgainst, strict = false }: { authAgainst?: string, strict?: boolean } =
+  { authAgainst: undefined, strict: false }
+): Promise<ConnectedWalletAccount> {
   if (!nearConnection) {
     throw new Error(
       'Must `setNearConnection(new WalletConnection(near))` prior to calling anything from `@near~eth/client` or connector libraries'
@@ -100,10 +104,12 @@ export async function getNearAccount (
   if (!authAgainst) return nearConnection.account()
 
   if (!nearConnection.getAccountId()) {
+    // @ts-ignore: requestSignIn improperly typed
     await nearConnection.requestSignIn(authAgainst)
   }
   if (strict && !(await nearAuthedAgainst(authAgainst))) {
-    await nearConnection.signOut()
+    nearConnection.signOut()
+    // @ts-ignore: requestSignIn improperly typed
     await nearConnection.requestSignIn(authAgainst)
   }
 
@@ -120,7 +126,7 @@ export async function getNearAccount (
  * @param contract The address of a NEAR contract
  * @returns boolean True if the user is authenticated against this contract.
  */
-export async function nearAuthedAgainst (contract) {
+export async function nearAuthedAgainst (contract: string): Promise<boolean> {
   if (!contract) {
     throw new Error(
       `nearAuthedAgainst expects a valid NEAR contract address.
@@ -130,7 +136,9 @@ export async function nearAuthedAgainst (contract) {
 
   if (!nearConnection.getAccountId()) return false
 
-  const { accessKey } = await nearConnection.account().findAccessKey()
+  const { accessKey } = await nearConnection.account().findAccessKey() as any
+
+  // TODO: this logic may break with FullAccess keys
   const authedAgainst = accessKey && accessKey.permission.FunctionCall.receiver_id
   return authedAgainst === contract
 }
