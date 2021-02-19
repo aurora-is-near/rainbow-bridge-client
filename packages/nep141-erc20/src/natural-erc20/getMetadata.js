@@ -1,6 +1,6 @@
 import Web3 from 'web3'
 import getName from './getName'
-import { getEthProvider } from '@near~eth/client/utils'
+import { getEthProvider } from '@near~eth/client/dist/utils'
 
 async function getBalance (address, user) {
   if (!user) return null

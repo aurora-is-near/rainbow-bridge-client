@@ -5,7 +5,7 @@ import { promisfy } from 'promisfy'
 import utils from 'ethereumjs-util'
 import { serialize as serializeBorsh } from 'near-api-js/lib/utils/serialize'
 import Web3 from 'web3'
-import { getEthProvider } from '@near~eth/client/utils'
+import { getEthProvider } from '@near~eth/client/dist/utils'
 
 class BorshProof {
   constructor (proof) {

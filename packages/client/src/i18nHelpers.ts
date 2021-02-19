@@ -6,7 +6,7 @@ export function stepsFor (
   steps: string[],
   descriptions: { [key: string]: string }
 ): Step[] {
-  const completed = steps.indexOf(transfer.completedStep)
+  const completed = steps.indexOf(String(transfer.completedStep))
   return steps.map((key, i) => ({
     key,
     description: descriptions[key],

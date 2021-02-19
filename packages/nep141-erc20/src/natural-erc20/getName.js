@@ -1,5 +1,5 @@
 import Web3 from 'web3'
-import { getEthProvider } from '@near~eth/client/utils'
+import { getEthProvider } from '@near~eth/client/dist/utils'
 
 const erc20Names = {}
 export default async function getName (address) {

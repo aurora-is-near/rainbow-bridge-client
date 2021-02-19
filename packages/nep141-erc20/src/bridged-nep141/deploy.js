@@ -1,5 +1,6 @@
 import BN from 'bn.js'
-import { getNearAccount } from '@near~eth/client/utils'
+import { utils } from 'near-api-js'
+import { getNearAccount } from '@near~eth/client/dist/utils'
 
 /**
  * Deploy a BridgeToken contract for the given erc20Address.
@@ -52,6 +53,6 @@ export default async function deployBridgeToken (erc20Address) {
     // 30N for the base fee, plus .02 for for storing the name of the contract
     // Might not need full .02, but need more than .01, error message did not
     // include needed amount at time of writing.
-    new BN(window.parseNearAmount('30.02'))
+    new BN(utils.format.parseNearAmount('30.02'))
   )
 }

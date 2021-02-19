@@ -2,7 +2,7 @@ import utils from 'web3-utils'
 const bs58 = require('bs58')
 
 // Encode outcome proof according to its borsh schema.
-function borshifyOutcomeProof (proof) {
+export function borshifyOutcomeProof (proof) {
   const statusToBuffer = (status) => {
     console.log(status)
     if ('SuccessValue' in status) {
@@ -92,5 +92,3 @@ function borshifyOutcomeProof (proof) {
     ])
   ])
 }
-
-exports.borshifyOutcomeProof = borshifyOutcomeProof

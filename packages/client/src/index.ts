@@ -4,6 +4,7 @@ import {
   ConnectorLib,
   Transfer,
   DecoratedTransfer,
+  Step,
   UnsavedTransfer
 } from './types'
 
@@ -24,26 +25,28 @@ function getTransferType (transfer: Transfer): ConnectorLib {
   }
 }
 
-function dashToCamelCase (str: string): string {
-  return str.replace(/-./g, match =>
-    match.toUpperCase().replace('-', '')
-  )
-}
-
-// The only way to retrieve a list of transfers.
-// Returns an object with keys for each transfer status plus 'all',
-// with array of chronologically-ordered transfers for each
-export async function get () {
-  const transfers = await storage.getAll()
-  return transfers.reduce(
-    (acc, transfer) => {
-      const status = dashToCamelCase(transfer.status)
-      acc[status].push(transfer)
-      acc.all.push(transfer)
-      return acc
-    },
-    { all: [], inProgress: [], actionNeeded: [], failed: [], completed: [] }
-  )
+/**
+ * Return a list of transfers
+ *
+ * @param {object} params Object of options
+ * @param params.filter function Optional filter function
+ *
+ * @example
+ *
+ *     import { get } from '@near~eth/client'
+ *     import { IN_PROGRESS, ACTION_NEEDED } from '@near~eth/client/dist/statuses'
+ *     const inFlight = await get({
+ *       filter: t => [IN_PROGRESS, ACTION_NEEDED].includes(t.status)
+ *     })
+ *
+ * @returns array of transfers
+ */
+export async function get (
+  { filter }: { filter?: (t: Transfer) => boolean } = {}
+): Promise<Transfer[]> {
+  let transfers = await storage.getAll()
+  if (filter !== undefined) transfers = transfers.filter(filter)
+  return transfers
 }
 
 /*
@@ -71,34 +74,54 @@ export async function get () {
  */
 export function decorate (
   transfer: Transfer,
-  { locale } = { locale: undefined }
+  { locale }: { locale?: string } = {}
 ): DecoratedTransfer {
   const type = getTransferType(transfer)
 
+  // @ts-expect-error
   let localized = type.i18n[locale]
-  if (!localized) {
+  if (localized === undefined) {
     const availableLocales = Object.keys(type.i18n)
     const fallback = availableLocales[0]
-    if (locale) {
+    if (fallback !== undefined && locale !== undefined) {
       console.warn(
         `Requested locale ${locale} not available for ${transfer.type
         }. Available locales: \n\n  • ${availableLocales.join('\n  • ')
         }\n\nFalling back to ${fallback}`
       )
     }
+    // @ts-expect-error
     localized = type.i18n[fallback]
   }
 
-  const decorated = { ...transfer } as DecoratedTransfer
-  decorated.sourceNetwork = type.SOURCE_NETWORK
-  decorated.destinationNetwork = type.DESTINATION_NETWORK
-  decorated.error = transfer.status === status.FAILED &&
-    transfer.errors[transfer.errors.length - 1]
-  decorated.steps = localized.steps(transfer)
-  decorated.statusMessage = localized.statusMessage(transfer)
-  decorated.callToAction = localized.callToAction(transfer)
+  let error: string | undefined
+  if (transfer.status === status.FAILED) {
+    error = transfer.errors[transfer.errors.length - 1]
+  }
 
-  return decorated
+  let steps: Step[]
+  let statusMessage: string
+  let callToAction: string | undefined
+  if (localized !== undefined) {
+    steps = localized.steps(transfer)
+    statusMessage = localized.statusMessage(transfer)
+    callToAction = localized.callToAction(transfer)
+  } else {
+    steps = []
+    statusMessage = `transfer with type=${
+      transfer.type
+    } has no defined i18n settings; cannot decorate it`
+  }
+
+  return {
+    ...transfer,
+    sourceNetwork: type.SOURCE_NETWORK,
+    destinationNetwork: type.DESTINATION_NETWORK,
+    error,
+    steps,
+    statusMessage,
+    callToAction
+  }
 }
 
 /*
@@ -107,18 +130,27 @@ export function decorate (
  * Can provide a `loop` frequency, in milliseconds, to call repeatedly while
  * inProgress transfers remain
  */
-export async function checkStatusAll ({ loop } = { loop: undefined }) {
-  if (loop && !Number.isInteger(loop)) {
+export async function checkStatusAll (
+  { loop }: { loop?: number } = { loop: undefined }
+): Promise<void> {
+  if (loop !== undefined && !Number.isInteger(loop)) {
     throw new Error('`loop` must be frequency, in milliseconds')
   }
 
-  const { inProgress } = await get()
+  const inProgress = await get({
+    filter: t => t.status === status.IN_PROGRESS
+  })
 
   // Check & update statuses for all in parallel
-  await Promise.all(inProgress.map((t: Transfer) => checkStatus(t.id)))
+  await Promise.all(inProgress.map(async (t: Transfer) => await checkStatus(t.id)))
 
   // loop, if told to loop
-  if (loop) window.setTimeout(() => checkStatusAll({ loop }), loop)
+  if (loop !== undefined) {
+    window.setTimeout(
+      () => { checkStatusAll({ loop }).catch(console.error) },
+      loop
+    )
+  }
 }
 
 /*
@@ -130,7 +162,7 @@ export async function checkStatusAll ({ loop } = { loop: undefined }) {
  *
  * If the transfer failed, this will retry it.
  */
-export async function act (id: string) {
+export async function act (id: string): Promise<void> {
   const transfer = await storage.get(id)
   if (![status.FAILED, status.ACTION_NEEDED].includes(transfer.status)) {
     console.warn('No action needed for transfer with status', transfer.status)
@@ -139,7 +171,7 @@ export async function act (id: string) {
   const type = getTransferType(transfer)
 
   try {
-    storage.update(await type.act(transfer))
+    await storage.update(await type.act(transfer))
   } catch (error) {
     await storage.update(transfer, {
       status: status.FAILED,
@@ -149,14 +181,21 @@ export async function act (id: string) {
   }
 }
 
-// Clear a transfer from localStorage
-export async function clear (id: string) {
+/**
+ * Clear a transfer from localStorage
+ */
+export async function clear (id: string): Promise<void> {
   await storage.clear(id)
 }
 
-// Add a new transfer to the set of cached local transfers.
-// This transfer will be given a chronologically-ordered id.
-// This transfer will be checked for updates on a loop.
+/**
+ * Add a new transfer to the set of cached local transfers. Transfer will
+ * be given a chronologically-ordered id.
+ *
+ * @param transfer {@link UnsavedTransfer} a transfer with no 'id'
+ *
+ * @returns {@link Transfer} transfer with an 'id'
+ */
 export async function track (transferRaw: UnsavedTransfer): Promise<Transfer> {
   const id = new Date().toISOString()
   const transfer = { id, ...transferRaw }
@@ -165,7 +204,7 @@ export async function track (transferRaw: UnsavedTransfer): Promise<Transfer> {
 }
 
 // Check the status of a single transfer.
-async function checkStatus (id: string) {
+async function checkStatus (id: string): Promise<void> {
   let transfer = await storage.get(id)
   const type = getTransferType(transfer)
 
