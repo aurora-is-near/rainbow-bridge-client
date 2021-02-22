@@ -559,18 +559,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["@near~eth/client", [
-        ["portal:/Users/chadoh/code/r/client/packages/client::locator=rainbow-bridge-lib-monorepo%40workspace%3A.", {
-          "packageLocation": "./packages/client/",
-          "packageDependencies": [
-            ["@near~eth/client", "portal:/Users/chadoh/code/r/client/packages/client::locator=rainbow-bridge-lib-monorepo%40workspace%3A."],
-            ["@types/bn.js", "npm:5.1.0"],
-            ["@types/node", "npm:14.14.28"],
-            ["bn.js", "npm:5.1.3"],
-            ["near-api-js", "https://github.com/near/near-api-js.git#commit=063981f288043fb694b1dceb5fb36b893d4e2b78"],
-            ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
-          ],
-          "linkType": "SOFT",
-        }],
         ["workspace:packages/client", {
           "packageLocation": "./packages/client/",
           "packageDependencies": [
@@ -592,7 +580,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@commitlint/cli", "npm:12.0.0"],
             ["@commitlint/config-conventional", "npm:12.0.0"],
             ["@commitlint/travis-cli", "npm:12.0.0"],
-            ["@near~eth/client", "portal:/Users/chadoh/code/r/client/packages/client::locator=rainbow-bridge-lib-monorepo%40workspace%3A."],
+            ["@near~eth/client", "workspace:packages/client"],
             ["@types/bn.js", "npm:5.1.0"],
             ["@types/node", "npm:14.14.28"],
             ["@yarnpkg/pnpify", "virtual:985d1fe85be5607492cd4856d0b81badc3e9c1907f3979bcad0ab913f3075188d47cbe46e16c0e69a2d712eabaaa84491072d64b599ef692016ad12182f75047#npm:2.4.0"],

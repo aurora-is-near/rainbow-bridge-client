@@ -1,4 +1,5 @@
 import BN from 'bn.js'
+import { Decimal } from 'decimal.js'
 import getRevertReason from 'eth-revert-reason'
 import Web3 from 'web3'
 import { track } from '@near~eth/client'
@@ -7,6 +8,8 @@ import * as status from '@near~eth/client/dist/statuses'
 import { getEthProvider, getNearAccount } from '@near~eth/client/dist/utils'
 import getNep141Balance from '../../bridged-nep141/getBalance'
 import getName from '../getName'
+import { getDecimals } from '../getMetadata'
+import { formatLargeNum } from '../../../../utils'
 import findProof from './findProof'
 import { lastBlockNumber } from './ethOnNearClient'
 import * as urlParams from './urlParams'
@@ -30,10 +33,10 @@ const steps = [
 export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
-      [APPROVE]: `Approve Token Locker to spend ${transfer.amount} ${transfer.sourceTokenName}`,
-      [LOCK]: `Lock ${transfer.amount} ${transfer.sourceTokenName} in Token Locker`,
+      [APPROVE]: `Approve Token Locker to spend ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName}`,
+      [LOCK]: `Lock ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} in Token Locker`,
       [SYNC]: `Sync ${transfer.neededConfirmations} blocks from Ethereum to NEAR`,
-      [MINT]: `Mint ${transfer.amount} ${transfer.destinationTokenName} in NEAR`
+      [MINT]: `Mint ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in NEAR`
     }),
     statusMessage: transfer => {
       if (transfer.status === status.FAILED) return 'Failed'
@@ -101,12 +104,14 @@ export async function initiate ({
 }) {
   // TODO: move to core 'decorate'; get both from contracts
   const sourceTokenName = await getName(erc20Address)
+  // TODO: call initiate with a formated amount and query decimals when decorate()
+  const decimals = await getDecimals(erc20Address)
   const destinationTokenName = sourceTokenName + 'ⁿ'
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
     // attributes common to all transfer types
-    amount,
+    amount: (new Decimal(amount).times(10 ** decimals)).toString(),
     completedStep: null,
     destinationTokenName,
     errors: [],
@@ -114,6 +119,7 @@ export async function initiate ({
     sender,
     sourceToken: erc20Address,
     sourceTokenName,
+    decimals,
     status: status.ACTION_NEEDED,
     type: TRANSFER_TYPE,
 
@@ -219,9 +225,8 @@ async function lock (transfer) {
 }
 
 async function checkLock (transfer) {
-  const web3 = new Web3(getEthProvider())
-
   const lockHash = last(transfer.lockHashes)
+  const web3 = new Web3(getEthProvider())
   const lockReceipt = await web3.eth.getTransactionReceipt(
     lockHash
   )
@@ -328,15 +333,16 @@ export async function checkMint (transfer) {
     }
   }
 
-  const balanceBefore = Number(urlParams.get('balanceBefore'))
-  const balanceAfter = await getNep141Balance({
+  const balanceBefore = new BN(urlParams.get('balanceBefore'))
+  const balanceAfter = new BN(await getNep141Balance({
     erc20Address: transfer.sourceToken,
     user: transfer.recipient
-  })
+  }))
+  const transferAmount = new BN(transfer.amount)
 
   urlParams.clear('minting', 'balanceBefore')
 
-  if (balanceBefore + transfer.amount !== balanceAfter) {
+  if (!balanceBefore.add(transferAmount).eq(balanceAfter)) {
     return {
       ...transfer,
       status: status.FAILED,
@@ -344,7 +350,7 @@ export async function checkMint (transfer) {
         ...transfer.errors,
         `Something went wrong. Pre-transaction balance (${balanceBefore})
         + transfer amount (${transfer.amount}) =
-        ${balanceBefore + transfer.amount}, but new balance is instead
+        ${balanceBefore.add(transferAmount)}, but new balance is instead
         ${balanceAfter}.`
       ]
     }
