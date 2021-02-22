@@ -12,13 +12,11 @@ async function getBalance (address, user) {
     address
   )
 
-  return Number(
-    await erc20Contract.methods.balanceOf(user).call()
-  )
+  return await erc20Contract.methods.balanceOf(user).call()
 }
 
 const erc20Decimals = {}
-async function getDecimals (address) {
+export async function getDecimals (address) {
   if (erc20Decimals[address] !== undefined) return erc20Decimals[address]
 
   const web3 = new Web3(getEthProvider())

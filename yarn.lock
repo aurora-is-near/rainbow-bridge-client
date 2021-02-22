@@ -462,19 +462,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@near~eth/client@portal:/Users/chadoh/code/r/client/packages/client::locator=rainbow-bridge-lib-monorepo%40workspace%3A.":
-  version: 0.0.0-use.local
-  resolution: "@near~eth/client@portal:/Users/chadoh/code/r/client/packages/client::locator=rainbow-bridge-lib-monorepo%40workspace%3A."
-  dependencies:
-    "@types/bn.js": ^5.1.0
-    "@types/node": ^14.14.28
-    bn.js: ^5.1.3
-    near-api-js: "near/near-api-js#account-type-fixes"
-    typescript: ^4.1.5
-  languageName: node
-  linkType: soft
-
-"@near~eth/client@workspace:packages/client":
+"@near~eth/client@workspace:*, @near~eth/client@workspace:packages/client":
   version: 0.0.0-use.local
   resolution: "@near~eth/client@workspace:packages/client"
   dependencies:
