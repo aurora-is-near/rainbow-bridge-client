@@ -566,6 +566,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@types/bn.js", "npm:5.1.0"],
             ["@types/node", "npm:14.14.28"],
             ["bn.js", "npm:5.1.3"],
+            ["decimal.js", "npm:10.2.1"],
             ["near-api-js", "https://github.com/near/near-api-js.git#commit=063981f288043fb694b1dceb5fb36b893d4e2b78"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
           ],
@@ -2435,6 +2436,15 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["decamelize-keys", "npm:1.1.0"],
             ["decamelize", "npm:1.2.0"],
             ["map-obj", "npm:1.0.1"]
+          ],
+          "linkType": "HARD",
+        }]
+      ]],
+      ["decimal.js", [
+        ["npm:10.2.1", {
+          "packageLocation": "./.yarn/cache/decimal.js-npm-10.2.1-6eff4c0574-ba28b27bb8.zip/node_modules/decimal.js/",
+          "packageDependencies": [
+            ["decimal.js", "npm:10.2.1"]
           ],
           "linkType": "HARD",
         }]

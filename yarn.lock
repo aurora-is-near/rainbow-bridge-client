@@ -469,6 +469,7 @@ __metadata:
     "@types/bn.js": ^5.1.0
     "@types/node": ^14.14.28
     bn.js: ^5.1.3
+    decimal.js: ^10.2.1
     near-api-js: "near/near-api-js#account-type-fixes"
     typescript: ^4.1.5
   languageName: unknown
@@ -2046,6 +2047,13 @@ __metadata:
   version: 1.2.0
   resolution: "decamelize@npm:1.2.0"
   checksum: 8ca9d03ea8ac07920f4504e219d18edff2491bdd0a3e05a1e5ca2e9a0bf6333564231de3528b01d5e76c40a38c37bbc1e09cb5a0424714f53dd615ed78ced464
+  languageName: node
+  linkType: hard
+
+"decimal.js@npm:^10.2.1":
+  version: 10.2.1
+  resolution: "decimal.js@npm:10.2.1"
+  checksum: ba28b27bb8aca6bbb73fbdb51d759961d9ff82218c4aa737b4f4826dee4244618a61c410201bb152950c4915e3d82a86211d1c2a4e23f805ee577574ba115e59
   languageName: node
   linkType: hard
 
