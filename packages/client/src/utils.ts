@@ -1,4 +1,5 @@
 import { ConnectedWalletAccount, WalletConnection } from 'near-api-js'
+import { Decimal } from 'decimal.js'
 
 let ethProvider: any // TODO add proper Ethereum Provider typing
 let nearConnection: WalletConnection
@@ -141,4 +142,9 @@ export async function nearAuthedAgainst (contract: string): Promise<boolean> {
   // TODO: this logic may break with FullAccess keys
   const authedAgainst = accessKey && accessKey.permission.FunctionCall.receiver_id
   return authedAgainst === contract
+}
+
+export function formatLargeNum (n, decimals = 18) {
+  // decimals defaults to 18 for old transfers in state that didn't record transfer.decimals
+  return new Decimal(n).dividedBy(10 ** decimals)
 }
