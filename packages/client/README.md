@@ -1,4 +1,4 @@
-`@near~eth/client` – the Rainbow Bridge client library 🌈🌉
+`@near-eth/client` – the Rainbow Bridge client library 🌈🌉
 ======================================================
 
 Do you want to allow your users to send assets between [Ethereum] & [NEAR] over
@@ -35,46 +35,46 @@ Step 0: Add Dependencies
 
 You'll need to add two dependencies to your app:
 
-    npm install --save @near~eth/client @near~eth/nep141~erc20
+    npm install --save @near-eth/client @near-eth/nep141-erc20
 
 Or, if using yarn:
 
-    yarn add @near~eth/client @near~eth/nep141~erc20
+    yarn add @near-eth/client @near-eth/nep141-erc20
 
-### What is `@near~eth/nep141~erc20`?
+### What is `@near-eth/nep141-erc20`?
 
 The Rainbow Bridge between Ethereum and NEAR has [many pieces][Rainbow Bridge]. One piece is **Connector** contracts. The connector code for converting ERC20 tokens in Ethereum to NEP141 tokens in NEAR lives at [github.com/near/rainbow-token-connector][Connector].
 
-The code for using a given connector from an app has its own library. The one for the connector above is [`@near~eth/nep141~erc20`].
+The code for using a given connector from an app has its own library. The one for the connector above is [`@near-eth/nep141-erc20`].
 
-Anyone can make connector contracts, and anyone can make client libraries for these contracts. If they follow the format of `@near~eth/nep141~erc20`, these client libraries will work automatically with the core Rainbow Bridge transfer library at `@near~eth/client`.
+Anyone can make connector contracts, and anyone can make client libraries for these contracts. If they follow the format of `@near-eth/nep141-erc20`, these client libraries will work automatically with the core Rainbow Bridge transfer library at `@near-eth/client`.
 
-Generally, each connector client library, like `@near~eth/nep141~erc20`, will export four main interfaces, which can be used to:
+Generally, each connector client library, like `@near-eth/nep141-erc20`, will export four main interfaces, which can be used to:
 
 1. Go from a "natural" Ethereum token to a "bridged" NEAR equivalent
 2. Go from a "bridged" NEAR token, meaning a token that started its life in Ethereum but which now lives in NEAR, back to Ethereum
 3. Go from a natural NEAR token to a bridged Ethereum equivalent
 4. Go from a bridged Ethereum token back to NEAR
 
-For `@near~eth/nep141~erc20`, these main exports are:
+For `@near-eth/nep141-erc20`, these main exports are:
 
 1. `naturalErc20` – example: go from DAI (a popular ERC20 token) to DAIⁿ
 2. `bridgedNep141` – example: convert DAIⁿ back to DAI
 3. `naturalNep141` – example: go from a natural NEAR token, such as BNNA Tokens in berryclub.io, to BNNAᵉ in Ethereum
 4. `bridgedErc20` – example: convert BNNAᵉ back to BNNA
 
-You can have multiple connector libraries in your app, some which may be maintained by NEAR and are in the `@near~eth` organization, and some which are not. An example `package.json` might end up looking something like:
+You can have multiple connector libraries in your app, some which may be maintained by NEAR and are in the `@near-eth` organization, and some which are not. An example `package.json` might end up looking something like:
 
 ```js
 "dependencies": {
-  "@near~eth/client": "*",
-  "@near~eth/nep141~erc20": "*",
-  "@near~eth/nep4~erc721": "*",
+  "@near-eth/client": "*",
+  "@near-eth/nep141-erc20": "*",
+  "@near-eth/nep4-erc721": "*",
   "rainbow-bridge-erc20-with-rebase-and-nep21": "*",
 }
 ```
 
-(Note: `@near~eth/nep4~erc721` and `rainbow-bridge-erc20-with-rebase-and-nep21` do NOT currently exist, and are only shown to illustrate how this could work. As an aside, the current ERC20 connector does NOT support [tokens which use the `rebase` feature](https://etherscan.io/tokens/label/rebase-token) like [AMPL](https://etherscan.io/token/0xd46ba6d942050d489dbd938a2c909a5d5039a161) & [BASE](https://etherscan.io/token/0x07150e919b4de5fd6a63de1f9384828396f25fdc), which is why a hypothetical community-contributed "erc20-with-rebase" connector library is shown.)
+(Note: `@near-eth/nep4-erc721` and `rainbow-bridge-erc20-with-rebase-and-nep21` do NOT currently exist, and are only shown to illustrate how this could work. As an aside, the current ERC20 connector does NOT support [tokens which use the `rebase` feature](https://etherscan.io/tokens/label/rebase-token) like [AMPL](https://etherscan.io/token/0xd46ba6d942050d489dbd938a2c909a5d5039a161) & [BASE](https://etherscan.io/token/0x07150e919b4de5fd6a63de1f9384828396f25fdc), which is why a hypothetical community-contributed "erc20-with-rebase" connector library is shown.)
 
 
 Step 1: Authenticate user with both NEAR & Ethereum
@@ -90,7 +90,7 @@ Your app needs to call `setNearConnection` and pass it a `WalletConnection` inst
 
 ```js
 import { keyStores, Near, WalletConnection } from 'near-api-js'
-import { setNearConnection } from '@near~eth/client'
+import { setNearConnection } from '@near-eth/client'
 
 window.nearConnection = new WalletConnection(
   new Near({
@@ -105,11 +105,11 @@ window.nearConnection = new WalletConnection(
 setNearConnection(window.nearConnection)
 ```
 
-If you don't know what to put for the settings passed to `new Near`, you can import the sensible defaults used by `@near~eth/client`:
+If you don't know what to put for the settings passed to `new Near`, you can import the sensible defaults used by `@near-eth/client`:
 
 ```js
 import { Near, WalletConnection } from 'near-api-js'
-import { config, setNearConnection } from '@near~eth/client'
+import { config, setNearConnection } from '@near-eth/client'
 
 window.nearConnection = new WalletConnection(
   new Near(config.ropsten.near)
@@ -118,7 +118,7 @@ window.nearConnection = new WalletConnection(
 setNearConnection(window.nearConnection)
 ```
 
-Learn [more about `config` from `@near~eth/client`](#TODO)
+Learn [more about `config` from `@near-eth/client`](#TODO)
 
 
 #### `requestSignIn()`
@@ -135,14 +135,14 @@ You can add this handler:
 // For this library's functionality, the specific contract address passed to
 // `requestSignIn` is not super important, but you may want to use a contract
 // from a connector library rather than the core client library
-import { config } from '@near~eth/nep141~erc20'
+import { config } from '@near-eth/nep141-erc20'
 
 document.querySelector('#authNear').onclick = () => {
   window.nearConnection.requestSignIn(config.ropsten.bridgeTokenFactory)
 }
 ```
 
-Learn [more about `config` from `@near~eth/nep141~erc20`](#TODO)
+Learn [more about `config` from `@near-eth/nep141-erc20`](#TODO)
 
 ### Ethereum Authentication
 
@@ -156,7 +156,7 @@ You can use [web3modal](https://github.com/web3modal/web3modal) to add this hand
 
 ```js
 import Web3Modal from 'web3modal'
-import { setEthProvider } from '@near~eth/client'
+import { setEthProvider } from '@near-eth/client'
 
 const web3Modal = new Web3Modal({ cacheProvider: true })
 
@@ -187,7 +187,7 @@ Great, now your user is authenticated with both NEAR & Ethereum. Now let's say y
 Here's some JavaScript to make this work:
 
 ```js
-import { naturalErc20 } from '@near~eth/nep141~erc20'
+import { naturalErc20 } from '@near-eth/nep141-erc20'
 
 document.querySelector('#sendErc20ToNear').onsubmit = async e => {
   e.preventDefault()
@@ -212,7 +212,7 @@ Step 3: List in-progress transfers
 ----------------------------------
 
 For the rest of the lifetime of the transfer you just initiated, you will use
-exports from `@near~eth/client`, rather than the connector-specific library.
+exports from `@near-eth/client`, rather than the connector-specific library.
 
 Let's say you want to list in-progress transfers in this `ol`:
 
@@ -223,7 +223,7 @@ Let's say you want to list in-progress transfers in this `ol`:
 Here's code to render the list of transfers:
 
 ```js
-import { get, onChange } from '@near~eth/client'
+import { get, onChange } from '@near-eth/client'
 
 function renderTransfers () {
   const transfers = get({ filter: { status: 'in-progress' } })
@@ -246,7 +246,7 @@ And here's what `renderTransfer` might look like, using vanilla JS (translation
 to React is straightforward):
 
 ```js
-import { act, decorate } from '@near~eth/client'
+import { act, decorate } from '@near-eth/client'
 
 function renderTransfer (transfer) {
   // "decorate" transfer with realtime info & other data that would bloat localStorage
@@ -303,7 +303,7 @@ Your app will need to prompt users to sign in with both Ethereum
 authorization process completes for both chains, you need this:
 
 ```js
-import { checkStatusAll } from '@near~eth/client'
+import { checkStatusAll } from '@near-eth/client'
 
 checkStatusAll({ loop: 15000 })
 ```
@@ -345,7 +345,7 @@ code][example] (implemented in vanilla/no-framework JavaScript).
 Author a custom connector library
 =================================
 
-1. Copy the code in the [`@near~eth/nep141~erc20`] library
+1. Copy the code in the [`@near-eth/nep141-erc20`] library
 2. Adjust for your needs
 
-  [`@near~eth/nep141~erc20`]: https://github.com/near/rainbow-bridge-frontend/tree/526ed49248974e38b438d92c12ede1b6305eb869/src/js/transfers/erc20%2Bnep141
+  [`@near-eth/nep141-erc20`]: https://github.com/near/rainbow-bridge-frontend/tree/526ed49248974e38b438d92c12ede1b6305eb869/src/js/transfers/erc20%2Bnep141

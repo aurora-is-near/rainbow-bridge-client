@@ -7,14 +7,14 @@ let nearConnection: WalletConnection
 /**
  * Set ethProvider
  *
- * This must be called by apps that use @near~eth/client before performing any
- * transfer operations with @near~eth/client itself or with connector libraries
- * such as @near~eth/nep141~erc20.
+ * This must be called by apps that use @near-eth/client before performing any
+ * transfer operations with @near-eth/client itself or with connector libraries
+ * such as @near-eth/nep141-erc20.
  *
  * Example:
  *
  *     import { ethers } from 'ethers'
- *     import { setEthProvider } from '@near~eth/client'
+ *     import { setEthProvider } from '@near-eth/client'
  *     setEthProvider(new ethers.providers.JsonRpcProvider())
  *
  * @param provider Ethereum Provider
@@ -30,14 +30,14 @@ export function setEthProvider (provider: any) {
 /**
  * Set nearConnection
  *
- * This must be called by apps that use @near~eth/client before performing any
- * transfer operations with @near~eth/client itself or with connector libraries
- * such as @near~eth/nep141~erc20.
+ * This must be called by apps that use @near-eth/client before performing any
+ * transfer operations with @near-eth/client itself or with connector libraries
+ * such as @near-eth/nep141-erc20.
  *
  * Example:
  *
  *     import { Near, WalletConnection } from 'near-api-js'
- *     import { config, setNearConnection } from '@near~eth/client'
+ *     import { config, setNearConnection } from '@near-eth/client'
  *
  *     setNearConnection(new WalletConnection(
  *       new Near(config.ropsten.near)
@@ -56,8 +56,8 @@ export function setNearConnection (connection: WalletConnection) {
 /**
  * Get ethProvider
  *
- * Internal function, only expected to be used by @near~eth/nep141~erc20 and
- * other connector libraries that interoperate with @near~eth/client. If you
+ * Internal function, only expected to be used by @near-eth/nep141-erc20 and
+ * other connector libraries that interoperate with @near-eth/client. If you
  * are an app developer, you can ignore this function.
  *
  * @returns an Ethereum Provider for use with ethers.js or web3js
@@ -69,8 +69,8 @@ export function getEthProvider () {
 /**
  * Get NEAR Account for the nearConnection set by `setNearConnection`
  *
- * Internal function, only expected to be used by @near~eth/nep141~erc20 and
- * other connector libraries that interoperate with @near~eth/client. If you
+ * Internal function, only expected to be used by @near-eth/nep141-erc20 and
+ * other connector libraries that interoperate with @near-eth/client. If you
  * are an app developer, you can ignore this function.
  *
  * Ensures that app called `setNearConnection`
@@ -98,7 +98,7 @@ export async function getNearAccount (
 ): Promise<ConnectedWalletAccount> {
   if (!nearConnection) {
     throw new Error(
-      'Must `setNearConnection(new WalletConnection(near))` prior to calling anything from `@near~eth/client` or connector libraries'
+      'Must `setNearConnection(new WalletConnection(near))` prior to calling anything from `@near-eth/client` or connector libraries'
     )
   }
 

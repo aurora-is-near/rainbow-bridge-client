@@ -15,10 +15,10 @@ function getTransferType (transfer: Transfer): ConnectorLib {
   // TODO: find a way to `require(transfer.type)`
   try {
     switch (transfer.type) {
-      case '@near~eth/nep141-erc20/natural-erc20/sendToNear':
-        return require('@near~eth/nep141-erc20/dist/natural-erc20/sendToNear')
-      case '@near~eth/nep141-erc20/bridged-nep141/sendToEthereum':
-        return require('@near~eth/nep141-erc20/dist/bridged-nep141/sendToEthereum')
+      case '@near-eth/nep141-erc20/natural-erc20/sendToNear':
+        return require('@near-eth/nep141-erc20/dist/natural-erc20/sendToNear')
+      case '@near-eth/nep141-erc20/bridged-nep141/sendToEthereum':
+        return require('@near-eth/nep141-erc20/dist/bridged-nep141/sendToEthereum')
       default:
         throw new Error(`Unregistered library for transfer with type=${transfer.type}`)
     }
@@ -36,8 +36,8 @@ function getTransferType (transfer: Transfer): ConnectorLib {
  *
  * @example
  *
- *     import { get } from '@near~eth/client'
- *     import { IN_PROGRESS, ACTION_NEEDED } from '@near~eth/client/dist/statuses'
+ *     import { get } from '@near-eth/client'
+ *     import { IN_PROGRESS, ACTION_NEEDED } from '@near-eth/client/dist/statuses'
  *     const inFlight = await get({
  *       filter: t => [IN_PROGRESS, ACTION_NEEDED].includes(t.status)
  *     })
