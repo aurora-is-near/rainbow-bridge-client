@@ -1,3 +1,9 @@
+## <small>0.1.1 (2021-02-24)</small>
+
+* build: rename @near-eth and fix typescript 4.1.5 ([f95a5f3](https://github.com/near/rainbow-bridge-client/commit/f95a5f3))
+
+
+
 ## 0.1.0 (2021-02-24)
 
 * chore: add @types/node and changelog generator ([837cde8](https://github.com/near/rainbow-bridge-lib/commit/837cde8))
