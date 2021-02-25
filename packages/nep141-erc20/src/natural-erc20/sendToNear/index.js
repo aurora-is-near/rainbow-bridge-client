@@ -110,7 +110,7 @@ export async function initiate ({
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
     // attributes common to all transfer types
-    amount: (new Decimal(amount).times(10 ** decimals)).toString(),
+    amount: (new Decimal(amount).times(10 ** decimals)).toFixed(),
     completedStep: null,
     destinationTokenName,
     errors: [],
