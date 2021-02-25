@@ -1,3 +1,9 @@
+## <small>0.1.2 (2021-02-25)</small>
+
+* fix: prevent scientific notation in amount ([28570e1](https://github.com/near/rainbow-bridge-client/commit/28570e1))
+
+
+
 ## <small>0.1.1 (2021-02-24)</small>
 
 * build: rename @near-eth and fix typescript 4.1.5 ([f95a5f3](https://github.com/near/rainbow-bridge-client/commit/f95a5f3))
