@@ -2,7 +2,7 @@ import BN from 'bn.js'
 import { Decimal } from 'decimal.js'
 import getRevertReason from 'eth-revert-reason'
 import Web3 from 'web3'
-import { track } from '@near-eth/client'
+import { track, get } from '@near-eth/client'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
@@ -137,6 +137,15 @@ export async function initiate ({
 }
 
 async function approve (transfer) {
+  // Check if a transfer is pending lock: we don't want to override the approval of a previous transfer.
+  const transfers = await get(
+    { filter: t => t.sourceToken === transfer.sourceToken && (!t.completedStep || t.completedStep === APPROVE) }
+  )
+  if (transfers.length > 0) {
+    throw new Error(
+      'Another transfer is already in progress, please complete the "Lock" step and try again'
+    )
+  }
   const web3 = new Web3(getEthProvider())
 
   const erc20Contract = new web3.eth.Contract(
@@ -299,6 +308,7 @@ async function mint (transfer) {
   // able to correctly identify the transfer and see if the transaction
   // succeeded.
   setTimeout(async () => {
+    console.log('timeout before redirect')
     const balanceBefore = await getNep141Balance({
       erc20Address: transfer.sourceToken,
       user: transfer.recipient
@@ -324,6 +334,7 @@ async function mint (transfer) {
 
 export async function checkMint (transfer) {
   const id = urlParams.get('minting')
+  console.log('id: ', id, transfer)
   if (!id || id !== transfer.id) {
     return {
       ...transfer,
