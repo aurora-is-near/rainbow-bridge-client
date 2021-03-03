@@ -308,7 +308,6 @@ async function mint (transfer) {
   // able to correctly identify the transfer and see if the transaction
   // succeeded.
   setTimeout(async () => {
-    console.log('timeout before redirect')
     const balanceBefore = await getNep141Balance({
       erc20Address: transfer.sourceToken,
       user: transfer.recipient
@@ -334,7 +333,6 @@ async function mint (transfer) {
 
 export async function checkMint (transfer) {
   const id = urlParams.get('minting')
-  console.log('id: ', id, transfer)
   if (!id || id !== transfer.id) {
     return {
       ...transfer,
