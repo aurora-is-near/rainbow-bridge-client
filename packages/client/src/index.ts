@@ -7,6 +7,7 @@ import {
   Step,
   UnsavedTransfer
 } from './types'
+import { getEthProvider } from './utils'
 
 export { onChange } from './storage'
 export { setEthProvider, setNearConnection } from './utils'
@@ -134,10 +135,20 @@ export function decorate (
  * inProgress transfers remain
  */
 export async function checkStatusAll (
-  { loop }: { loop?: number } = { loop: undefined }
+  { loop, expectedEthChainId }: { loop?: number, expectedEthChainId?: string } = { loop: undefined, expectedEthChainId: undefined }
 ): Promise<void> {
   if (loop !== undefined && !Number.isInteger(loop)) {
     throw new Error('`loop` must be frequency, in milliseconds')
+  }
+  if (expectedEthChainId !== undefined && expectedEthChainId !== getEthProvider().chainId) {
+    // Don't check status if wrong eth network is selected in wallet to prevent false transfer error.
+    if (loop !== undefined) {
+      window.setTimeout(
+        () => { checkStatusAll({ loop, expectedEthChainId }).catch(console.error) },
+        loop
+      )
+    }
+    return
   }
 
   const inProgress = await get({
@@ -150,7 +161,7 @@ export async function checkStatusAll (
   // loop, if told to loop
   if (loop !== undefined) {
     window.setTimeout(
-      () => { checkStatusAll({ loop }).catch(console.error) },
+      () => { checkStatusAll({ loop, expectedEthChainId }).catch(console.error) },
       loop
     )
   }
