@@ -1,3 +1,9 @@
+## <small>0.1.3 (2021-03-04)</small>
+
+* fix: prevent 2nd eth approval if another lock already pending ([93ac442](https://github.com/near/rainbow-bridge-client/commit/93ac442))
+
+
+
 ## <small>0.1.2 (2021-02-25)</small>
 
 * fix: prevent scientific notation in amount ([28570e1](https://github.com/near/rainbow-bridge-client/commit/28570e1))
