@@ -178,7 +178,7 @@ Step 2: Initiate a transfer
 Great, now your user is authenticated with both NEAR & Ethereum. Now let's say you have a form.
 
 ```html
-<form id="sendErc20ToNear>
+<form id="sendErc20ToNear">
   <input id="erc20Address" />
   <input id="amount" />
 </form>
