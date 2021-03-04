@@ -69,6 +69,7 @@ export const i18n = {
 export function act (transfer) {
   switch (transfer.completedStep) {
     case null: return authenticate(transfer)
+    case AWAIT_FINALITY: return checkSync(transfer)
     case SYNC: return unlock(transfer)
     default: throw new Error(`Don't know how to act on transfer: ${JSON.stringify(transfer)}`)
   }
