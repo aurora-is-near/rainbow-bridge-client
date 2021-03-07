@@ -170,6 +170,14 @@ async function approve (transfer) {
 
 async function checkApprove (transfer) {
   const web3 = new Web3(getEthProvider())
+  const ethNetwork = await web3.eth.net.getNetworkType()
+  if (ethNetwork !== process.env.ethNetworkId) {
+    console.log(
+      'Wrong eth network for checkApprove, expected: %s, got: %s',
+      process.env.ethNetworkId, ethNetwork
+    )
+    return transfer
+  }
 
   const approvalHash = last(transfer.approvalHashes)
   const approvalReceipt = await web3.eth.getTransactionReceipt(
@@ -181,7 +189,6 @@ async function checkApprove (transfer) {
   if (!approvalReceipt.status) {
     let error
     try {
-      const ethNetwork = await web3.eth.net.getNetworkType()
       error = await getRevertReason(approvalHash, ethNetwork)
     } catch (e) {
       console.error(e)
@@ -235,6 +242,14 @@ async function lock (transfer) {
 async function checkLock (transfer) {
   const lockHash = last(transfer.lockHashes)
   const web3 = new Web3(getEthProvider())
+  const ethNetwork = await web3.eth.net.getNetworkType()
+  if (ethNetwork !== process.env.ethNetworkId) {
+    console.log(
+      'Wrong eth network for checkLock, expected: %s, got: %s',
+      process.env.ethNetworkId, ethNetwork
+    )
+    return transfer
+  }
   const lockReceipt = await web3.eth.getTransactionReceipt(
     lockHash
   )
@@ -244,7 +259,6 @@ async function checkLock (transfer) {
   if (!lockReceipt.status) {
     let error
     try {
-      const ethNetwork = await web3.eth.net.getNetworkType()
       error = await getRevertReason(lockHash, ethNetwork)
     } catch (e) {
       console.error(e)
