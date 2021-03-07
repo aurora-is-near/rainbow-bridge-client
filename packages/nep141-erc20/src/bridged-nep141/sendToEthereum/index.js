@@ -262,6 +262,14 @@ async function checkFinality (transfer) {
 // on the Near2EthClient.
 async function checkSync (transfer) {
   const web3 = new Web3(getEthProvider())
+  const ethNetwork = await web3.eth.net.getNetworkType()
+  if (ethNetwork !== process.env.ethNetworkId) {
+    console.log(
+      'Wrong eth network for checkSync, expected: %s, got: %s',
+      process.env.ethNetworkId, ethNetwork
+    )
+    return transfer
+  }
   const nearAccount = await getNearAccount()
 
   const nearOnEthClient = new web3.eth.Contract(
@@ -337,6 +345,14 @@ async function unlock (transfer) {
 
 async function checkUnlock (transfer) {
   const web3 = new Web3(getEthProvider())
+  const ethNetwork = await web3.eth.net.getNetworkType()
+  if (ethNetwork !== process.env.ethNetworkId) {
+    console.log(
+      'Wrong eth network for checkUnlock, expected: %s, got: %s',
+      process.env.ethNetworkId, ethNetwork
+    )
+    return transfer
+  }
 
   const unlockHash = last(transfer.unlockHashes)
   const unlockReceipt = await web3.eth.getTransactionReceipt(unlockHash)
@@ -346,7 +362,6 @@ async function checkUnlock (transfer) {
   if (!unlockReceipt.status) {
     let error
     try {
-      const ethNetwork = await web3.eth.net.getNetworkType()
       error = await getRevertReason(unlockHash, ethNetwork)
     } catch (e) {
       console.error(e)
