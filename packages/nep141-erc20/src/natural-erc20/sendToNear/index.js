@@ -3,10 +3,11 @@ import { Decimal } from 'decimal.js'
 import getRevertReason from 'eth-revert-reason'
 import Web3 from 'web3'
 import { track, get } from '@near-eth/client'
+import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
+import { utils } from 'near-api-js'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
-import getNep141Balance from '../../bridged-nep141/getBalance'
 import getName from '../getName'
 import { getDecimals } from '../getMetadata'
 import findProof from './findProof'
@@ -306,6 +307,7 @@ async function checkSync (transfer) {
 // currently dealt with using URL params.
 async function mint (transfer) {
   const nearAccount = await getNearAccount({
+    // TODO: authAgainst can be any account, is there a better way ?
     authAgainst: process.env.nearTokenFactoryAccount
   })
   const lockReceipt = last(transfer.lockReceipts)
@@ -322,11 +324,7 @@ async function mint (transfer) {
   // able to correctly identify the transfer and see if the transaction
   // succeeded.
   setTimeout(async () => {
-    const balanceBefore = await getNep141Balance({
-      erc20Address: transfer.sourceToken,
-      user: transfer.recipient
-    })
-    urlParams.set({ minting: transfer.id, balanceBefore })
+    urlParams.set({ minting: transfer.id })
     await nearAccount.functionCall(
       process.env.nearTokenFactoryAccount,
       'deposit',
@@ -347,36 +345,80 @@ async function mint (transfer) {
 
 export async function checkMint (transfer) {
   const id = urlParams.get('minting')
+  // NOTE: when a single tx is executed, transactionHashes is equal to that hash
+  const txHash = urlParams.get('transactionHashes')
+  const errorCode = urlParams.get('errorCode')
   if (!id || id !== transfer.id) {
+    // Wallet returns transaction hash in redirect so it it not possible for another
+    // minting transaction to be in process, ie if checkMint is called on an in process
+    // minting then the transfer ids must be equal or the url callback is invalid.
     return {
       ...transfer,
       status: status.FAILED,
       errors: [...transfer.errors, "Couldn't determine transaction outcome"]
     }
   }
-
-  const balanceBefore = new BN(urlParams.get('balanceBefore'))
-  const balanceAfter = new BN(await getNep141Balance({
-    erc20Address: transfer.sourceToken,
-    user: transfer.recipient
-  }))
-  const transferAmount = new BN(transfer.amount)
-
-  urlParams.clear('minting', 'balanceBefore')
-
-  if (!balanceBefore.add(transferAmount).eq(balanceAfter)) {
+  if (errorCode) {
+    // If errorCode, then the redirect succeded but the tx was rejected/failed
+    // so clear url params
+    urlParams.clear()
+    const newError = 'Error from wallet: ' + errorCode
     return {
       ...transfer,
       status: status.FAILED,
-      errors: [
-        ...transfer.errors,
-        `Something went wrong. Pre-transaction balance (${balanceBefore})
-        + transfer amount (${transfer.amount}) =
-        ${balanceBefore.add(transferAmount)}, but new balance is instead
-        ${balanceAfter}.`
-      ]
+      errors: [...transfer.errors, newError]
     }
   }
+  if (!txHash) {
+    // If checkWithdraw is called before withdraw sig wallet redirect
+    // record the error but don't mark as FAILED and don't clear url params
+    // as the wallet redirect has not happened yet
+    const newError = 'Error from wallet: txHash not received'
+    return {
+      ...transfer,
+      errors: [...transfer.errors, newError]
+    }
+  }
+
+  // Clear url params after checks because checkWithdraw might get called before the withdraw() redirect to wallet
+  // and we need the wallet to have the correct 'withdrawing' url param
+  urlParams.clear()
+
+  // Check status of tx broadcasted by wallet
+  const decodedTxHash = utils.serialize.base_decode(txHash)
+  const nearAccount = await getNearAccount()
+  const mintTx = await nearAccount.connection.provider.txStatus(decodedTxHash, process.env.nearTokenFactoryAccount)
+  if (mintTx.status.Failure) {
+    console.error('mintTx.status.Failure', mintTx.status.Failure)
+    const errorMessage = typeof mintTx.status.Failure === 'object'
+      ? parseRpcError(mintTx.status.Failure)
+      : `Transaction <a href="${process.env.nearExplorerUrl}/transactions/${mintTx.transaction.hash}">${mintTx.transaction.hash}</a> failed`
+
+    return {
+      ...transfer,
+      errors: [...transfer.errors, errorMessage],
+      status: status.FAILED,
+      mintTx
+    }
+  }
+
+  const receiptIds = mintTx.transaction_outcome.outcome.receipt_ids
+
+  if (receiptIds.length !== 1) {
+    return {
+      ...transfer,
+      errors: [
+        ...transfer.errors,
+          `Minting expects only one receipt, got ${receiptIds.length
+          }. Full minting transaction: ${JSON.stringify(mintTx)}`
+      ],
+      status: status.FAILED,
+      mintTx
+    }
+  }
+
+  // const txReceiptId = receiptIds[0]
+  // TODO check receipt id status ?
 
   return {
     ...transfer,
