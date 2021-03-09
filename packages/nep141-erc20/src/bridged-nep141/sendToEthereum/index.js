@@ -5,14 +5,16 @@ import getRevertReason from 'eth-revert-reason'
 import Web3 from 'web3'
 import { toBuffer } from 'eth-util-lite'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
+import { utils } from 'near-api-js'
 import getErc20Name from '../../natural-erc20/getName'
 import { getDecimals } from '../../natural-erc20/getMetadata'
 import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { track } from '@near-eth/client'
 import { borshifyOutcomeProof } from './borshify-proof'
-import { getEthProvider, getNearAccount, nearAuthedAgainst, formatLargeNum } from '@near-eth/client/dist/utils'
+import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import getNep141Address from '../getAddress'
+import * as urlParams from '../../natural-erc20/sendToNear/urlParams'
 
 export const SOURCE_NETWORK = 'near'
 export const DESTINATION_NETWORK = 'ethereum'
@@ -68,7 +70,7 @@ export const i18n = {
 // Called when status is ACTION_NEEDED or FAILED
 export function act (transfer) {
   switch (transfer.completedStep) {
-    case null: return authenticate(transfer)
+    case null: return withdraw(transfer)
     case AWAIT_FINALITY: return checkSync(transfer)
     case SYNC: return unlock(transfer)
     default: throw new Error(`Don't know how to act on transfer: ${JSON.stringify(transfer)}`)
@@ -78,7 +80,7 @@ export function act (transfer) {
 // Called when status is IN_PROGRESS
 export function checkStatus (transfer) {
   switch (transfer.completedStep) {
-    case null: return withdraw(transfer)
+    case null: return checkWithdraw(transfer)
     case WITHDRAW: return checkFinality(transfer)
     case AWAIT_FINALITY: return checkSync(transfer)
     case SYNC: return checkUnlock(transfer)
@@ -99,7 +101,7 @@ export async function initiate ({
   const sourceToken = getNep141Address(erc20Address)
 
   // various attributes stored as arrays, to keep history of retries
-  const transfer = {
+  let transfer = {
     // attributes common to all transfer types
     amount: (new Decimal(amount).times(10 ** decimals)).toFixed(),
     completedStep: null,
@@ -127,46 +129,29 @@ export async function initiate ({
     proofs: []
   }
 
-  // no need for checkStatusEvery, because:
-  // * the `authenticate`/`withdraw` flow causes a redirect to NEAR Wallet
-  // * once back at app, `checkStatusAll` will cover this one
-  await track(transfer)
+  transfer = await track(transfer)
 
-  authenticate(transfer)
-}
-
-// current BridgeToken contract does not require deposit on `withdraw` function
-// call `requestSignIn` to add FunctionCall Access Key for this contract,
-// then once back at this app, can call `withdraw` without firing a redirect to NEAR Wallet.
-async function authenticate (transfer) {
-  // setTimeout to add access key for BridgeToken contract AFTER returning, so
-  // that transfer can be updated in local storage and marked as no longer
-  // failing (if needed)
-  setTimeout(
-    () => getNearAccount({
-      authAgainst: transfer.sourceToken,
-      strict: true
-    }),
-    50
-  )
-
-  return {
-    ...transfer,
-    status: status.IN_PROGRESS
-  }
+  await withdraw(transfer)
 }
 
 async function withdraw (transfer) {
-  // `authenticate` hasn't triggered redirect yet
-  if (!(await nearAuthedAgainst(transfer.sourceToken))) {
-    return transfer
-  }
-
-  const nearAccount = await getNearAccount()
-
-  let withdrawTx
-  try {
-    withdrawTx = await nearAccount.functionCall(
+  const nearAccount = await getNearAccount({
+    // TODO: authAgainst can be any account, is there a better way ?
+    authAgainst: process.env.nearTokenFactoryAccount
+  })
+  // Calling `BridgeToken.withdraw` causes a redirect to NEAR Wallet.
+  //
+  // This adds some info about the current transaction to the URL params, then
+  // returns to mark the transfer as in-progress, and THEN executes the
+  // `withdraw` function.
+  //
+  // Since this happens very quickly in human time, a user will not have time
+  // to start two `deposit` calls at the same time, and the `checkWithdraw` will be
+  // able to correctly identify the transfer and see if the transaction
+  // succeeded.
+  setTimeout(async () => {
+    urlParams.set({ withdrawing: transfer.id })
+    await nearAccount.functionCall(
       transfer.sourceToken,
       'withdraw',
       {
@@ -175,15 +160,59 @@ async function withdraw (transfer) {
       },
       new BN('3' + '0'.repeat(14)) // 10x current default from near-api-js
     )
-  } catch (e) {
-    console.error(e)
+  }, 100)
+
+  return {
+    ...transfer,
+    status: status.IN_PROGRESS
+  }
+}
+
+export async function checkWithdraw (transfer) {
+  const id = urlParams.get('withdrawing')
+  // NOTE: when a single tx is executed, transactionHashes is equal to that hash
+  const txHash = urlParams.get('transactionHashes')
+  const errorCode = urlParams.get('errorCode')
+  if (!id || id !== transfer.id) {
+    // Wallet returns transaction hash in redirect so it it not possible for another
+    // minting transaction to be in process, ie if checkWithdraw is called on an in process
+    // minting then the transfer ids must be equal or the url callback is invalid.
     return {
       ...transfer,
-      errors: [...transfer.errors, e.message],
-      status: status.FAILED
+      status: status.FAILED,
+      errors: [...transfer.errors, "Couldn't determine transaction outcome"]
+    }
+  }
+  if (errorCode) {
+    // If errorCode, then the redirect succeded but the tx was rejected/failed
+    // so clear url params
+    urlParams.clear()
+    const newError = 'Error from wallet: ' + errorCode
+    return {
+      ...transfer,
+      status: status.FAILED,
+      errors: [...transfer.errors, newError]
+    }
+  }
+  if (!txHash) {
+    // If checkWithdraw is called before withdraw sig wallet redirect
+    // record the error but don't mark as FAILED and don't clear url params
+    // as the wallet redirect has not happened yet
+    const newError = 'Error from wallet: txHash not received'
+    return {
+      ...transfer,
+      errors: [...transfer.errors, newError]
     }
   }
 
+  // Clear url params after checks because checkWithdraw might get called before the withdraw() redirect to wallet
+  // and we need the wallet to have the correct 'withdrawing' url param
+  urlParams.clear()
+
+  // Check status of tx broadcasted by wallet
+  const decodedTxHash = utils.serialize.base_decode(txHash)
+  const nearAccount = await getNearAccount()
+  const withdrawTx = await nearAccount.connection.provider.txStatus(decodedTxHash, transfer.sourceToken)
   if (withdrawTx.status.Failure) {
     console.error('withdrawTx.status.Failure', withdrawTx.status.Failure)
     const errorMessage = typeof withdrawTx.status.Failure === 'object'
@@ -214,6 +243,8 @@ async function withdraw (transfer) {
   }
 
   const txReceiptId = receiptIds[0]
+
+  // TODO check receipt id status ?
 
   const successReceiptId = withdrawTx.receipts_outcome
     .find(r => r.id === txReceiptId).outcome.status.SuccessReceiptId
