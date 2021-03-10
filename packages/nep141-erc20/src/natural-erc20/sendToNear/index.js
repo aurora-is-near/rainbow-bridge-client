@@ -129,7 +129,8 @@ export async function initiate ({
     completedConfirmations: 0,
     lockHashes: [],
     lockReceipts: [],
-    neededConfirmations: 30 // hard-coding until connector contract is updated with this information
+    neededConfirmations: 30, // hard-coding until connector contract is updated with this information
+    mintHashes: []
   }
 
   transfer = await approve(transfer)
@@ -352,10 +353,12 @@ export async function checkMint (transfer) {
     // Wallet returns transaction hash in redirect so it it not possible for another
     // minting transaction to be in process, ie if checkMint is called on an in process
     // minting then the transfer ids must be equal or the url callback is invalid.
+    const newError = 'Couldn\'t determine transaction outcome'
+    console.error(newError)
     return {
       ...transfer,
       status: status.FAILED,
-      errors: [...transfer.errors, "Couldn't determine transaction outcome"]
+      errors: [...transfer.errors, newError]
     }
   }
   if (errorCode) {
@@ -363,6 +366,7 @@ export async function checkMint (transfer) {
     // so clear url params
     urlParams.clear()
     const newError = 'Error from wallet: ' + errorCode
+    console.error(newError)
     return {
       ...transfer,
       status: status.FAILED,
@@ -374,10 +378,28 @@ export async function checkMint (transfer) {
     // record the error but don't mark as FAILED and don't clear url params
     // as the wallet redirect has not happened yet
     const newError = 'Error from wallet: txHash not received'
+    console.error(newError)
     return {
       ...transfer,
       errors: [...transfer.errors, newError]
     }
+  }
+  if (txHash.includes(',')) {
+    const newError = 'Error from wallet: expected single txHash, got: ' + txHash
+    console.error(newError)
+    return {
+      ...transfer,
+      errors: [...transfer.errors, newError]
+    }
+  }
+
+  const decodedTxHash = utils.serialize.base_decode(txHash)
+  const nearAccount = await getNearAccount()
+  const mintTx = await nearAccount.connection.provider.txStatus(decodedTxHash, process.env.nearTokenFactoryAccount)
+
+  if (mintTx.status.Unknown) {
+    // Transaction or receipt not processed yet
+    return transfer
   }
 
   // Clear url params after checks because checkWithdraw might get called before the withdraw() redirect to wallet
@@ -385,9 +407,6 @@ export async function checkMint (transfer) {
   urlParams.clear()
 
   // Check status of tx broadcasted by wallet
-  const decodedTxHash = utils.serialize.base_decode(txHash)
-  const nearAccount = await getNearAccount()
-  const mintTx = await nearAccount.connection.provider.txStatus(decodedTxHash, process.env.nearTokenFactoryAccount)
   if (mintTx.status.Failure) {
     console.error('mintTx.status.Failure', mintTx.status.Failure)
     const errorMessage = typeof mintTx.status.Failure === 'object'
@@ -398,32 +417,16 @@ export async function checkMint (transfer) {
       ...transfer,
       errors: [...transfer.errors, errorMessage],
       status: status.FAILED,
+      mintHashes: [...transfer.mintHashes, txHash],
       mintTx
     }
   }
-
-  const receiptIds = mintTx.transaction_outcome.outcome.receipt_ids
-
-  if (receiptIds.length !== 1) {
-    return {
-      ...transfer,
-      errors: [
-        ...transfer.errors,
-          `Minting expects only one receipt, got ${receiptIds.length
-          }. Full minting transaction: ${JSON.stringify(mintTx)}`
-      ],
-      status: status.FAILED,
-      mintTx
-    }
-  }
-
-  // const txReceiptId = receiptIds[0]
-  // TODO check receipt id status ?
 
   return {
     ...transfer,
     completedStep: MINT,
-    status: status.COMPLETE
+    status: status.COMPLETE,
+    mintHashes: [...transfer.mintHashes, txHash]
   }
 }
 
