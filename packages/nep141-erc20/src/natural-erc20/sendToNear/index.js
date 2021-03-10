@@ -140,7 +140,7 @@ export async function initiate ({
 async function approve (transfer) {
   // Check if a transfer is pending lock: we don't want to override the approval of a previous transfer.
   const transfers = await get(
-    { filter: t => t.sourceToken === transfer.sourceToken && (!t.completedStep || t.completedStep === APPROVE) }
+    { filter: t => t.sourceToken === transfer.sourceToken && (!t.completedStep || t.completedStep === APPROVE) && (t.id !== transfer.id) }
   )
   if (transfers.length > 0) {
     throw new Error(
