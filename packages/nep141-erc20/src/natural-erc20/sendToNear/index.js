@@ -90,6 +90,58 @@ export function checkStatus (transfer) {
   }
 }
 
+// Recover transfer from a lock tx hash
+// Track a new transfer at the completedStep = LOCK so that it can be minted
+export async function recover (lockTxHash) {
+  const web3 = new Web3(getEthProvider())
+  const receipt = await web3.eth.getTransactionReceipt(lockTxHash)
+  const ethTokenLocker = new web3.eth.Contract(
+    JSON.parse(process.env.ethLockerAbiText),
+    process.env.ethLockerAddress
+  )
+  const [lockedEvent] = await ethTokenLocker.getPastEvents('Locked', {
+    filter: { transactionHash: lockTxHash },
+    fromBlock: receipt.blockNumber
+  })
+  if (lockedEvent.event !== 'Locked') {
+    throw new Error(
+      'Unable to process lock transaction, for event %s, expected %s',
+      lockedEvent.event, 'Locked'
+    )
+  }
+  const erc20Address = lockedEvent.returnValues.token
+  const amount = lockedEvent.returnValues.amount
+  const recipient = lockedEvent.returnValues.accountId
+  const sender = lockedEvent.returnValues.sender
+  const sourceTokenName = await getName(erc20Address)
+  const decimals = await getDecimals(erc20Address)
+  const destinationTokenName = sourceTokenName + 'ⁿ'
+
+  const transfer = {
+    // attributes common to all transfer types
+    amount,
+    completedStep: LOCK,
+    destinationTokenName,
+    errors: [],
+    recipient,
+    sender,
+    sourceToken: erc20Address,
+    sourceTokenName,
+    decimals,
+    status: status.IN_PROGRESS,
+    type: TRANSFER_TYPE,
+
+    // attributes specific to natural-erc20-to-nep141 transfers
+    approvalHashes: [],
+    approvalReceipts: [],
+    completedConfirmations: 0,
+    lockHashes: [],
+    lockReceipts: [receipt],
+    neededConfirmations: 30 // hard-coding until connector contract is updated with this information
+  }
+  track(transfer)
+}
+
 // Call contract given by `erc20` contract, requesting permission for contract
 // at `process.env.ethLockerAddress` to transfer 'amount' tokens
 // on behalf of the default user set up in authEthereum.js.
