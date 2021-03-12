@@ -219,7 +219,11 @@ export async function checkWithdraw (transfer) {
 
   const decodedTxHash = utils.serialize.base_decode(txHash)
   const nearAccount = await getNearAccount()
-  const withdrawTx = await nearAccount.connection.provider.txStatus(decodedTxHash, transfer.sourceToken)
+  const withdrawTx = await nearAccount.connection.provider.txStatus(
+    // use transfer.sender instead of nearAccount.accountId so that a withdraw
+    // tx hash can be recovered even if it is not made by the logged in account
+    decodedTxHash, transfer.sender
+  )
 
   if (withdrawTx.status.Unknown) {
     // Transaction or receipt not processed yet

@@ -395,7 +395,9 @@ export async function checkMint (transfer) {
 
   const decodedTxHash = utils.serialize.base_decode(txHash)
   const nearAccount = await getNearAccount()
-  const mintTx = await nearAccount.connection.provider.txStatus(decodedTxHash, process.env.nearTokenFactoryAccount)
+  const mintTx = await nearAccount.connection.provider.txStatus(
+    decodedTxHash, nearAccount.accountId
+  )
 
   if (mintTx.status.Unknown) {
     // Transaction or receipt not processed yet
