@@ -87,6 +87,93 @@ export function checkStatus (transfer) {
   }
 }
 
+// Recover transfer from a withdraw tx hash
+// Track a new transfer at the completedStep = WITHDRAW so that it can be unlocked
+export async function recover (withdrawTxHash, sender='todo') {
+  const decodedTxHash = utils.serialize.base_decode(withdrawTxHash)
+  const nearAccount = await getNearAccount()
+  const withdrawTx = await nearAccount.connection.provider.txStatus(
+    // TODO: when multiple shards, the sender should be known in order to query txStatus
+    decodedTxHash, sender
+  )
+  sender = withdrawTx.transaction.signer_id
+
+  if (withdrawTx.status.Unknown) {
+    // Transaction or receipt not processed yet
+    throw new Error('Withdraw transaction pending: %s', withdrawTxHash)
+  }
+
+  // Check status of tx broadcasted by wallet
+  if (withdrawTx.status.Failure) {
+    throw new Error('Withdraw transaction failed: %s', withdrawTxHash)
+  }
+
+  const receiptIds = withdrawTx.transaction_outcome.outcome.receipt_ids
+
+  if (receiptIds.length !== 1) {
+    throw new Error(
+      `Withdrawal expects only one receipt, got ${receiptIds.length}.
+      Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
+    )
+  }
+
+  const txReceiptId = receiptIds[0]
+
+  const successReceiptId = withdrawTx.receipts_outcome
+    .find(r => r.id === txReceiptId).outcome.status.SuccessReceiptId
+  const txReceiptBlockHash = withdrawTx.receipts_outcome
+    .find(r => r.id === successReceiptId).block_hash
+
+  const receiptBlock = await nearAccount.connection.provider.block({
+    blockId: txReceiptBlockHash
+  })
+
+  const args = JSON.parse(
+    Buffer.from(withdrawTx.transaction.actions[0].FunctionCall.args, 'base64')
+    .toString('utf-8')
+  )
+  const amount = args.amount
+  const recipient = '0x' + args.recipient
+  const sourceToken = withdrawTx.transaction.receiver_id
+  const erc20Address = '0x' + sourceToken.slice(0, 40)
+  if (!/^(0x)?[0-9a-f]{40}$/i.test(erc20Address)) {
+    throw new Error('Failed to determine erc20 address from bridged token: %s', sourceToken)
+  }
+  const destinationTokenName = await getErc20Name(erc20Address)
+  const decimals = await getDecimals(erc20Address)
+  const sourceTokenName = destinationTokenName + 'ⁿ'
+
+  // various attributes stored as arrays, to keep history of retries
+  const transfer = {
+    // attributes common to all transfer types
+    amount,
+    completedStep: WITHDRAW,
+    destinationTokenName,
+    errors: [],
+    recipient,
+    sender,
+    sourceToken,
+    sourceTokenName,
+    decimals,
+    status: status.IN_PROGRESS,
+    type: TRANSFER_TYPE,
+
+    // attributes specific to bridged-nep141-to-erc20 transfers
+    finalityBlockHeights: [],
+    finalityBlockTimestamps: [],
+    nearOnEthClientBlockHeight: null, // calculated & set to a number during checkSync
+    securityWindow: 4 * 60, // in minutes. TODO: seconds instead? hours? TODO: get from connector contract? prover?
+    securityWindowProgress: 0,
+    unlockHashes: [],
+    unlockReceipts: [],
+    withdrawReceiptBlockHeights: [Number(receiptBlock.header.height)],
+    withdrawReceiptIds: [successReceiptId],
+    nearOnEthClientBlockHeights: [],
+    proofs: []
+  }
+  track(transfer)
+}
+
 export async function initiate ({
   erc20Address,
   amount,
