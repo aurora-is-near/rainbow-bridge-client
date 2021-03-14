@@ -158,7 +158,9 @@ async function withdraw (transfer) {
         amount: String(transfer.amount),
         recipient: transfer.recipient.replace('0x', '')
       },
-      new BN('3' + '0'.repeat(14)) // 10x current default from near-api-js
+      // 100Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
+      new BN('100' + '0'.repeat(12)),
+      new BN('1')
     )
   }, 100)
 

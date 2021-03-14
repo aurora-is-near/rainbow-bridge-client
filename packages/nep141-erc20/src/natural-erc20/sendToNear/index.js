@@ -330,7 +330,8 @@ async function mint (transfer) {
       process.env.nearTokenFactoryAccount,
       'deposit',
       proof,
-      new BN('300000000000000'),
+      // 200Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
+      new BN('200' + '0'.repeat(12)),
       // We need to attach tokens because minting increases the contract state, by <600 bytes, which
       // requires an additional 0.06 NEAR to be deposited to the account for state staking.
       // Note technically 0.0537 NEAR should be enough, but we round it up to stay on the safe side.

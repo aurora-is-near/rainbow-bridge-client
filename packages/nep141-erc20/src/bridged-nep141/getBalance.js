@@ -19,8 +19,8 @@ export default async function getBalance ({ erc20Address, user }) {
   try {
     const balanceAsString = await nearAccount.viewFunction(
       nep141Address,
-      'get_balance',
-      { owner_id: user }
+      'ft_balance_of',
+      { account_id: user }
     )
     return balanceAsString
   } catch (e) {
