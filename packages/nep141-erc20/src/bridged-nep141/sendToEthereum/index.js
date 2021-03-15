@@ -268,10 +268,56 @@ export async function checkWithdraw (transfer) {
 
   const txReceiptId = receiptIds[0]
 
-  const successReceiptId = withdrawTx.receipts_outcome
-    .find(r => r.id === txReceiptId).outcome.status.SuccessReceiptId
+  const successReceiptOutcome = withdrawTx.receipts_outcome
+    .find(r => r.id === txReceiptId).outcome
+  const successReceiptId = successReceiptOutcome.status.SuccessReceiptId
+  const successReceiptExecutorId = successReceiptOutcome.executor_id
+
+  let withdrawReceiptId
+
+  // TODO: refactor withdrawReceiptId into function to be shared by recover()
+  // in separate PR.
+  // Check if this tx was made from a 2fa
+  switch (successReceiptExecutorId) {
+    case transfer.sender:
+      // `confirm` transaction executed on 2fa account
+      const withdrawReceiptOutcome = withdrawTx.receipts_outcome
+        .find(r => r.id === successReceiptId).outcome
+      withdrawReceiptId = withdrawReceiptOutcome.status.SuccessReceiptId
+      const withdrawReceiptExecutorId = withdrawReceiptOutcome.executor_id
+
+      // Expect this receipt to be the 2fa FunctionCall
+      if (withdrawReceiptExecutorId !== transfer.sourceToken) {
+        return {
+          ...transfer,
+          errors: [
+            ...transfer.errors,
+              `Unexpected receipt outcome format in 2fa transaction.
+              Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
+          ],
+          status: status.FAILED,
+          withdrawTx
+        }
+      }
+      break
+    case transfer.sourceToken:
+      // `withdraw` called directly, successReceiptId is already correct, nothing to do
+      withdrawReceiptId = successReceiptId
+      break
+    default:
+      return {
+        ...transfer,
+        errors: [
+          ...transfer.errors,
+            `Unexpected receipt outcome format.
+            Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
+        ],
+        status: status.FAILED,
+        withdrawTx
+      }
+  }
   const txReceiptBlockHash = withdrawTx.receipts_outcome
-    .find(r => r.id === successReceiptId).block_hash
+    .find(r => r.id === withdrawReceiptId).block_hash
 
   const receiptBlock = await nearAccount.connection.provider.block({
     blockId: txReceiptBlockHash
@@ -281,7 +327,7 @@ export async function checkWithdraw (transfer) {
     ...transfer,
     status: status.IN_PROGRESS,
     completedStep: WITHDRAW,
-    withdrawReceiptIds: [...transfer.withdrawReceiptIds, successReceiptId],
+    withdrawReceiptIds: [...transfer.withdrawReceiptIds, withdrawReceiptId],
     withdrawReceiptBlockHeights: [...transfer.withdrawReceiptBlockHeights, Number(receiptBlock.header.height)]
   }
 }
