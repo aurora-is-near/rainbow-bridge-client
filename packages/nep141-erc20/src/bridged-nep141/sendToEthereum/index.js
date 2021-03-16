@@ -170,6 +170,15 @@ async function withdraw (transfer) {
   }
 }
 
+/**
+ * Process a broadcasted withdraw transaction
+ * checkWithdraw is called in a loop by checkStatus for in progress transfers
+ * urlParams should be cleared only if the transaction succeded or if it FAILED
+ * Otherwise if this function throws due to provider or returns, then urlParams
+ * should not be cleared so that checkWithdraw can try again at the next loop.
+ * So urlparams.clear() is called when status.FAILED or at the end of this function.
+ * @param {*} transfer
+ */
 export async function checkWithdraw (transfer) {
   const id = urlParams.get('withdrawing')
   // NOTE: when a single tx is executed, transactionHashes is equal to that hash
@@ -183,8 +192,9 @@ export async function checkWithdraw (transfer) {
   }
   if (id !== transfer.id) {
     // Wallet returns transaction hash in redirect so it is not possible for another
-    // minting transaction to be in process, ie if checkWithdraw is called on an in process
-    // minting then the transfer ids must be equal or the url callback is invalid.
+    // withdraw transaction to be in process, ie if checkWithdraw is called on an in process
+    // withdraw then the transfer ids must be equal or the url callback is invalid.
+    urlParams.clear()
     const newError = 'Couldn\'t determine transaction outcome'
     console.error(newError)
     return {
@@ -209,18 +219,22 @@ export async function checkWithdraw (transfer) {
     // If checkWithdraw is called before withdraw sig wallet redirect
     // record the error but don't mark as FAILED and don't clear url params
     // as the wallet redirect has not happened yet
+    urlParams.clear()
     const newError = 'Error from wallet: txHash not received'
     console.error(newError)
     return {
       ...transfer,
+      status: status.FAILED,
       errors: [...transfer.errors, newError]
     }
   }
   if (txHash.includes(',')) {
+    urlParams.clear()
     const newError = 'Error from wallet: expected single txHash, got: ' + txHash
     console.error(newError)
     return {
       ...transfer,
+      status: status.FAILED,
       errors: [...transfer.errors, newError]
     }
   }
@@ -238,12 +252,10 @@ export async function checkWithdraw (transfer) {
     return transfer
   }
 
-  // Clear url params after checks because checkWithdraw might get called before the withdraw() redirect to wallet
-  // and we need the wallet to have the correct 'withdrawing' url param
-  urlParams.clear()
 
   // Check status of tx broadcasted by wallet
   if (withdrawTx.status.Failure) {
+    urlParams.clear()
     console.error('withdrawTx.status.Failure', withdrawTx.status.Failure)
     const errorMessage = typeof withdrawTx.status.Failure === 'object'
       ? parseRpcError(withdrawTx.status.Failure)
@@ -260,6 +272,7 @@ export async function checkWithdraw (transfer) {
   const receiptIds = withdrawTx.transaction_outcome.outcome.receipt_ids
 
   if (receiptIds.length !== 1) {
+    urlParams.clear()
     return {
       ...transfer,
       errors: [
@@ -294,6 +307,7 @@ export async function checkWithdraw (transfer) {
 
       // Expect this receipt to be the 2fa FunctionCall
       if (withdrawReceiptExecutorId !== transfer.sourceToken) {
+        urlParams.clear()
         return {
           ...transfer,
           errors: [
@@ -311,6 +325,7 @@ export async function checkWithdraw (transfer) {
       withdrawReceiptId = successReceiptId
       break
     default:
+      urlParams.clear()
       return {
         ...transfer,
         errors: [
@@ -328,6 +343,10 @@ export async function checkWithdraw (transfer) {
   const receiptBlock = await nearAccount.connection.provider.block({
     blockId: txReceiptBlockHash
   })
+
+  // Clear urlParams at the end so that if the provider connection throws,
+  // checkStatus will be able to process it again in the next loop.
+  urlParams.clear()
 
   return {
     ...transfer,

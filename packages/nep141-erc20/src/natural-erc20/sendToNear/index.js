@@ -345,6 +345,15 @@ async function mint (transfer) {
   }
 }
 
+/**
+ * Process a broadcasted mint transaction
+ * checkMint is called in a loop by checkStatus for in progress transfers
+ * urlParams should be cleared only if the transaction succeded or if it FAILED
+ * Otherwise if this function throws due to provider or returns, then urlParams
+ * should not be cleared so that checkMint can try again at the next loop.
+ * So urlparams.clear() is called when status.FAILED or at the end of this function.
+ * @param {*} transfer
+ */
 export async function checkMint (transfer) {
   const id = urlParams.get('minting')
   // NOTE: when a single tx is executed, transactionHashes is equal to that hash
@@ -360,6 +369,7 @@ export async function checkMint (transfer) {
     // Wallet returns transaction hash in redirect so it is not possible for another
     // minting transaction to be in process, ie if checkMint is called on an in process
     // minting then the transfer ids must be equal or the url callback is invalid.
+    urlParams.clear()
     const newError = 'Couldn\'t determine transaction outcome'
     console.error(newError)
     return {
@@ -384,18 +394,22 @@ export async function checkMint (transfer) {
     // If checkWithdraw is called before withdraw sig wallet redirect
     // record the error but don't mark as FAILED and don't clear url params
     // as the wallet redirect has not happened yet
+    urlParams.clear()
     const newError = 'Error from wallet: txHash not received'
     console.error(newError)
     return {
       ...transfer,
+      status: status.FAILED,
       errors: [...transfer.errors, newError]
     }
   }
   if (txHash.includes(',')) {
+    urlParams.clear()
     const newError = 'Error from wallet: expected single txHash, got: ' + txHash
     console.error(newError)
     return {
       ...transfer,
+      status: status.FAILED,
       errors: [...transfer.errors, newError]
     }
   }
@@ -411,12 +425,10 @@ export async function checkMint (transfer) {
     return transfer
   }
 
-  // Clear url params after checks because checkWithdraw might get called before the withdraw() redirect to wallet
-  // and we need the wallet to have the correct 'withdrawing' url param
-  urlParams.clear()
 
   // Check status of tx broadcasted by wallet
   if (mintTx.status.Failure) {
+    urlParams.clear()
     console.error('mintTx.status.Failure', mintTx.status.Failure)
     const errorMessage = typeof mintTx.status.Failure === 'object'
       ? parseRpcError(mintTx.status.Failure)
@@ -430,6 +442,10 @@ export async function checkMint (transfer) {
       mintTx
     }
   }
+
+  // Clear urlParams at the end so that if the provider connection throws,
+  // checkStatus will be able to process it again in the next loop.
+  urlParams.clear()
 
   return {
     ...transfer,
