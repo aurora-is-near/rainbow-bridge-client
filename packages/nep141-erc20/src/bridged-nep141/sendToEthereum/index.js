@@ -6,6 +6,9 @@ import Web3 from 'web3'
 import { toBuffer } from 'eth-util-lite'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
 import { utils } from 'near-api-js'
+import {
+  deserialize as deserializeBorsh
+} from 'near-api-js/lib/utils/serialize'
 import getErc20Name from '../../natural-erc20/getName'
 import { getDecimals } from '../../natural-erc20/getMetadata'
 import * as status from '@near-eth/client/dist/statuses'
@@ -87,8 +90,12 @@ export function checkStatus (transfer) {
   }
 }
 
-// Recover transfer from a withdraw tx hash
-// Track a new transfer at the completedStep = WITHDRAW so that it can be unlocked
+/**
+ * Recover transfer from a withdraw tx hash
+ * Track a new transfer at the completedStep = WITHDRAW so that it can be unlocked
+ * @param {string} withdrawTxHash Near tx hash containing the token withdrawal
+ * @param {string} sender Near account sender of withdrawTxHash
+ */
 export async function recover (withdrawTxHash, sender='todo') {
   const decodedTxHash = utils.serialize.base_decode(withdrawTxHash)
   const nearAccount = await getNearAccount()
@@ -100,13 +107,50 @@ export async function recover (withdrawTxHash, sender='todo') {
 
   if (withdrawTx.status.Unknown) {
     // Transaction or receipt not processed yet
-    throw new Error('Withdraw transaction pending: %s', withdrawTxHash)
+    throw new Error(`Withdraw transaction pending: ${withdrawTxHash}`)
   }
 
   // Check status of tx broadcasted by wallet
   if (withdrawTx.status.Failure) {
-    throw new Error('Withdraw transaction failed: %s', withdrawTxHash)
+    throw new Error(`Withdraw transaction failed: ${withdrawTxHash}`)
   }
+
+  // Get withdraw event information from successValue
+  const successValue = withdrawTx.status.SuccessValue
+  if (!successValue) {
+    throw new Error(
+      `Invalid withdrawTx successValue: '${successValue}'
+      Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
+    )
+  }
+
+  class WithdrawEvent {
+    constructor (args) {
+      Object.assign(this, args)
+    }
+  }
+  const SCHEMA = new Map([
+    [WithdrawEvent, {
+      kind: 'struct',
+      fields: [
+        ['flag', 'u8'],
+        ['amount', 'u128'],
+        ['token', [20]],
+        ['recipient', [20]]
+      ]
+    }]
+  ])
+  const withdrawEvent = deserializeBorsh(
+    SCHEMA, WithdrawEvent, Buffer.from(successValue, 'base64')
+  )
+
+  const amount = withdrawEvent.amount.toString()
+  const recipient = '0x' + Buffer.from(withdrawEvent.recipient).toString('hex')
+  const erc20Address = '0x' + Buffer.from(withdrawEvent.token).toString('hex')
+  const destinationTokenName = await getErc20Name(erc20Address)
+  const decimals = await getDecimals(erc20Address)
+  const sourceTokenName = destinationTokenName + 'ⁿ'
+  const sourceToken = getNep141Address(erc20Address)
 
   const receiptIds = withdrawTx.transaction_outcome.outcome.receipt_ids
 
@@ -117,31 +161,50 @@ export async function recover (withdrawTxHash, sender='todo') {
     )
   }
 
+  // Get receipt information for recording and building withdraw proof
   const txReceiptId = receiptIds[0]
+  const successReceiptOutcome = withdrawTx.receipts_outcome
+    .find(r => r.id === txReceiptId).outcome
+  const successReceiptId = successReceiptOutcome.status.SuccessReceiptId
+  const successReceiptExecutorId = successReceiptOutcome.executor_id
 
-  const successReceiptId = withdrawTx.receipts_outcome
-    .find(r => r.id === txReceiptId).outcome.status.SuccessReceiptId
+  let withdrawReceiptId
+
+  // Check if this tx was made from a 2fa
+  switch (successReceiptExecutorId) {
+    case sender:
+      // `confirm` transaction executed on 2fa account
+      const withdrawReceiptOutcome = withdrawTx.receipts_outcome
+        .find(r => r.id === successReceiptId).outcome
+      withdrawReceiptId = withdrawReceiptOutcome.status.SuccessReceiptId
+      const withdrawReceiptExecutorId = withdrawReceiptOutcome.executor_id
+
+      // Expect this receipt to be the 2fa FunctionCall
+      if (withdrawReceiptExecutorId !== sourceToken) {
+        throw new Error(
+          `Unexpected receipt outcome format in 2fa transaction.
+          Expected sourceToken '${sourceToken}', got '${withdrawReceiptExecutorId}'
+          Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
+        )
+      }
+      break
+    case sourceToken:
+      // `withdraw` called directly, successReceiptId is already correct, nothing to do
+      withdrawReceiptId = successReceiptId
+      break
+    default:
+      throw new Error(
+        `Unexpected receipt outcome format.
+        Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
+      )
+  }
+
   const txReceiptBlockHash = withdrawTx.receipts_outcome
-    .find(r => r.id === successReceiptId).block_hash
+    .find(r => r.id === withdrawReceiptId).block_hash
 
   const receiptBlock = await nearAccount.connection.provider.block({
     blockId: txReceiptBlockHash
   })
-
-  const args = JSON.parse(
-    Buffer.from(withdrawTx.transaction.actions[0].FunctionCall.args, 'base64')
-    .toString('utf-8')
-  )
-  const amount = args.amount
-  const recipient = '0x' + args.recipient
-  const sourceToken = withdrawTx.transaction.receiver_id
-  const erc20Address = '0x' + sourceToken.slice(0, 40)
-  if (!/^(0x)?[0-9a-f]{40}$/i.test(erc20Address)) {
-    throw new Error('Failed to determine erc20 address from bridged token: %s', sourceToken)
-  }
-  const destinationTokenName = await getErc20Name(erc20Address)
-  const decimals = await getDecimals(erc20Address)
-  const sourceTokenName = destinationTokenName + 'ⁿ'
 
   // various attributes stored as arrays, to keep history of retries
   const transfer = {
@@ -167,7 +230,7 @@ export async function recover (withdrawTxHash, sender='todo') {
     unlockHashes: [],
     unlockReceipts: [],
     withdrawReceiptBlockHeights: [Number(receiptBlock.header.height)],
-    withdrawReceiptIds: [successReceiptId],
+    withdrawReceiptIds: [withdrawReceiptId],
     nearOnEthClientBlockHeights: [],
     proofs: []
   }

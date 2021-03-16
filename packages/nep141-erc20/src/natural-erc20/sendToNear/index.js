@@ -105,8 +105,7 @@ export async function recover (lockTxHash) {
   })
   if (lockedEvent.event !== 'Locked') {
     throw new Error(
-      'Unable to process lock transaction, for event %s, expected %s',
-      lockedEvent.event, 'Locked'
+      `Unable to process lock transaction, for event ${lockedEvent.event}, expected 'Locked'`
     )
   }
   const erc20Address = lockedEvent.returnValues.token
