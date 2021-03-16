@@ -175,8 +175,14 @@ export async function checkWithdraw (transfer) {
   // NOTE: when a single tx is executed, transactionHashes is equal to that hash
   const txHash = urlParams.get('transactionHashes')
   const errorCode = urlParams.get('errorCode')
-  if (!id || id !== transfer.id) {
-    // Wallet returns transaction hash in redirect so it it not possible for another
+  if (!id) {
+    // checkstatus managed to call checkWithdraw withing the 100ms before wallet redirect
+    // so id is not yet set
+    console.log('Waiting for Near wallet redirect to sign withdraw')
+    return transfer
+  }
+  if (id !== transfer.id) {
+    // Wallet returns transaction hash in redirect so it is not possible for another
     // minting transaction to be in process, ie if checkWithdraw is called on an in process
     // minting then the transfer ids must be equal or the url callback is invalid.
     const newError = 'Couldn\'t determine transaction outcome'
