@@ -217,11 +217,7 @@ async function checkStatus (id: string): Promise<void> {
       transfer = await type.checkStatus(transfer)
       await storage.update(transfer)
     } catch (e) {
-      await storage.update(transfer, {
-        status: status.FAILED,
-        errors: [...transfer.errors, e.message]
-      })
-      throw e
+      console.error(e)
     }
   }
 }
