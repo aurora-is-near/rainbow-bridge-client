@@ -1,0 +1,3 @@
+releases:
+  "@near-eth/client": minor
+  rainbow-bridge-client-monorepo: minor

@@ -127,6 +127,25 @@ export function decorate (
   }
 }
 
+const transfersToRemove: string[] = []
+
+/**
+ * Record a transfer to be removed at the next status check
+ * @param transferId
+ */
+export function remove(transferId: string) {
+  console.log('append remove: ', transferId)
+  transfersToRemove.push(transferId)
+}
+
+/**
+ * Process all pending transfer removal requests
+ */
+async function checkPendingTransferRemovals () {
+  transfersToRemove.forEach(async transferId => await storage.clear(transferId))
+  transfersToRemove.splice(0, transfersToRemove.length)
+}
+
 /*
  * Check statuses of all inProgress transfers, and update them accordingly.
  *
@@ -139,6 +158,8 @@ export async function checkStatusAll (
   if (loop !== undefined && !Number.isInteger(loop)) {
     throw new Error('`loop` must be frequency, in milliseconds')
   }
+
+  await checkPendingTransferRemovals()
 
   const inProgress = await get({
     filter: t => t.status === status.IN_PROGRESS
