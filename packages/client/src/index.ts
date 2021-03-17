@@ -134,7 +134,6 @@ const transfersToRemove: string[] = []
  * @param transferId
  */
 export function remove(transferId: string) {
-  console.log('append remove: ', transferId)
   transfersToRemove.push(transferId)
 }
 
