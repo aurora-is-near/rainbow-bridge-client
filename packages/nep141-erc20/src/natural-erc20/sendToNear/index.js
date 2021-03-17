@@ -391,17 +391,12 @@ export async function checkMint (transfer) {
     }
   }
   if (!txHash) {
-    // If checkWithdraw is called before withdraw sig wallet redirect
-    // record the error but don't mark as FAILED and don't clear url params
+    // If checkMint is called before mint sig wallet redirect,
+    // log the error but don't mark as FAILED and don't clear url params
     // as the wallet redirect has not happened yet
-    urlParams.clear()
-    const newError = 'Error from wallet: txHash not received'
-    console.error(newError)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [...transfer.errors, newError]
-    }
+    const newError = 'Tx hash not received: pending redirect or wallet error'
+    console.log(newError)
+    return transfer
   }
   if (txHash.includes(',')) {
     urlParams.clear()
