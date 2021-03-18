@@ -35,6 +35,36 @@ const steps = [
   UNLOCK
 ]
 
+class TransferError extends Error {}
+
+const transferDraft = {
+  // attributes common to all transfer types
+  // amount,
+  completedStep: null,
+  // destinationTokenName,
+  errors: [],
+  // recipient,
+  // sender,
+  // sourceToken,
+  // sourceTokenName,
+  // decimals,
+  status: status.IN_PROGRESS,
+  type: TRANSFER_TYPE,
+
+  // attributes specific to bridged-nep141-to-erc20 transfers
+  finalityBlockHeights: [],
+  finalityBlockTimestamps: [],
+  nearOnEthClientBlockHeight: null, // calculated & set to a number during checkSync
+  securityWindow: 4 * 60, // in minutes. TODO: seconds instead? hours? TODO: get from connector contract? prover?
+  securityWindowProgress: 0,
+  unlockHashes: [],
+  unlockReceipts: [],
+  withdrawReceiptBlockHeights: [],
+  withdrawReceiptIds: [],
+  nearOnEthClientBlockHeights: [],
+  proofs: []
+}
+
 export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
@@ -152,10 +182,42 @@ export async function recover (withdrawTxHash, sender='todo') {
   const sourceTokenName = destinationTokenName + 'ⁿ'
   const sourceToken = getNep141Address(erc20Address)
 
+  const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, sender, sourceToken)
+
+  // various attributes stored as arrays, to keep history of retries
+  const transfer = {
+    ...transferDraft,
+
+    amount,
+    completedStep: WITHDRAW,
+    destinationTokenName,
+    recipient,
+    sender,
+    sourceToken,
+    sourceTokenName,
+    decimals,
+
+    withdrawReceiptBlockHeights: [withdrawReceipt.blockHeight],
+    withdrawReceiptIds: [withdrawReceipt.id],
+  }
+
+  track(transfer)
+}
+
+
+/**
+ * Parse the withdraw receipt id and block height needed to complete
+ * the step WITHDRAW
+ * @param {*} withdrawTx
+ * @param {string} sender
+ * @param {string} sourceToken
+ */
+async function parseWithdrawReceipt (withdrawTx, sender, sourceToken) {
+  const nearAccount = await getNearAccount()
   const receiptIds = withdrawTx.transaction_outcome.outcome.receipt_ids
 
   if (receiptIds.length !== 1) {
-    throw new Error(
+    throw new TransferError(
       `Withdrawal expects only one receipt, got ${receiptIds.length}.
       Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
     )
@@ -181,7 +243,7 @@ export async function recover (withdrawTxHash, sender='todo') {
 
       // Expect this receipt to be the 2fa FunctionCall
       if (withdrawReceiptExecutorId !== sourceToken) {
-        throw new Error(
+        throw new TransferError(
           `Unexpected receipt outcome format in 2fa transaction.
           Expected sourceToken '${sourceToken}', got '${withdrawReceiptExecutorId}'
           Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
@@ -193,7 +255,7 @@ export async function recover (withdrawTxHash, sender='todo') {
       withdrawReceiptId = successReceiptId
       break
     default:
-      throw new Error(
+      throw new TransferError(
         `Unexpected receipt outcome format.
         Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
       )
@@ -205,36 +267,8 @@ export async function recover (withdrawTxHash, sender='todo') {
   const receiptBlock = await nearAccount.connection.provider.block({
     blockId: txReceiptBlockHash
   })
-
-  // various attributes stored as arrays, to keep history of retries
-  const transfer = {
-    // attributes common to all transfer types
-    amount,
-    completedStep: WITHDRAW,
-    destinationTokenName,
-    errors: [],
-    recipient,
-    sender,
-    sourceToken,
-    sourceTokenName,
-    decimals,
-    status: status.IN_PROGRESS,
-    type: TRANSFER_TYPE,
-
-    // attributes specific to bridged-nep141-to-erc20 transfers
-    finalityBlockHeights: [],
-    finalityBlockTimestamps: [],
-    nearOnEthClientBlockHeight: null, // calculated & set to a number during checkSync
-    securityWindow: 4 * 60, // in minutes. TODO: seconds instead? hours? TODO: get from connector contract? prover?
-    securityWindowProgress: 0,
-    unlockHashes: [],
-    unlockReceipts: [],
-    withdrawReceiptBlockHeights: [Number(receiptBlock.header.height)],
-    withdrawReceiptIds: [withdrawReceiptId],
-    nearOnEthClientBlockHeights: [],
-    proofs: []
-  }
-  track(transfer)
+  const receiptBlockHeight = Number(receiptBlock.header.height)
+  return {id: withdrawReceiptId, blockHeight: receiptBlockHeight}
 }
 
 export async function initiate ({
@@ -252,31 +286,15 @@ export async function initiate ({
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
-    // attributes common to all transfer types
+    ...transferDraft,
+
     amount: (new Decimal(amount).times(10 ** decimals)).toFixed(),
-    completedStep: null,
     destinationTokenName,
-    errors: [],
     recipient,
     sender,
     sourceToken,
     sourceTokenName,
     decimals,
-    status: status.IN_PROGRESS,
-    type: TRANSFER_TYPE,
-
-    // attributes specific to bridged-nep141-to-erc20 transfers
-    finalityBlockHeights: [],
-    finalityBlockTimestamps: [],
-    nearOnEthClientBlockHeight: null, // calculated & set to a number during checkSync
-    securityWindow: 4 * 60, // in minutes. TODO: seconds instead? hours? TODO: get from connector contract? prover?
-    securityWindowProgress: 0,
-    unlockHashes: [],
-    unlockReceipts: [],
-    withdrawReceiptBlockHeights: [],
-    withdrawReceiptIds: [],
-    nearOnEthClientBlockHeights: [],
-    proofs: []
   }
 
   transfer = await track(transfer)
@@ -414,80 +432,23 @@ export async function checkWithdraw (transfer) {
     }
   }
 
-  const receiptIds = withdrawTx.transaction_outcome.outcome.receipt_ids
-
-  if (receiptIds.length !== 1) {
-    urlParams.clear()
-    return {
-      ...transfer,
-      errors: [
-        ...transfer.errors,
-          `Withdrawal expects only one receipt, got ${receiptIds.length
-          }. Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
-      ],
-      status: status.FAILED,
-      withdrawTx
-    }
-  }
-
-  const txReceiptId = receiptIds[0]
-
-  const successReceiptOutcome = withdrawTx.receipts_outcome
-    .find(r => r.id === txReceiptId).outcome
-  const successReceiptId = successReceiptOutcome.status.SuccessReceiptId
-  const successReceiptExecutorId = successReceiptOutcome.executor_id
-
-  let withdrawReceiptId
-
-  // TODO: refactor withdrawReceiptId into function to be shared by recover()
-  // in separate PR.
-  // Check if this tx was made from a 2fa
-  switch (successReceiptExecutorId) {
-    case transfer.sender:
-      // `confirm` transaction executed on 2fa account
-      const withdrawReceiptOutcome = withdrawTx.receipts_outcome
-        .find(r => r.id === successReceiptId).outcome
-      withdrawReceiptId = withdrawReceiptOutcome.status.SuccessReceiptId
-      const withdrawReceiptExecutorId = withdrawReceiptOutcome.executor_id
-
-      // Expect this receipt to be the 2fa FunctionCall
-      if (withdrawReceiptExecutorId !== transfer.sourceToken) {
-        urlParams.clear()
-        return {
-          ...transfer,
-          errors: [
-            ...transfer.errors,
-              `Unexpected receipt outcome format in 2fa transaction.
-              Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
-          ],
-          status: status.FAILED,
-          withdrawTx
-        }
-      }
-      break
-    case transfer.sourceToken:
-      // `withdraw` called directly, successReceiptId is already correct, nothing to do
-      withdrawReceiptId = successReceiptId
-      break
-    default:
+  let withdrawReceipt
+  try {
+    withdrawReceipt = await parseWithdrawReceipt(withdrawTx, transfer.sender, transfer.sourceToken)
+  } catch (e) {
+    if (e instanceof TransferError) {
       urlParams.clear()
       return {
         ...transfer,
-        errors: [
-          ...transfer.errors,
-            `Unexpected receipt outcome format.
-            Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
-        ],
+        errors: [...transfer.errors, e.message],
         status: status.FAILED,
         withdrawTx
       }
+    }
+    // Any other error like provider connection error should throw
+    // so that the transfer stays in progress and checkWithdraw will be called again.
+    throw e
   }
-  const txReceiptBlockHash = withdrawTx.receipts_outcome
-    .find(r => r.id === withdrawReceiptId).block_hash
-
-  const receiptBlock = await nearAccount.connection.provider.block({
-    blockId: txReceiptBlockHash
-  })
 
   // Clear urlParams at the end so that if the provider connection throws,
   // checkStatus will be able to process it again in the next loop.
@@ -497,8 +458,8 @@ export async function checkWithdraw (transfer) {
     ...transfer,
     status: status.IN_PROGRESS,
     completedStep: WITHDRAW,
-    withdrawReceiptIds: [...transfer.withdrawReceiptIds, withdrawReceiptId],
-    withdrawReceiptBlockHeights: [...transfer.withdrawReceiptBlockHeights, Number(receiptBlock.header.height)]
+    withdrawReceiptIds: [...transfer.withdrawReceiptIds, withdrawReceipt.id],
+    withdrawReceiptBlockHeights: [...transfer.withdrawReceiptBlockHeights, withdrawReceipt.blockHeight]
   }
 }
 
