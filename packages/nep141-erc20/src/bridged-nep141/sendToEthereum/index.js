@@ -100,7 +100,11 @@ export const i18n = {
   }
 }
 
-// Called when status is ACTION_NEEDED or FAILED
+
+/**
+ * Called when status is ACTION_NEEDED or FAILED
+ * @param {*} transfer
+ */
 export function act (transfer) {
   switch (transfer.completedStep) {
     case null: return withdraw(transfer)
@@ -110,7 +114,11 @@ export function act (transfer) {
   }
 }
 
-// Called when status is IN_PROGRESS
+
+/**
+ * Called when status is IN_PROGRESS
+ * @param {*} transfer
+ */
 export function checkStatus (transfer) {
   switch (transfer.completedStep) {
     case null: return checkWithdraw(transfer)
@@ -463,10 +471,13 @@ export async function checkWithdraw (transfer) {
   }
 }
 
-// Wait for a final block with a strictly greater height than withdrawTx
-// receipt. This block (or one of its ancestors) should hold the outcome.
-// Although this may not support sharding.
-// TODO: support sharding
+/**
+ * Wait for a final block with a strictly greater height than withdrawTx
+ * receipt. This block (or one of its ancestors) should hold the outcome.
+ * Although this may not support sharding.
+ * TODO: support sharding
+ * @param {*} transfer
+ */
 async function checkFinality (transfer) {
   const nearAccount = await getNearAccount()
 
@@ -487,9 +498,12 @@ async function checkFinality (transfer) {
   }
 }
 
-// Wait for the block with the given receipt/transaction in Near2EthClient, and
-// get the outcome proof only use block merkle root that we know is available
-// on the Near2EthClient.
+/**
+ * Wait for the block with the given receipt/transaction in Near2EthClient, and
+ * get the outcome proof only use block merkle root that we know is available
+ * on the Near2EthClient.
+ * @param {*} transfer
+ */
 async function checkSync (transfer) {
   const web3 = new Web3(getEthProvider())
   const ethNetwork = await web3.eth.net.getNetworkType()
@@ -543,9 +557,12 @@ async function checkSync (transfer) {
   }
 }
 
-// Unlock tokens stored in the contract at process.env.ethLockerAddress,
-// passing the proof that the tokens were withdrawn/burned in the corresponding
-// NEAR BridgeToken contract.
+/**
+ * Unlock tokens stored in the contract at process.env.ethLockerAddress,
+ * passing the proof that the tokens were withdrawn/burned in the corresponding
+ * NEAR BridgeToken contract.
+ * @param {*} transfer
+ */
 async function unlock (transfer) {
   const web3 = new Web3(getEthProvider())
   const ethUserAddress = (await web3.eth.getAccounts())[0]
