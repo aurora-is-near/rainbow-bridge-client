@@ -129,7 +129,7 @@ export async function initiate ({
     completedConfirmations: 0,
     lockHashes: [],
     lockReceipts: [],
-    neededConfirmations: 30, // hard-coding until connector contract is updated with this information
+    neededConfirmations: 20, // hard-coding until connector contract is updated with this information
     mintHashes: []
   }
 
