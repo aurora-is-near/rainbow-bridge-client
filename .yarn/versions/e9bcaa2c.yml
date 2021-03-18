@@ -1,4 +1,0 @@
-releases:
-  "@near-eth/client": major
-  "@near-eth/nep141-erc20": major
-  rainbow-bridge-client-monorepo: major

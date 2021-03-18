@@ -1,3 +1,21 @@
+## 1.0.0 (2021-03-18)
+
+* fix: allow retry of approve tx ([856d4b4](https://github.com/near/rainbow-bridge-client/commit/856d4b4))
+* fix: block sync recovery to eth ([b8166ec](https://github.com/near/rainbow-bridge-client/commit/b8166ec))
+* fix: check nearTx.status.Unknown, record mintHashes ([3e312b9](https://github.com/near/rainbow-bridge-client/commit/3e312b9))
+* fix: don't checkStatus if wrong eth network ([40323cb](https://github.com/near/rainbow-bridge-client/commit/40323cb))
+* fix: improve don't checkStatus if wrong eth network ([db38330](https://github.com/near/rainbow-bridge-client/commit/db38330))
+* fix: improve error handling. ([cd01452](https://github.com/near/rainbow-bridge-client/commit/cd01452))
+* fix: near.txStatus should use sender account id for sharding support ([1fcc321](https://github.com/near/rainbow-bridge-client/commit/1fcc321))
+* fix: prevent fail when no tx hash before redirect ([1c34696](https://github.com/near/rainbow-bridge-client/commit/1c34696))
+* fix: prevent failed transfer before near wallet redirect ([3b54b50](https://github.com/near/rainbow-bridge-client/commit/3b54b50))
+* fix: update eth confirmations to 20 ([4576a7e](https://github.com/near/rainbow-bridge-client/commit/4576a7e))
+* fix: update for ft-141 ([859e673](https://github.com/near/rainbow-bridge-client/commit/859e673))
+* feat: remove access keys and check txHash from wallet redirect ([5a05b24](https://github.com/near/rainbow-bridge-client/commit/5a05b24))
+* feat: support withdraw proof from 2fa confirm tx ([095466b](https://github.com/near/rainbow-bridge-client/commit/095466b))
+
+
+
 ## <small>0.1.3 (2021-03-04)</small>
 
 * fix: prevent 2nd eth approval if another lock already pending ([93ac442](https://github.com/near/rainbow-bridge-client/commit/93ac442))
