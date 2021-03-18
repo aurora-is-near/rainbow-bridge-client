@@ -92,7 +92,10 @@ export const i18n = {
   }
 }
 
-// Called when status is ACTION_NEEDED or FAILED
+/**
+ * Called when status is ACTION_NEEDED or FAILED
+ * @param {*} transfer
+ */
 export function act (transfer) {
   switch (transfer.completedStep) {
     case null: return approve(transfer)
@@ -103,7 +106,10 @@ export function act (transfer) {
   }
 }
 
-// Called when status is IN_PROGRESS
+/**
+ * Called when status is IN_PROGRESS
+ * @param {*} transfer
+ */
 export function checkStatus (transfer) {
   switch (transfer.completedStep) {
     case null: return checkApprove(transfer)
@@ -114,8 +120,11 @@ export function checkStatus (transfer) {
   }
 }
 
-// Recover transfer from a lock tx hash
-// Track a new transfer at the completedStep = LOCK so that it can be minted
+/**
+ * Recover transfer from a lock tx hash
+ * Track a new transfer at the completedStep = LOCK so that it can be minted
+ * @param {*} lockTxHash
+ */
 export async function recover (lockTxHash) {
   const web3 = new Web3(getEthProvider())
   const receipt = await web3.eth.getTransactionReceipt(lockTxHash)
@@ -268,11 +277,13 @@ async function checkApprove (transfer) {
   }
 }
 
-// Initiate "lock" transaction.
-//
-// Only wait for transaction to have dependable transactionHash created. Avoid
-// blocking to wait for transaction to be mined. Status of transactionHash
-// being mined is then checked in checkStatus.
+/**
+ * Initiate "lock" transaction.
+ * Only wait for transaction to have dependable transactionHash created. Avoid
+ * blocking to wait for transaction to be mined. Status of transactionHash
+ * being mined is then checked in checkStatus.
+ * @param {*} transfer
+ */
 async function lock (transfer) {
   const web3 = new Web3(getEthProvider())
   const ethUserAddress = (await web3.eth.getAccounts())[0]
@@ -360,8 +371,11 @@ async function checkSync (transfer) {
   }
 }
 
-// Mint NEP141 tokens to transfer.recipient. Causes a redirect to NEAR Wallet,
-// currently dealt with using URL params.
+/**
+ * Mint NEP141 tokens to transfer.recipient. Causes a redirect to NEAR Wallet,
+ * currently dealt with using URL params.
+ * @param {*} transfer
+ */
 async function mint (transfer) {
   const nearAccount = await getNearAccount({
     // TODO: authAgainst can be any account, is there a better way ?
