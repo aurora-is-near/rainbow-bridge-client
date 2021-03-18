@@ -30,6 +30,30 @@ const steps = [
   MINT
 ]
 
+let transferDraft = {
+  // attributes common to all transfer types
+  // amount,
+  completedStep: null,
+  // destinationTokenName,
+  errors: [],
+  // recipient,
+  // sender,
+  // sourceToken: erc20Address,
+  // sourceTokenName,
+  // decimals,
+  status: status.ACTION_NEEDED,
+  type: TRANSFER_TYPE,
+
+  // attributes specific to natural-erc20-to-nep141 transfers
+  approvalHashes: [],
+  approvalReceipts: [],
+  completedConfirmations: 0,
+  lockHashes: [],
+  lockReceipts: [],
+  neededConfirmations: 20, // hard-coding until connector contract is updated with this information
+  mintHashes: []
+}
+
 export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
@@ -117,26 +141,19 @@ export async function recover (lockTxHash) {
   const destinationTokenName = sourceTokenName + 'ⁿ'
 
   const transfer = {
-    // attributes common to all transfer types
+    ...transferDraft,
+
     amount,
     completedStep: LOCK,
     destinationTokenName,
-    errors: [],
     recipient,
     sender,
     sourceToken: erc20Address,
     sourceTokenName,
     decimals,
     status: status.IN_PROGRESS,
-    type: TRANSFER_TYPE,
 
-    // attributes specific to natural-erc20-to-nep141 transfers
-    approvalHashes: [],
-    approvalReceipts: [],
-    completedConfirmations: 0,
-    lockHashes: [],
     lockReceipts: [receipt],
-    neededConfirmations: 30 // hard-coding until connector contract is updated with this information
   }
   track(transfer)
 }
@@ -161,27 +178,15 @@ export async function initiate ({
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
-    // attributes common to all transfer types
+    ...transferDraft,
+
     amount: (new Decimal(amount).times(10 ** decimals)).toFixed(),
-    completedStep: null,
     destinationTokenName,
-    errors: [],
     recipient,
     sender,
     sourceToken: erc20Address,
     sourceTokenName,
     decimals,
-    status: status.ACTION_NEEDED,
-    type: TRANSFER_TYPE,
-
-    // attributes specific to natural-erc20-to-nep141 transfers
-    approvalHashes: [],
-    approvalReceipts: [],
-    completedConfirmations: 0,
-    lockHashes: [],
-    lockReceipts: [],
-    neededConfirmations: 20, // hard-coding until connector contract is updated with this information
-    mintHashes: []
   }
 
   transfer = await approve(transfer)
