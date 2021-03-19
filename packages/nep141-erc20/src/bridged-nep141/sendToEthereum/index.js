@@ -187,7 +187,7 @@ export async function recover (withdrawTxHash, sender='todo') {
   const erc20Address = '0x' + Buffer.from(withdrawEvent.token).toString('hex')
   const destinationTokenName = await getErc20Name(erc20Address)
   const decimals = await getDecimals(erc20Address)
-  const sourceTokenName = destinationTokenName + 'ⁿ'
+  const sourceTokenName = 'n' + destinationTokenName
   const sourceToken = getNep141Address(erc20Address)
 
   const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, sender, sourceToken)
@@ -288,7 +288,7 @@ export async function initiate ({
   const destinationTokenName = await getErc20Name(erc20Address)
   // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = await getDecimals(erc20Address)
-  const sourceTokenName = destinationTokenName + 'ⁿ'
+  const sourceTokenName = 'n' + destinationTokenName
   const sourceToken = getNep141Address(erc20Address)
 
   // various attributes stored as arrays, to keep history of retries
