@@ -36,9 +36,9 @@ export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
       [WITHDRAW]: `Withdraw ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from NEAR`,
-      [AWAIT_FINALITY]: 'Await NEAR finality for withdrawal transaction',
-      [SYNC]: 'Sync withdrawal transaction to Ethereum',
-      [UNLOCK]: `Unlock ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in Ethereum`
+      [AWAIT_FINALITY]: `Convert ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to ${transfer.destinationTokenName}`,
+      [SYNC]: 'Sync withdrawal transaction to Ethereum (up to 16 hours)',
+      [UNLOCK]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} on Ethereum`
     }),
     statusMessage: transfer => {
       if (transfer.status === status.FAILED) return 'Failed'
