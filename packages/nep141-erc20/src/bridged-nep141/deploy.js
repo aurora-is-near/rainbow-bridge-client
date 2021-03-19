@@ -50,9 +50,9 @@ export default async function deployBridgeToken (erc20Address) {
 
     // Attach a deposit to compensate the BridgeTokenFactory contract for the
     // storage costs associated with deploying the new BridgeToken contract.
-    // 30N for the base fee, plus .02 for for storing the name of the contract
+    // 3N for the base fee, plus .02 for for storing the name of the contract
     // Might not need full .02, but need more than .01, error message did not
     // include needed amount at time of writing.
-    new BN(utils.format.parseNearAmount('30.02'))
+    new BN(utils.format.parseNearAmount('3.02'))
   )
 }
