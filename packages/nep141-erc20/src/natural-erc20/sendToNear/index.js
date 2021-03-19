@@ -33,10 +33,10 @@ const steps = [
 export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
-      [APPROVE]: `Approve Token Locker to spend ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName}`,
-      [LOCK]: `Lock ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} in Token Locker`,
-      [SYNC]: `Sync ${transfer.neededConfirmations} blocks from Ethereum to NEAR`,
-      [MINT]: `Mint ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in NEAR`
+      [APPROVE]: `Approve transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from Ethereum`,
+      [LOCK]: `Convert ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to ${transfer.destinationTokenName}`,
+      [SYNC]: `Wait for ${transfer.neededConfirmations} Ethereum confirmations for security`,
+      [MINT]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} on NEAR`
     }),
     statusMessage: transfer => {
       if (transfer.status === status.FAILED) return 'Failed'
