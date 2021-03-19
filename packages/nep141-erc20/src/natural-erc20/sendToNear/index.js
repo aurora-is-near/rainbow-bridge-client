@@ -164,7 +164,7 @@ export async function recover (lockTxHash) {
 
     lockReceipts: [receipt],
   }
-  track(transfer)
+  return transfer
 }
 
 // Call contract given by `erc20` contract, requesting permission for contract
