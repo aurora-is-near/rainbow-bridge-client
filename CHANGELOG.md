@@ -1,3 +1,17 @@
+## 1.1.0 (2021-03-19)
+
+* fix: recover returns transfer to enable confirmation ([643f2d5](https://github.com/near/rainbow-bridge-client/commit/643f2d5))
+* fix: rename bridged token ([ac19a56](https://github.com/near/rainbow-bridge-client/commit/ac19a56))
+* fix: update bridge new token deposit ([0538c97](https://github.com/near/rainbow-bridge-client/commit/0538c97))
+* fix: use successValue to get withdraw information ([15b1f96](https://github.com/near/rainbow-bridge-client/commit/15b1f96))
+* refactor: refactor parseWithdrawReceipt() ([cb6c5ca](https://github.com/near/rainbow-bridge-client/commit/cb6c5ca))
+* feat: add eth->near transfer recovery from lock hash ([7c300b9](https://github.com/near/rainbow-bridge-client/commit/7c300b9))
+* feat: add near->eth transfer recovery from withdraw hash ([d3ae9a5](https://github.com/near/rainbow-bridge-client/commit/d3ae9a5))
+* feat: add transfer removal during status check ([4a852f0](https://github.com/near/rainbow-bridge-client/commit/4a852f0))
+* style: rename transfer steps ([201b6b6](https://github.com/near/rainbow-bridge-client/commit/201b6b6))
+
+
+
 ## 1.0.0 (2021-03-18)
 
 * fix: allow retry of approve tx ([856d4b4](https://github.com/near/rainbow-bridge-client/commit/856d4b4))
