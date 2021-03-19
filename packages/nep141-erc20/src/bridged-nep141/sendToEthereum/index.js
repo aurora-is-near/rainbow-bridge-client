@@ -208,8 +208,7 @@ export async function recover (withdrawTxHash, sender='todo') {
     withdrawReceiptBlockHeights: [withdrawReceipt.blockHeight],
     withdrawReceiptIds: [withdrawReceipt.id],
   }
-
-  track(transfer)
+  return transfer
 }
 
 
