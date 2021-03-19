@@ -147,7 +147,7 @@ export async function recover (lockTxHash) {
   const sender = lockedEvent.returnValues.sender
   const sourceTokenName = await getName(erc20Address)
   const decimals = await getDecimals(erc20Address)
-  const destinationTokenName = sourceTokenName + 'ⁿ'
+  const destinationTokenName = 'n' + sourceTokenName
 
   const transfer = {
     ...transferDraft,
@@ -183,7 +183,7 @@ export async function initiate ({
   const sourceTokenName = await getName(erc20Address)
   // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = await getDecimals(erc20Address)
-  const destinationTokenName = sourceTokenName + 'ⁿ'
+  const destinationTokenName = 'n' + sourceTokenName
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {

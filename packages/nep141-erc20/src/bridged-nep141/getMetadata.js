@@ -5,7 +5,7 @@ import getErc20Name from '../natural-erc20/getName'
 // TODO: get from NEAR token metadata
 async function getName (erc20Address) {
   const erc20Name = await getErc20Name(erc20Address)
-  return erc20Name + 'ⁿ'
+  return 'n' + erc20Name
 }
 
 /**
