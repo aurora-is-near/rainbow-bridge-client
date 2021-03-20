@@ -551,11 +551,11 @@ export async function checkMint (transfer) {
     return transfer
   }
   if (id !== transfer.id) {
-    // Wallet returns transaction hash in redirect so it is not possible for another
-    // minting transaction to be in process, ie if checkMint is called on an in process
-    // minting then the transfer ids must be equal or the url callback is invalid.
+    // Another minting transaction cannot be in progress, ie if checkMint is called on
+    // an in progess mint then the transfer ids must be equal or the url callback is invalid.
     urlParams.clear()
-    const newError = 'Couldn\'t determine transaction outcome'
+    const newError = `Couldn't determine transaction outcome.
+      Got transfer id '${id} in URL, expected '${transfer.id}`
     console.error(newError)
     return {
       ...transfer,

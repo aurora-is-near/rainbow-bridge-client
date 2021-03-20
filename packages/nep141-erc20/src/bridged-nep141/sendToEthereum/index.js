@@ -370,7 +370,7 @@ export async function checkWithdraw (transfer) {
     // Set status to FAILED so that it can be retried
     const newError = `A withdraw transaction was initiated but could not be verified.
       If a transaction was sent from your account, please make sure to 'Restore transfer' and finalize it.`
-    console.log(newError)
+    console.error(newError)
     return {
       ...transfer,
       status: status.FAILED,
@@ -384,11 +384,11 @@ export async function checkWithdraw (transfer) {
     return transfer
   }
   if (id !== transfer.id) {
-    // Wallet returns transaction hash in redirect so it is not possible for another
-    // withdraw transaction to be in process, ie if checkWithdraw is called on an in process
-    // withdraw then the transfer ids must be equal or the url callback is invalid.
+    // Another withdraw transaction cannot be in progress, ie if checkWithdraw is called on
+    // an in process withdraw then the transfer ids must be equal or the url callback is invalid.
     urlParams.clear()
-    const newError = 'Couldn\'t determine transaction outcome'
+    const newError = `Couldn't determine transaction outcome.
+      Got transfer id '${id} in URL, expected '${transfer.id}`
     console.error(newError)
     return {
       ...transfer,
