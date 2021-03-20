@@ -363,6 +363,20 @@ export async function checkWithdraw (transfer) {
   // NOTE: when a single tx is executed, transactionHashes is equal to that hash
   const txHash = urlParams.get('transactionHashes')
   const errorCode = urlParams.get('errorCode')
+  if (!id && !txHash) {
+    // The user closed the tab and never rejected or approved the tx from Near wallet.
+    // This doesn't protect agains the user broadcasting a tx and closing the tab before
+    // redirect. So the dapp has no way of knowing the status of that transaction.
+    // Set status to FAILED so that it can be retried
+    const newError = `A withdraw transaction was initiated but could not be verified.
+      If a transaction was sent from your account, please make sure to 'Restore transfer' and finalize it.`
+    console.log(newError)
+    return {
+      ...transfer,
+      status: status.FAILED,
+      errors: [...transfer.errors, newError]
+    }
+  }
   if (!id) {
     // checkstatus managed to call checkWithdraw withing the 100ms before wallet redirect
     // so id is not yet set
