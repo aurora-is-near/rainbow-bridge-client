@@ -137,7 +137,7 @@ export async function nearAuthedAgainst (contract: string): Promise<boolean> {
 
   if (!nearConnection.getAccountId()) return false
 
-  const { accessKey } = await nearConnection.account().findAccessKey() as any
+  const { accessKey } = await nearConnection.account().findAccessKey(contract, []) as any
 
   // TODO: this logic may break with FullAccess keys
   const authedAgainst = accessKey && accessKey.permission.FunctionCall.receiver_id

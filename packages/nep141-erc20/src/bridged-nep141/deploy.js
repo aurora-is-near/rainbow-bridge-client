@@ -34,7 +34,7 @@ import { getNearAccount } from '@near-eth/client/dist/utils'
  * NEAR Wallet for confirmation.
  */
 export default async function deployBridgeToken (erc20Address) {
-  const nearAccount = await getNearAccount({ authAgainst: process.env.nearTokenFactoryAccount })
+  const nearAccount = await getNearAccount()
 
   // causes redirect to NEAR Wallet
   await nearAccount.functionCall(

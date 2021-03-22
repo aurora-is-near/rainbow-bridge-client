@@ -310,10 +310,7 @@ export async function initiate ({
 }
 
 async function withdraw (transfer) {
-  const nearAccount = await getNearAccount({
-    // TODO: authAgainst can be any account, is there a better way ?
-    authAgainst: process.env.nearTokenFactoryAccount
-  })
+  const nearAccount = await getNearAccount()
   // Calling `BridgeToken.withdraw` causes a redirect to NEAR Wallet.
   //
   // This adds some info about the current transaction to the URL params, then
