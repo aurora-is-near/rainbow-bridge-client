@@ -470,7 +470,7 @@ __metadata:
     "@types/node": ^14.14.28
     bn.js: ^5.1.3
     decimal.js: ^10.2.1
-    near-api-js: "near/near-api-js#account-type-fixes"
+    near-api-js: ^0.39.0
     typescript: 4.1.5
   languageName: unknown
   linkType: soft
@@ -491,7 +491,7 @@ __metadata:
     eth-object: "near/eth-object#54e03b8aac8208cf724e206d49ffb8bdd30451d7"
     eth-revert-reason: ^1.0.3
     eth-util-lite: "near/eth-util-lite#master"
-    near-api-js: ~0.36.3
+    near-api-js: ^0.39.0
     promisfy: ^1.2.0
     typescript: 4.1.5
     web3: ^1.2.11
@@ -5063,11 +5063,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"near-api-js@near/near-api-js#account-type-fixes":
-  version: 0.36.3
-  resolution: "near-api-js@https://github.com/near/near-api-js.git#commit=063981f288043fb694b1dceb5fb36b893d4e2b78"
+"near-api-js@npm:^0.39.0":
+  version: 0.39.0
+  resolution: "near-api-js@npm:0.39.0"
   dependencies:
-    "@types/bn.js": ^4.11.5
+    "@types/bn.js": ^5.1.0
     bn.js: ^5.0.0
     borsh: ^0.3.1
     bs58: ^4.0.0
@@ -5079,27 +5079,7 @@ __metadata:
     node-fetch: ^2.6.1
     text-encoding-utf-8: ^1.0.2
     tweetnacl: ^1.0.1
-  checksum: 058a89c010c7fff39c5b2473d95b61ba15839c513c5630ff7823c34fb5e561755ab95b54311a2606830079cc1687d5a107f1847b72b7444ee3072d3d8bbdeb89
-  languageName: node
-  linkType: hard
-
-"near-api-js@npm:~0.36.3":
-  version: 0.36.3
-  resolution: "near-api-js@npm:0.36.3"
-  dependencies:
-    "@types/bn.js": ^4.11.5
-    bn.js: ^5.0.0
-    borsh: ^0.3.1
-    bs58: ^4.0.0
-    depd: ^2.0.0
-    error-polyfill: ^0.1.2
-    http-errors: ^1.7.2
-    js-sha256: ^0.9.0
-    mustache: ^4.0.0
-    node-fetch: ^2.6.1
-    text-encoding-utf-8: ^1.0.2
-    tweetnacl: ^1.0.1
-  checksum: 724c77a27cd4081ce2e0f0a326bb8a2ec713692641b47b547a9fba8ad4533a8ef8bfa9a792dc50f422fe1088952c7e27761b7faa7139189dc3e4b8437380ae67
+  checksum: 8d8fd19342fd7ece08f2cf2e1c7c76c0832db84e218554ab95e6423c6b3ef468a130b973bb739e7f495762685ec700ebec86a902ad86c11a62fecdbd7076e077
   languageName: node
   linkType: hard
 

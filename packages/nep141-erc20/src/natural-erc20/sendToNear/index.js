@@ -376,10 +376,7 @@ async function checkSync (transfer) {
  * @param {*} transfer
  */
 async function mint (transfer) {
-  const nearAccount = await getNearAccount({
-    // TODO: authAgainst can be any account, is there a better way ?
-    authAgainst: process.env.nearTokenFactoryAccount
-  })
+  const nearAccount = await getNearAccount()
   const lockReceipt = last(transfer.lockReceipts)
   const proof = await findProof(lockReceipt.transactionHash)
 
