@@ -9,6 +9,7 @@ import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import getName from '../getName'
+import getAllowance from '../getAllowance'
 import { getDecimals } from '../getMetadata'
 import findProof from './findProof'
 import { lastBlockNumber } from './ethOnNearClient'
@@ -180,15 +181,17 @@ export async function initiate ({
 }) {
   // TODO: move to core 'decorate'; get both from contracts
   const sourceTokenName = await getName(erc20Address)
+  const allowance = await getAllowance(erc20Address, sender, process.env.ethLockerAddress)
   // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = await getDecimals(erc20Address)
   const destinationTokenName = 'n' + sourceTokenName
+  const decimalAmount = new Decimal(amount).times(10 ** decimals)
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
     ...transferDraft,
 
-    amount: (new Decimal(amount).times(10 ** decimals)).toFixed(),
+    amount: decimalAmount.toFixed(),
     destinationTokenName,
     recipient,
     sender,
@@ -197,13 +200,30 @@ export async function initiate ({
     decimals,
   }
 
-  transfer = await approve(transfer)
+  await checkAllowed(transfer)
+
+  if (decimalAmount.comparedTo(new Decimal(allowance)) === 1) {
+    // amount > allowance
+    transfer = await approve(transfer)
+  } else {
+    transfer = await lock({
+      ...transfer,
+      completedStep: APPROVE,
+      status: status.ACTION_NEEDED
+    })
+  }
 
   track(transfer)
 }
 
-async function approve (transfer) {
-  // Check if a transfer is pending lock: we don't want to override the approval of a previous transfer.
+
+/**
+ * Check that the transfer will not block another by using or overriding it's allowance.
+ * Check if a transfer is pending lock:
+ * - if approve: we don't want to override the approval of a previous transfer.
+ * - if lock: we don't want to use approval of another transfer.
+ */
+async function checkAllowed (transfer) {
   const transfers = await get(
     { filter: t => t.sourceToken === transfer.sourceToken && (!t.completedStep || t.completedStep === APPROVE) && (t.id !== transfer.id) }
   )
@@ -212,6 +232,10 @@ async function approve (transfer) {
       'Another transfer is already in progress, please complete the "Lock" step and try again'
     )
   }
+}
+
+
+async function approve (transfer) {
   const web3 = new Web3(getEthProvider())
 
   const erc20Contract = new web3.eth.Contract(
