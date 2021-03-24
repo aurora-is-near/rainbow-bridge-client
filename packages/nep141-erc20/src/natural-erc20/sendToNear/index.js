@@ -132,14 +132,13 @@ export async function recover (lockTxHash) {
     JSON.parse(process.env.ethLockerAbiText),
     process.env.ethLockerAddress
   )
-  const [lockedEvent] = await ethTokenLocker.getPastEvents('Locked', {
-    filter: { transactionHash: lockTxHash },
-    fromBlock: receipt.blockNumber
+  const events = await ethTokenLocker.getPastEvents('Locked', {
+    fromBlock: receipt.blockNumber,
+    toBlock: receipt.blockNumber
   })
-  if (lockedEvent.event !== 'Locked') {
-    throw new Error(
-      `Unable to process lock transaction, for event ${lockedEvent.event}, expected 'Locked'`
-    )
+  const lockedEvent = events.find(event => event.transactionHash === lockTxHash)
+  if (!lockedEvent) {
+    throw new Error(`Unable to process lock transaction event.`)
   }
   const erc20Address = lockedEvent.returnValues.token
   const amount = lockedEvent.returnValues.amount

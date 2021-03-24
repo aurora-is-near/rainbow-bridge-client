@@ -47,10 +47,11 @@ export default async function findProof (lockTxHash) {
     receipt.transactionIndex
   )
 
-  const [lockedEvent] = await ethTokenLocker.getPastEvents('Locked', {
-    filter: { transactionHash: lockTxHash },
-    fromBlock: receipt.blockNumber
+  const events = await ethTokenLocker.getPastEvents('Locked', {
+    fromBlock: receipt.blockNumber,
+    toBlock: receipt.blockNumber
   })
+  const lockedEvent = events.find(event => event.transactionHash === lockTxHash)
   // `log.logIndex` does not necessarily match the log's order in the array of logs
   const logIndexInArray = receipt.logs.findIndex(
     l => l.logIndex === lockedEvent.logIndex
