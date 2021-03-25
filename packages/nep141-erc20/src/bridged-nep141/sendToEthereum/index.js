@@ -18,6 +18,7 @@ import { borshifyOutcomeProof } from './borshify-proof'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import getNep141Address from '../getAddress'
 import * as urlParams from '../../natural-erc20/sendToNear/urlParams'
+import { handleEthTxReplaced } from './../../utils'
 
 export const SOURCE_NETWORK = 'near'
 export const DESTINATION_NETWORK = 'ethereum'
@@ -50,6 +51,12 @@ const transferDraft = {
   // decimals,
   status: status.IN_PROGRESS,
   type: TRANSFER_TYPE,
+  // Nonce of the latest transaction broadcasted to Ethereum: used to check if that transaction was replaced.
+  // latestEthTxNonce
+  // Reorg safety in case a speedup/cancel tx needs to be searched.
+  // safeHeightBeforeEthTx,
+  // Differentiate token sender from tx signer for possible eth multisig wallet support of tx dropped and replaced
+  // txFrom,
 
   // attributes specific to bridged-nep141-to-erc20 transfers
   finalityBlockHeights: [],
@@ -572,16 +579,23 @@ async function unlock (transfer) {
   const borshProof = borshifyOutcomeProof(last(transfer.proofs))
   const nearOnEthClientBlockHeight = new BN(last(transfer.nearOnEthClientBlockHeights))
 
+  // If this tx is dropped and replaced, lower the search boundary
+  // in case there was a reorg.
+  let safeHeightBeforeEthTx = await web3.eth.getBlockNumber() - 20
   const unlockHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
       .unlockToken(borshProof, nearOnEthClientBlockHeight).send()
       .on('transactionHash', resolve)
       .catch(reject)
   })
+  const pendingUnlockTx = await web3.eth.getTransaction(unlockHash)
 
   return {
     ...transfer,
     status: status.IN_PROGRESS,
+    txFrom: pendingUnlockTx.from,
+    safeHeightBeforeEthTx,
+    latestEthTxNonce: pendingUnlockTx.nonce,
     unlockHashes: [...transfer.unlockHashes, unlockHash]
   }
 }
@@ -598,7 +612,41 @@ async function checkUnlock (transfer) {
   }
 
   const unlockHash = last(transfer.unlockHashes)
-  const unlockReceipt = await web3.eth.getTransactionReceipt(unlockHash)
+  let unlockReceipt = await web3.eth.getTransactionReceipt(unlockHash)
+
+  // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
+  if (!unlockReceipt) {
+    // don't break old transfers in case they were made before this functionality is released
+    if (!transfer.safeHeightBeforeEthTx || !transfer.latestEthTxNonce || !transfer.txFrom) return transfer
+    try {
+      function validateEvent(event) {
+        if (!event) return false
+        return (
+          event.returnValues.amount === transfer.amount &&
+          event.returnValues.recipient.toLowerCase() === transfer.recipient.toLowerCase()
+        )
+      }
+      unlockReceipt = await handleEthTxReplaced(
+        transfer.safeHeightBeforeEthTx,
+        {
+          broadcastedNonce: transfer.latestEthTxNonce,
+          txFrom: transfer.txFrom,
+          txTo: process.env.ethLockerAddress
+        }, {
+          eventName: 'Unlocked',
+          contractAbiText: process.env.ethLockerAbiText,
+          validateEvent
+        }
+      )
+    } catch (error) {
+      console.error(error)
+      return {
+        ...transfer,
+        errors: [...transfer.errors, error.message],
+        status: status.FAILED
+      }
+    }
+  }
 
   if (!unlockReceipt) return transfer
 

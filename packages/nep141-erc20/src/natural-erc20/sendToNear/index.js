@@ -14,6 +14,7 @@ import { getDecimals } from '../getMetadata'
 import findProof from './findProof'
 import { lastBlockNumber } from './ethOnNearClient'
 import * as urlParams from './urlParams'
+import { handleEthTxReplaced } from './../../utils'
 
 export const SOURCE_NETWORK = 'ethereum'
 export const DESTINATION_NETWORK = 'near'
@@ -32,7 +33,7 @@ const steps = [
 ]
 
 let transferDraft = {
-  // attributes common to all transfer types
+  // Attributes common to all transfer types
   // amount,
   completedStep: null,
   // destinationTokenName,
@@ -44,8 +45,14 @@ let transferDraft = {
   // decimals,
   status: status.ACTION_NEEDED,
   type: TRANSFER_TYPE,
+  // Nonce of the latest transaction broadcasted to Ethereum: used to check if that transaction was replaced.
+  // latestEthTxNonce
+  // Reorg safety in case a speedup/cancel tx needs to be searched.
+  // safeHeightBeforeEthTx,
+  // Differentiate token sender from tx signer for possible eth multisig wallet support of tx dropped and replaced
+  // txFrom,
 
-  // attributes specific to natural-erc20-to-nep141 transfers
+  // Attributes specific to natural-erc20-to-nep141 transfers
   approvalHashes: [],
   approvalReceipts: [],
   completedConfirmations: 0,
@@ -244,19 +251,27 @@ async function approve (transfer) {
     { from: transfer.sender }
   )
 
+  // If this tx is dropped and replaced, lower the search boundary
+  // in case there was a reorg.
+  let safeHeightBeforeEthTx = await web3.eth.getBlockNumber() - 20
   const approvalHash = await new Promise((resolve, reject) => {
     erc20Contract.methods
       .approve(process.env.ethLockerAddress, transfer.amount).send()
       .on('transactionHash', resolve)
       .catch(reject)
   })
+  const pendingApprovalTx = await web3.eth.getTransaction(approvalHash)
 
   return {
     ...transfer,
+    txFrom: pendingApprovalTx.from,
+    safeHeightBeforeEthTx,
+    latestEthTxNonce: pendingApprovalTx.nonce,
     approvalHashes: [...transfer.approvalHashes, approvalHash],
     status: status.IN_PROGRESS
   }
 }
+
 
 async function checkApprove (transfer) {
   const web3 = new Web3(getEthProvider())
@@ -270,10 +285,44 @@ async function checkApprove (transfer) {
   }
 
   const approvalHash = last(transfer.approvalHashes)
-  const approvalReceipt = await web3.eth.getTransactionReceipt(
+  let approvalReceipt = await web3.eth.getTransactionReceipt(
     approvalHash
   )
 
+  // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
+  if (!approvalReceipt) {
+    // don't break old transfers in case they were made before this functionality is released
+    if (!transfer.safeHeightBeforeEthTx || !transfer.latestEthTxNonce || !transfer.txFrom) return transfer
+    try {
+      function validateEvent(event) {
+        if (!event) return false
+        return (
+          event.returnValues.owner.toLowerCase() === transfer.sender.toLowerCase() &&
+          event.returnValues.spender.toLowerCase() === process.env.ethLockerAddress.toLowerCase() &&
+          event.returnValues.value === transfer.amount
+        )
+      }
+      approvalReceipt = await handleEthTxReplaced(
+        transfer.safeHeightBeforeEthTx,
+        {
+          broadcastedNonce: transfer.latestEthTxNonce,
+          txFrom: transfer.txFrom,
+          txTo: transfer.sourceToken
+        }, {
+          eventName: 'Approval',
+          contractAbiText: process.env.ethErc20AbiText,
+          validateEvent
+        }
+      )
+    } catch (error) {
+      console.error(error)
+      return {
+        ...transfer,
+        errors: [...transfer.errors, error.message],
+        status: status.FAILED
+      }
+    }
+  }
   if (!approvalReceipt) return transfer
 
   if (!approvalReceipt.status) {
@@ -282,7 +331,8 @@ async function checkApprove (transfer) {
       error = await getRevertReason(approvalHash, ethNetwork)
     } catch (e) {
       console.error(e)
-      error = `Could not determine why transaction failed; encountered error: ${e.message}`
+      error = `Could not determine why transaction '${approvalReceipt.transactionHash}'
+        failed; encountered error: ${e.message}`
     }
     return {
       ...transfer,
@@ -317,16 +367,23 @@ async function lock (transfer) {
     { from: ethUserAddress }
   )
 
+  // If this tx is dropped and replaced, lower the search boundary
+  // in case there was a reorg.
+  let safeHeightBeforeEthTx = await web3.eth.getBlockNumber() - 20
   const lockHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
       .lockToken(transfer.sourceToken, transfer.amount, transfer.recipient).send()
       .on('transactionHash', resolve)
       .catch(reject)
   })
+  const pendingLockTx = await web3.eth.getTransaction(lockHash)
 
   return {
     ...transfer,
     status: status.IN_PROGRESS,
+    txFrom: pendingLockTx.from,
+    safeHeightBeforeEthTx,
+    latestEthTxNonce: pendingLockTx.nonce,
     lockHashes: [...transfer.lockHashes, lockHash]
   }
 }
@@ -342,9 +399,45 @@ async function checkLock (transfer) {
     )
     return transfer
   }
-  const lockReceipt = await web3.eth.getTransactionReceipt(
+  let lockReceipt = await web3.eth.getTransactionReceipt(
     lockHash
   )
+
+  // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
+  if (!lockReceipt) {
+    // don't break old transfers in case they were made before this functionality is released
+    if (!transfer.safeHeightBeforeEthTx || !transfer.latestEthTxNonce || !transfer.txFrom) return transfer
+    try {
+      function validateEvent(event) {
+        if (!event) return false
+        return (
+          event.returnValues.token.toLowerCase() === transfer.sourceToken.toLowerCase() &&
+          event.returnValues.sender.toLowerCase() === transfer.sender.toLowerCase() &&
+          event.returnValues.amount === transfer.amount &&
+          event.returnValues.accountId === transfer.recipient
+        )
+      }
+      lockReceipt = await handleEthTxReplaced(
+        transfer.safeHeightBeforeEthTx,
+        {
+          broadcastedNonce: transfer.latestEthTxNonce,
+          txFrom: transfer.txFrom,
+          txTo: process.env.ethLockerAddress
+        }, {
+          eventName: 'Locked',
+          contractAbiText: process.env.ethLockerAbiText,
+          validateEvent
+        }
+      )
+    } catch (error) {
+      console.error(error)
+      return {
+        ...transfer,
+        errors: [...transfer.errors, error.message],
+        status: status.FAILED
+      }
+    }
+  }
 
   if (!lockReceipt) return transfer
 
