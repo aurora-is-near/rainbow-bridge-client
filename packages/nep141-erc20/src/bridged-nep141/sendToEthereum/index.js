@@ -18,7 +18,7 @@ import { borshifyOutcomeProof } from './borshify-proof'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import getNep141Address from '../getAddress'
 import * as urlParams from '../../natural-erc20/sendToNear/urlParams'
-import { handleEthTxReplaced } from './../../utils'
+import { findReplacementTx } from '../../utils'
 
 export const SOURCE_NETWORK = 'near'
 export const DESTINATION_NETWORK = 'ethereum'
@@ -107,7 +107,6 @@ export const i18n = {
   }
 }
 
-
 /**
  * Called when status is ACTION_NEEDED or FAILED
  * @param {*} transfer
@@ -120,7 +119,6 @@ export function act (transfer) {
     default: throw new Error(`Don't know how to act on transfer: ${JSON.stringify(transfer)}`)
   }
 }
-
 
 /**
  * Called when status is IN_PROGRESS
@@ -141,7 +139,7 @@ export function checkStatus (transfer) {
  * @param {string} withdrawTxHash Near tx hash containing the token withdrawal
  * @param {string} sender Near account sender of withdrawTxHash
  */
-export async function recover (withdrawTxHash, sender='todo') {
+export async function recover (withdrawTxHash, sender = 'todo') {
   const decodedTxHash = utils.serialize.base_decode(withdrawTxHash)
   const nearAccount = await getNearAccount()
   const withdrawTx = await nearAccount.connection.provider.txStatus(
@@ -213,11 +211,10 @@ export async function recover (withdrawTxHash, sender='todo') {
     decimals,
 
     withdrawReceiptBlockHeights: [withdrawReceipt.blockHeight],
-    withdrawReceiptIds: [withdrawReceipt.id],
+    withdrawReceiptIds: [withdrawReceipt.id]
   }
   return transfer
 }
-
 
 /**
  * Parse the withdraw receipt id and block height needed to complete
@@ -248,13 +245,15 @@ async function parseWithdrawReceipt (withdrawTx, sender, sourceToken) {
 
   // Check if this tx was made from a 2fa
   switch (successReceiptExecutorId) {
-    case sender:
+    case sender: {
       // `confirm` transaction executed on 2fa account
       const withdrawReceiptOutcome = withdrawTx.receipts_outcome
-        .find(r => r.id === successReceiptId).outcome
-      withdrawReceiptId = withdrawReceiptOutcome.status.SuccessReceiptId
-      const withdrawReceiptExecutorId = withdrawReceiptOutcome.executor_id
+        .find(r => r.id === successReceiptId)
+        .outcome
 
+      withdrawReceiptId = withdrawReceiptOutcome.status.SuccessReceiptId
+
+      const withdrawReceiptExecutorId = withdrawReceiptOutcome.executor_id
       // Expect this receipt to be the 2fa FunctionCall
       if (withdrawReceiptExecutorId !== sourceToken) {
         throw new TransferError(
@@ -264,6 +263,7 @@ async function parseWithdrawReceipt (withdrawTx, sender, sourceToken) {
         )
       }
       break
+    }
     case sourceToken:
       // `withdraw` called directly, successReceiptId is already correct, nothing to do
       withdrawReceiptId = successReceiptId
@@ -282,7 +282,7 @@ async function parseWithdrawReceipt (withdrawTx, sender, sourceToken) {
     blockId: txReceiptBlockHash
   })
   const receiptBlockHeight = Number(receiptBlock.header.height)
-  return {id: withdrawReceiptId, blockHeight: receiptBlockHeight}
+  return { id: withdrawReceiptId, blockHeight: receiptBlockHeight }
 }
 
 export async function initiate ({
@@ -308,7 +308,7 @@ export async function initiate ({
     sender,
     sourceToken,
     sourceTokenName,
-    decimals,
+    decimals
   }
 
   transfer = await track(transfer)
@@ -425,7 +425,6 @@ export async function checkWithdraw (transfer) {
     // Transaction or receipt not processed yet
     return transfer
   }
-
 
   // Check status of tx broadcasted by wallet
   if (withdrawTx.status.Failure) {
@@ -581,7 +580,7 @@ async function unlock (transfer) {
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  let safeHeightBeforeEthTx = await web3.eth.getBlockNumber() - 20
+  const safeHeightBeforeEthTx = await web3.eth.getBlockNumber() - 20
   const unlockHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
       .unlockToken(borshProof, nearOnEthClientBlockHeight).send()
@@ -619,25 +618,23 @@ async function checkUnlock (transfer) {
     // don't break old transfers in case they were made before this functionality is released
     if (!transfer.safeHeightBeforeEthTx || !transfer.latestEthTxNonce || !transfer.txFrom) return transfer
     try {
-      function validateEvent(event) {
-        if (!event) return false
-        return (
-          event.returnValues.amount === transfer.amount &&
-          event.returnValues.recipient.toLowerCase() === transfer.recipient.toLowerCase()
-        )
+      const tx = {
+        nonce: transfer.latestEthTxNonce,
+        from: transfer.txFrom,
+        to: process.env.ethLockerAddress
       }
-      unlockReceipt = await handleEthTxReplaced(
-        transfer.safeHeightBeforeEthTx,
-        {
-          broadcastedNonce: transfer.latestEthTxNonce,
-          txFrom: transfer.txFrom,
-          txTo: process.env.ethLockerAddress
-        }, {
-          eventName: 'Unlocked',
-          contractAbiText: process.env.ethLockerAbiText,
-          validateEvent
+      const event = {
+        name: 'Unlocked',
+        abi: process.env.ethLockerAbiText,
+        validate: ({ returnValues: { amount, recipient } }) => {
+          if (!event) return false
+          return (
+            amount === transfer.amount &&
+            recipient.toLowerCase() === transfer.recipient.toLowerCase()
+          )
         }
-      )
+      }
+      unlockReceipt = await findReplacementTx(transfer.safeHeightBeforeEthTx, tx, event)
     } catch (error) {
       console.error(error)
       return {
