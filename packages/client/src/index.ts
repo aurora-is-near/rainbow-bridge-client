@@ -130,18 +130,22 @@ export function decorate (
 const transfersToRemove: string[] = []
 
 /**
- * Record a transfer to be removed at the next status check
+ * Record a transfer to be removed at the next status check.
+ * This remove request will not be processed immediatly (at the next checkStatus loop)
+ * so apps may want to manually hide the transfer until it actually gets removed from storage.
  * @param transferId
  */
-export function remove(transferId: string) {
+export function remove (transferId: string): void {
   transfersToRemove.push(transferId)
 }
 
 /**
  * Process all pending transfer removal requests
  */
-async function checkPendingTransferRemovals () {
-  transfersToRemove.forEach(async transferId => await storage.clear(transferId))
+async function checkPendingTransferRemovals (): Promise<void> {
+  await Promise.all(transfersToRemove.map(
+    async transferId => await storage.clear(transferId)
+  ))
   transfersToRemove.splice(0, transfersToRemove.length)
 }
 
