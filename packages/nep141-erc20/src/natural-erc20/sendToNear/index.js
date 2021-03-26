@@ -33,6 +33,7 @@ const steps = [
 ]
 
 const transferDraft = {
+  version: 1,
   // Attributes common to all transfer types
   // amount,
   completedStep: null,
@@ -283,7 +284,7 @@ async function checkApprove (transfer) {
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!approvalReceipt) {
     // don't break old transfers in case they were made before this functionality is released
-    if (!transfer.safeHeightBeforeEthTx || !transfer.latestEthTxNonce || !transfer.txFrom) return transfer
+    if (!transfer.version || !transfer.version >= 1) return transfer
     try {
       const tx = {
         nonce: transfer.latestEthTxNonce,

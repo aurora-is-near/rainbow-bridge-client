@@ -80,6 +80,5 @@ export async function findReplacementTx (safeHeightBeforeEthTx, tx, event) {
       with unexpected event: '${JSON.stringify(event)}'`
     throw new Error(error)
   }
-  console.log('Transaction speed up with: ', replacementTx.hash)
   return receipt
 }
