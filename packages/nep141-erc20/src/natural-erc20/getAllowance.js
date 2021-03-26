@@ -1,15 +1,21 @@
 import Web3 from 'web3'
 import { getEthProvider } from '@near-eth/client/dist/utils'
 
-export default async function getAllowance (address, user, spender) {
-  if (!user || !spender) return null
+/**
+ * Returns the amount of erc20Address tokens which spender is allowed to withdraw from owner.
+ * @param {*} param.erc20Address
+ * @param {*} param.owner
+ * @param {*} param.spender
+ */
+export default async function getAllowance ({ erc20Address, owner, spender }) {
+  if (!owner || !spender) return null
 
   const web3 = new Web3(getEthProvider())
 
   const erc20Contract = new web3.eth.Contract(
     JSON.parse(process.env.ethErc20AbiText),
-    address
+    erc20Address
   )
 
-  return await erc20Contract.methods.allowance(user, spender).call()
+  return await erc20Contract.methods.allowance(owner, spender).call()
 }

@@ -14,7 +14,7 @@ import { getDecimals } from '../getMetadata'
 import findProof from './findProof'
 import { lastBlockNumber } from './ethOnNearClient'
 import * as urlParams from './urlParams'
-import { handleEthTxReplaced } from './../../utils'
+import { findReplacementTx } from '../../utils'
 
 export const SOURCE_NETWORK = 'ethereum'
 export const DESTINATION_NETWORK = 'near'
@@ -32,7 +32,7 @@ const steps = [
   MINT
 ]
 
-let transferDraft = {
+const transferDraft = {
   // Attributes common to all transfer types
   // amount,
   completedStep: null,
@@ -146,7 +146,7 @@ export async function recover (lockTxHash) {
   })
   const lockedEvent = events.find(event => event.transactionHash === lockTxHash)
   if (!lockedEvent) {
-    throw new Error(`Unable to process lock transaction event.`)
+    throw new Error('Unable to process lock transaction event.')
   }
   const erc20Address = lockedEvent.returnValues.token
   const amount = lockedEvent.returnValues.amount
@@ -169,7 +169,7 @@ export async function recover (lockTxHash) {
     decimals,
     status: status.IN_PROGRESS,
 
-    lockReceipts: [receipt],
+    lockReceipts: [receipt]
   }
   return transfer
 }
@@ -186,9 +186,19 @@ export async function initiate ({
   sender,
   recipient
 }) {
+  const [conflictingTransfer] = await get({
+    filter: ({ sourceToken, completedStep }) =>
+      sourceToken === erc20Address &&
+      (!completedStep || completedStep === APPROVE)
+  })
+  if (conflictingTransfer) {
+    throw new Error(
+      'Another transfer is already in progress, please complete the "Lock" step and try again'
+    )
+  }
+
   // TODO: move to core 'decorate'; get both from contracts
   const sourceTokenName = await getName(erc20Address)
-  const allowance = await getAllowance(erc20Address, sender, process.env.ethLockerAddress)
   // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = await getDecimals(erc20Address)
   const destinationTokenName = 'n' + sourceTokenName
@@ -204,11 +214,14 @@ export async function initiate ({
     sender,
     sourceToken: erc20Address,
     sourceTokenName,
-    decimals,
+    decimals
   }
 
-  await checkAllowed(transfer)
-
+  const allowance = await getAllowance({
+    erc20Address,
+    owner: sender,
+    spender: process.env.ethLockerAddress
+  })
   if (decimalAmount.comparedTo(new Decimal(allowance)) === 1) {
     // amount > allowance
     transfer = await approve(transfer)
@@ -223,25 +236,6 @@ export async function initiate ({
   track(transfer)
 }
 
-
-/**
- * Check that the transfer will not block another by using or overriding it's allowance.
- * Check if a transfer is pending lock:
- * - if approve: we don't want to override the approval of a previous transfer.
- * - if lock: we don't want to use approval of another transfer.
- */
-async function checkAllowed (transfer) {
-  const transfers = await get(
-    { filter: t => t.sourceToken === transfer.sourceToken && (!t.completedStep || t.completedStep === APPROVE) && (t.id !== transfer.id) }
-  )
-  if (transfers.length > 0) {
-    throw new Error(
-      'Another transfer is already in progress, please complete the "Lock" step and try again'
-    )
-  }
-}
-
-
 async function approve (transfer) {
   const web3 = new Web3(getEthProvider())
 
@@ -253,7 +247,7 @@ async function approve (transfer) {
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  let safeHeightBeforeEthTx = await web3.eth.getBlockNumber() - 20
+  const safeHeightBeforeEthTx = await web3.eth.getBlockNumber() - 20
   const approvalHash = await new Promise((resolve, reject) => {
     erc20Contract.methods
       .approve(process.env.ethLockerAddress, transfer.amount).send()
@@ -272,7 +266,6 @@ async function approve (transfer) {
   }
 }
 
-
 async function checkApprove (transfer) {
   const web3 = new Web3(getEthProvider())
   const ethNetwork = await web3.eth.net.getNetworkType()
@@ -285,35 +278,30 @@ async function checkApprove (transfer) {
   }
 
   const approvalHash = last(transfer.approvalHashes)
-  let approvalReceipt = await web3.eth.getTransactionReceipt(
-    approvalHash
-  )
+  let approvalReceipt = await web3.eth.getTransactionReceipt(approvalHash)
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!approvalReceipt) {
     // don't break old transfers in case they were made before this functionality is released
     if (!transfer.safeHeightBeforeEthTx || !transfer.latestEthTxNonce || !transfer.txFrom) return transfer
     try {
-      function validateEvent(event) {
-        if (!event) return false
-        return (
-          event.returnValues.owner.toLowerCase() === transfer.sender.toLowerCase() &&
-          event.returnValues.spender.toLowerCase() === process.env.ethLockerAddress.toLowerCase() &&
-          event.returnValues.value === transfer.amount
-        )
+      const tx = {
+        nonce: transfer.latestEthTxNonce,
+        from: transfer.txFrom,
+        to: transfer.sourceToken
       }
-      approvalReceipt = await handleEthTxReplaced(
-        transfer.safeHeightBeforeEthTx,
-        {
-          broadcastedNonce: transfer.latestEthTxNonce,
-          txFrom: transfer.txFrom,
-          txTo: transfer.sourceToken
-        }, {
-          eventName: 'Approval',
-          contractAbiText: process.env.ethErc20AbiText,
-          validateEvent
+      const event = {
+        name: 'Approval',
+        abi: process.env.ethErc20AbiText,
+        validate: ({ returnValues: { owner, spender, value } }) => {
+          return (
+            owner.toLowerCase() === transfer.sender.toLowerCase() &&
+            spender.toLowerCase() === process.env.ethLockerAddress.toLowerCase() &&
+            value === transfer.amount
+          )
         }
-      )
+      }
+      approvalReceipt = await findReplacementTx(transfer.safeHeightBeforeEthTx, tx, event)
     } catch (error) {
       console.error(error)
       return {
@@ -369,7 +357,7 @@ async function lock (transfer) {
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  let safeHeightBeforeEthTx = await web3.eth.getBlockNumber() - 20
+  const safeHeightBeforeEthTx = await web3.eth.getBlockNumber() - 20
   const lockHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
       .lockToken(transfer.sourceToken, transfer.amount, transfer.recipient).send()
@@ -399,36 +387,32 @@ async function checkLock (transfer) {
     )
     return transfer
   }
-  let lockReceipt = await web3.eth.getTransactionReceipt(
-    lockHash
-  )
+  let lockReceipt = await web3.eth.getTransactionReceipt(lockHash)
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!lockReceipt) {
     // don't break old transfers in case they were made before this functionality is released
     if (!transfer.safeHeightBeforeEthTx || !transfer.latestEthTxNonce || !transfer.txFrom) return transfer
     try {
-      function validateEvent(event) {
-        if (!event) return false
-        return (
-          event.returnValues.token.toLowerCase() === transfer.sourceToken.toLowerCase() &&
-          event.returnValues.sender.toLowerCase() === transfer.sender.toLowerCase() &&
-          event.returnValues.amount === transfer.amount &&
-          event.returnValues.accountId === transfer.recipient
-        )
+      const tx = {
+        nonce: transfer.latestEthTxNonce,
+        from: transfer.txFrom,
+        to: process.env.ethLockerAddress
       }
-      lockReceipt = await handleEthTxReplaced(
-        transfer.safeHeightBeforeEthTx,
-        {
-          broadcastedNonce: transfer.latestEthTxNonce,
-          txFrom: transfer.txFrom,
-          txTo: process.env.ethLockerAddress
-        }, {
-          eventName: 'Locked',
-          contractAbiText: process.env.ethLockerAbiText,
-          validateEvent
+      const event = {
+        name: 'Locked',
+        abi: process.env.ethLockerAbiText,
+        validate: ({ returnValues: { token, sender, amount, accountId } }) => {
+          if (!event) return false
+          return (
+            token.toLowerCase() === transfer.sourceToken.toLowerCase() &&
+            sender.toLowerCase() === transfer.sender.toLowerCase() &&
+            amount === transfer.amount &&
+            accountId === transfer.recipient
+          )
         }
-      )
+      }
+      lockReceipt = await findReplacementTx(transfer.safeHeightBeforeEthTx, tx, event)
     } catch (error) {
       console.error(error)
       return {
@@ -602,7 +586,6 @@ export async function checkMint (transfer) {
     // Transaction or receipt not processed yet
     return transfer
   }
-
 
   // Check status of tx broadcasted by wallet
   if (mintTx.status.Failure) {
