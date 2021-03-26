@@ -39,6 +39,7 @@ const steps = [
 class TransferError extends Error {}
 
 const transferDraft = {
+  version: 1,
   // attributes common to all transfer types
   // amount,
   completedStep: null,
@@ -616,7 +617,7 @@ async function checkUnlock (transfer) {
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!unlockReceipt) {
     // don't break old transfers in case they were made before this functionality is released
-    if (!transfer.safeHeightBeforeEthTx || !transfer.latestEthTxNonce || !transfer.txFrom) return transfer
+    if (!transfer.version || !transfer.version >= 1) return transfer
     try {
       const tx = {
         nonce: transfer.latestEthTxNonce,
