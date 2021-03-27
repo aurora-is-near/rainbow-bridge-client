@@ -39,8 +39,7 @@ const steps = [
 class TransferError extends Error {}
 
 const transferDraft = {
-  version: 1,
-  // attributes common to all transfer types
+  // Attributes common to all transfer types
   // amount,
   completedStep: null,
   // destinationTokenName,
@@ -52,14 +51,14 @@ const transferDraft = {
   // decimals,
   status: status.IN_PROGRESS,
   type: TRANSFER_TYPE,
-  // Nonce of the latest transaction broadcasted to Ethereum: used to check if that transaction was replaced.
-  // latestEthTxNonce
-  // Reorg safety in case a speedup/cancel tx needs to be searched.
-  // safeHeightBeforeEthTx,
-  // Differentiate token sender from tx signer for possible eth multisig wallet support of tx dropped and replaced
-  // txFrom,
+  // Cache eth tx information used for finding a replaced (speedup/cancel) tx.
+  // ethCache: {
+  //   signer,                   // tx.from of last broadcasted eth tx
+  //   safeReorgHight,           // Lower boundary for replacement tx search
+  //   nonce                     // tx.nonce of last broadcasted eth tx
+  // }
 
-  // attributes specific to bridged-nep141-to-erc20 transfers
+  // Attributes specific to bridged-nep141-to-erc20 transfers
   finalityBlockHeights: [],
   finalityBlockTimestamps: [],
   nearOnEthClientBlockHeight: null, // calculated & set to a number during checkSync
@@ -581,7 +580,7 @@ async function unlock (transfer) {
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  const safeHeightBeforeEthTx = await web3.eth.getBlockNumber() - 20
+  const safeReorgHight = await web3.eth.getBlockNumber() - 20
   const unlockHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
       .unlockToken(borshProof, nearOnEthClientBlockHeight).send()
@@ -593,9 +592,11 @@ async function unlock (transfer) {
   return {
     ...transfer,
     status: status.IN_PROGRESS,
-    txFrom: pendingUnlockTx.from,
-    safeHeightBeforeEthTx,
-    latestEthTxNonce: pendingUnlockTx.nonce,
+    ethCache: {
+      from: pendingUnlockTx.from,
+      safeReorgHight,
+      nonce: pendingUnlockTx.nonce
+    },
     unlockHashes: [...transfer.unlockHashes, unlockHash]
   }
 }
@@ -617,11 +618,11 @@ async function checkUnlock (transfer) {
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!unlockReceipt) {
     // don't break old transfers in case they were made before this functionality is released
-    if (!transfer.version || !transfer.version >= 1) return transfer
+    if (!transfer.ethCache) return transfer
     try {
       const tx = {
-        nonce: transfer.latestEthTxNonce,
-        from: transfer.txFrom,
+        nonce: transfer.ethCache.nonce,
+        from: transfer.ethCache.from,
         to: process.env.ethLockerAddress
       }
       const event = {
@@ -635,7 +636,7 @@ async function checkUnlock (transfer) {
           )
         }
       }
-      unlockReceipt = await findReplacementTx(transfer.safeHeightBeforeEthTx, tx, event)
+      unlockReceipt = await findReplacementTx(transfer.ethCache.safeReorgHight, tx, event)
     } catch (error) {
       console.error(error)
       return {
