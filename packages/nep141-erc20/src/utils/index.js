@@ -4,13 +4,12 @@ import { getEthProvider } from '@near-eth/client/dist/utils'
 /**
  * Search for a dropped and replaced transaction (speed up or cancel)
  * @param {Number} safeHeightBeforeEthTx Lower search bound
- * @param {*} txInfo Transaction information to find the replacement
- * @param {*} tx.nonce Nonce of the transaction searched
- * @param {*} tx.from Signer of the transaction searched
- * @param {*} tx.to Address called by the transaction searched
- * @param {*} event.name Name of event expected if tx was speed up
- * @param {*} event.abi tx.to contract abi needed to find event
- * @param {*} event.validate Function to validate the content of event
+ * @param {Number} tx.nonce Nonce of the transaction searched
+ * @param {String} tx.from Signer of the transaction searched
+ * @param {String} tx.to Address called by the transaction searched
+ * @param {String} event.name Name of event expected if tx was speed up
+ * @param {String} event.abi tx.to contract abi needed to find event
+ * @param {Function} event.validate Function to validate the content of event
  */
 export async function findReplacementTx (safeHeightBeforeEthTx, tx, event) {
   const web3 = new Web3(getEthProvider())

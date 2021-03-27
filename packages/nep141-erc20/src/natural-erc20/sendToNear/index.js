@@ -33,7 +33,6 @@ const steps = [
 ]
 
 const transferDraft = {
-  version: 1,
   // Attributes common to all transfer types
   // amount,
   completedStep: null,
@@ -46,12 +45,12 @@ const transferDraft = {
   // decimals,
   status: status.ACTION_NEEDED,
   type: TRANSFER_TYPE,
-  // Nonce of the latest transaction broadcasted to Ethereum: used to check if that transaction was replaced.
-  // latestEthTxNonce
-  // Reorg safety in case a speedup/cancel tx needs to be searched.
-  // safeHeightBeforeEthTx,
-  // Differentiate token sender from tx signer for possible eth multisig wallet support of tx dropped and replaced
-  // txFrom,
+  // Cache eth tx information used for finding a replaced (speedup/cancel) tx.
+  // ethCache: {
+  //   signer,                   // tx.from of last broadcasted eth tx
+  //   safeReorgHight,           // Lower boundary for replacement tx search
+  //   nonce                     // tx.nonce of last broadcasted eth tx
+  // }
 
   // Attributes specific to natural-erc20-to-nep141 transfers
   approvalHashes: [],
@@ -248,7 +247,7 @@ async function approve (transfer) {
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  const safeHeightBeforeEthTx = await web3.eth.getBlockNumber() - 20
+  const safeReorgHight = await web3.eth.getBlockNumber() - 20
   const approvalHash = await new Promise((resolve, reject) => {
     erc20Contract.methods
       .approve(process.env.ethLockerAddress, transfer.amount).send()
@@ -259,9 +258,11 @@ async function approve (transfer) {
 
   return {
     ...transfer,
-    txFrom: pendingApprovalTx.from,
-    safeHeightBeforeEthTx,
-    latestEthTxNonce: pendingApprovalTx.nonce,
+    ethCache: {
+      from: pendingApprovalTx.from,
+      safeReorgHight,
+      nonce: pendingApprovalTx.nonce
+    },
     approvalHashes: [...transfer.approvalHashes, approvalHash],
     status: status.IN_PROGRESS
   }
@@ -284,11 +285,11 @@ async function checkApprove (transfer) {
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!approvalReceipt) {
     // don't break old transfers in case they were made before this functionality is released
-    if (!transfer.version || !transfer.version >= 1) return transfer
+    if (!transfer.ethCache) return transfer
     try {
       const tx = {
-        nonce: transfer.latestEthTxNonce,
-        from: transfer.txFrom,
+        nonce: transfer.ethCache.nonce,
+        from: transfer.ethCache.from,
         to: transfer.sourceToken
       }
       const event = {
@@ -302,7 +303,7 @@ async function checkApprove (transfer) {
           )
         }
       }
-      approvalReceipt = await findReplacementTx(transfer.safeHeightBeforeEthTx, tx, event)
+      approvalReceipt = await findReplacementTx(transfer.ethCache.safeReorgHight, tx, event)
     } catch (error) {
       console.error(error)
       return {
@@ -358,7 +359,7 @@ async function lock (transfer) {
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  const safeHeightBeforeEthTx = await web3.eth.getBlockNumber() - 20
+  const safeReorgHight = await web3.eth.getBlockNumber() - 20
   const lockHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
       .lockToken(transfer.sourceToken, transfer.amount, transfer.recipient).send()
@@ -370,9 +371,11 @@ async function lock (transfer) {
   return {
     ...transfer,
     status: status.IN_PROGRESS,
-    txFrom: pendingLockTx.from,
-    safeHeightBeforeEthTx,
-    latestEthTxNonce: pendingLockTx.nonce,
+    ethCache: {
+      from: pendingLockTx.from,
+      safeReorgHight,
+      nonce: pendingLockTx.nonce
+    },
     lockHashes: [...transfer.lockHashes, lockHash]
   }
 }
@@ -393,11 +396,11 @@ async function checkLock (transfer) {
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!lockReceipt) {
     // don't break old transfers in case they were made before this functionality is released
-    if (!transfer.safeHeightBeforeEthTx || !transfer.latestEthTxNonce || !transfer.txFrom) return transfer
+    if (!transfer.ethCache) return transfer
     try {
       const tx = {
-        nonce: transfer.latestEthTxNonce,
-        from: transfer.txFrom,
+        nonce: transfer.ethCache.nonce,
+        from: transfer.ethCache.from,
         to: process.env.ethLockerAddress
       }
       const event = {
@@ -413,7 +416,7 @@ async function checkLock (transfer) {
           )
         }
       }
-      lockReceipt = await findReplacementTx(transfer.safeHeightBeforeEthTx, tx, event)
+      lockReceipt = await findReplacementTx(transfer.ethCache.safeReorgHight, tx, event)
     } catch (error) {
       console.error(error)
       return {
