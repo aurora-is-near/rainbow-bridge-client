@@ -75,24 +75,24 @@ const transferDraft = {
 export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
-      [WITHDRAW]: `Withdraw ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from NEAR`,
-      [AWAIT_FINALITY]: `Convert ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to ${transfer.destinationTokenName}`,
-      [SYNC]: 'Sync withdrawal transaction to Ethereum (up to 16 hours)',
-      [UNLOCK]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} on Ethereum`
+      [WITHDRAW]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from NEAR`,
+      [AWAIT_FINALITY]: `Confirming in NEAR`,
+      [SYNC]: 'Confirming in Ethereum. This can take around 16 hours. Feel free to return to this window later, to complete the final step of the transfer.',
+      [UNLOCK]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in Ethereum`
     }),
     statusMessage: transfer => {
       if (transfer.status === status.FAILED) return 'Failed'
       if (transfer.status === status.ACTION_NEEDED) {
         switch (transfer.completedStep) {
-          case null: return 'Ready to withdraw from NEAR'
-          case SYNC: return 'Ready to unlock in Ethereum'
+          case null: return 'Ready to transfer from NEAR'
+          case SYNC: return 'Ready to deposit in Ethereum'
         }
       }
       switch (transfer.completedStep) {
-        case null: return 'Withdrawing from NEAR'
-        case WITHDRAW: return 'Finalizing withdrawal'
-        case AWAIT_FINALITY: return 'Syncing to Ethereum'
-        case SYNC: return 'Unlocking in Ethereum'
+        case null: return 'Transfering to NEAR'
+        case WITHDRAW: return 'Confirming transfer'
+        case AWAIT_FINALITY: return 'Confirming transfer'
+        case SYNC: return 'Depositing in Ethereum'
         case UNLOCK: return 'Transfer complete'
       }
     },
@@ -100,8 +100,8 @@ export const i18n = {
       if (transfer.status === status.FAILED) return 'Retry'
       if (transfer.status !== status.ACTION_NEEDED) return null
       switch (transfer.completedStep) {
-        case null: return 'Withdraw'
-        case SYNC: return 'Unlock'
+        case null: return 'Transfer'
+        case SYNC: return 'Deposit'
       }
     }
   }

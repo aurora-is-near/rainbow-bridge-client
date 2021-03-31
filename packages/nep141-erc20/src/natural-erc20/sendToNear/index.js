@@ -66,24 +66,24 @@ export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
       [APPROVE]: `Approve transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from Ethereum`,
-      [LOCK]: `Convert ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to ${transfer.destinationTokenName}`,
-      [SYNC]: `Wait for ${transfer.neededConfirmations} Ethereum confirmations for security`,
-      [MINT]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} on NEAR`
+      [LOCK]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to NEAR`,
+      [SYNC]: `Wait for ${transfer.neededConfirmations} transfer confirmations for security`,
+      [MINT]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in NEAR`
     }),
     statusMessage: transfer => {
       if (transfer.status === status.FAILED) return 'Failed'
       if (transfer.status === status.ACTION_NEEDED) {
         switch (transfer.completedStep) {
-          case APPROVE: return 'Ready to lock in Ethereum'
-          case SYNC: return 'Ready to mint in NEAR'
+          case APPROVE: return 'Ready to transfer from Ethereum'
+          case SYNC: return 'Ready to deposit in NEAR'
           default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
         }
       }
       switch (transfer.completedStep) {
-        case null: return 'Approving Token Locker'
-        case APPROVE: return 'Locking in Ethereum'
-        case LOCK: return `Syncing block ${transfer.completedConfirmations + 1}/${transfer.neededConfirmations}`
-        case SYNC: return 'Minting in NEAR'
+        case null: return 'Approving transfer'
+        case APPROVE: return 'Transfering to NEAR'
+        case LOCK: return `Confirming transfer ${transfer.completedConfirmations + 1} of ${transfer.neededConfirmations}`
+        case SYNC: return 'Depositing in NEAR'
         case MINT: return 'Transfer complete'
         default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
       }
@@ -92,8 +92,8 @@ export const i18n = {
       if (transfer.status === status.FAILED) return 'Retry'
       if (transfer.status !== status.ACTION_NEEDED) return null
       switch (transfer.completedStep) {
-        case APPROVE: return 'Lock'
-        case SYNC: return 'Mint'
+        case APPROVE: return 'Transfer'
+        case SYNC: return 'Deposit'
         default: return null
       }
     }
