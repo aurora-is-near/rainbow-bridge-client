@@ -54,7 +54,7 @@ const transferDraft = {
   // Cache eth tx information used for finding a replaced (speedup/cancel) tx.
   // ethCache: {
   //   signer,                   // tx.from of last broadcasted eth tx
-  //   safeReorgHight,           // Lower boundary for replacement tx search
+  //   safeReorgHeight,           // Lower boundary for replacement tx search
   //   nonce                     // tx.nonce of last broadcasted eth tx
   // }
 
@@ -580,7 +580,7 @@ async function unlock (transfer) {
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  const safeReorgHight = await web3.eth.getBlockNumber() - 20
+  const safeReorgHeight = await web3.eth.getBlockNumber() - 20
   const unlockHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
       .unlockToken(borshProof, nearOnEthClientBlockHeight).send()
@@ -594,7 +594,7 @@ async function unlock (transfer) {
     status: status.IN_PROGRESS,
     ethCache: {
       from: pendingUnlockTx.from,
-      safeReorgHight,
+      safeReorgHeight,
       nonce: pendingUnlockTx.nonce
     },
     unlockHashes: [...transfer.unlockHashes, unlockHash]
@@ -636,7 +636,7 @@ async function checkUnlock (transfer) {
           )
         }
       }
-      unlockReceipt = await findReplacementTx(transfer.ethCache.safeReorgHight, tx, event)
+      unlockReceipt = await findReplacementTx(transfer.ethCache.safeReorgHeight, tx, event)
     } catch (error) {
       console.error(error)
       return {
