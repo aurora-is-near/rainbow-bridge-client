@@ -1,4 +1,0 @@
-releases:
-  "@near-eth/client": patch
-  "@near-eth/nep141-erc20": patch
-  rainbow-bridge-client-monorepo: patch

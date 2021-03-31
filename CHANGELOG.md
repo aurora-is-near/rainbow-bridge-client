@@ -1,3 +1,19 @@
+## 1.2.0 (2021-03-31)
+
+* fix: fix lock event search ([bb6a873](https://github.com/near/rainbow-bridge-client/commit/bb6a873))
+* fix: handle interrupted near tx (tab closed, go back...) ([c38e0df](https://github.com/near/rainbow-bridge-client/commit/c38e0df))
+* fix: improve error message ([c549cae](https://github.com/near/rainbow-bridge-client/commit/c549cae))
+* fix: reduce mint deposit 10x ([4c5a736](https://github.com/near/rainbow-bridge-client/commit/4c5a736))
+* fix: update naj, remove authAgainst ([9425b43](https://github.com/near/rainbow-bridge-client/commit/9425b43))
+* refactor: refactor, fix eslint ([1615155](https://github.com/near/rainbow-bridge-client/commit/1615155))
+* refactor: rename with ethCache object ([74233eb](https://github.com/near/rainbow-bridge-client/commit/74233eb))
+* docs: improve remove transfer ([952248c](https://github.com/near/rainbow-bridge-client/commit/952248c))
+* feat: add transfer version ([74474f2](https://github.com/near/rainbow-bridge-client/commit/74474f2))
+* feat: handle speedup/cancel tx ([c080911](https://github.com/near/rainbow-bridge-client/commit/c080911))
+* feat: skip approval if enough allowance ([ab3bb72](https://github.com/near/rainbow-bridge-client/commit/ab3bb72))
+
+
+
 ## 1.1.0 (2021-03-19)
 
 * fix: recover returns transfer to enable confirmation ([643f2d5](https://github.com/near/rainbow-bridge-client/commit/643f2d5))
