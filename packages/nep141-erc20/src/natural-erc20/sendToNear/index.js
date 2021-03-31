@@ -48,7 +48,7 @@ const transferDraft = {
   // Cache eth tx information used for finding a replaced (speedup/cancel) tx.
   // ethCache: {
   //   signer,                   // tx.from of last broadcasted eth tx
-  //   safeReorgHight,           // Lower boundary for replacement tx search
+  //   safeReorgHeight,           // Lower boundary for replacement tx search
   //   nonce                     // tx.nonce of last broadcasted eth tx
   // }
 
@@ -247,7 +247,7 @@ async function approve (transfer) {
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  const safeReorgHight = await web3.eth.getBlockNumber() - 20
+  const safeReorgHeight = await web3.eth.getBlockNumber() - 20
   const approvalHash = await new Promise((resolve, reject) => {
     erc20Contract.methods
       .approve(process.env.ethLockerAddress, transfer.amount).send()
@@ -260,7 +260,7 @@ async function approve (transfer) {
     ...transfer,
     ethCache: {
       from: pendingApprovalTx.from,
-      safeReorgHight,
+      safeReorgHeight,
       nonce: pendingApprovalTx.nonce
     },
     approvalHashes: [...transfer.approvalHashes, approvalHash],
@@ -303,7 +303,7 @@ async function checkApprove (transfer) {
           )
         }
       }
-      approvalReceipt = await findReplacementTx(transfer.ethCache.safeReorgHight, tx, event)
+      approvalReceipt = await findReplacementTx(transfer.ethCache.safeReorgHeight, tx, event)
     } catch (error) {
       console.error(error)
       return {
@@ -359,7 +359,7 @@ async function lock (transfer) {
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  const safeReorgHight = await web3.eth.getBlockNumber() - 20
+  const safeReorgHeight = await web3.eth.getBlockNumber() - 20
   const lockHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
       .lockToken(transfer.sourceToken, transfer.amount, transfer.recipient).send()
@@ -373,7 +373,7 @@ async function lock (transfer) {
     status: status.IN_PROGRESS,
     ethCache: {
       from: pendingLockTx.from,
-      safeReorgHight,
+      safeReorgHeight,
       nonce: pendingLockTx.nonce
     },
     lockHashes: [...transfer.lockHashes, lockHash]
@@ -416,7 +416,7 @@ async function checkLock (transfer) {
           )
         }
       }
-      lockReceipt = await findReplacementTx(transfer.ethCache.safeReorgHight, tx, event)
+      lockReceipt = await findReplacementTx(transfer.ethCache.safeReorgHeight, tx, event)
     } catch (error) {
       console.error(error)
       return {
