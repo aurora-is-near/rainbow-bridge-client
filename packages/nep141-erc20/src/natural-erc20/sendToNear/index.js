@@ -496,7 +496,6 @@ async function mint (transfer) {
   // able to correctly identify the transfer and see if the transaction
   // succeeded.
   setTimeout(async () => {
-    urlParams.set({ minting: transfer.id })
     await nearAccount.functionCall(
       process.env.nearTokenFactoryAccount,
       'deposit',
@@ -509,6 +508,10 @@ async function mint (transfer) {
       new BN('100000000000000000000').mul(new BN('600'))
     )
   }, 100)
+  // Set url params before this mint() returns, otherwise there is a chance that checkMint() is called before
+  // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
+  // url param is not there
+  urlParams.set({ minting: transfer.id })
 
   return {
     ...transfer,
