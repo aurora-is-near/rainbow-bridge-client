@@ -5,7 +5,7 @@ import Web3 from 'web3'
 import { track, get } from '@near-eth/client'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
 import { utils } from 'near-api-js'
-import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
+import { localizedError, stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import getName from '../getName'
@@ -81,7 +81,7 @@ export const i18n = {
       }
       switch (transfer.completedStep) {
         case null: return 'Approving transfer'
-        case APPROVE: return 'Transfering to NEAR'
+        case APPROVE: return 'Transferring to NEAR'
         case LOCK: return `Confirming transfer ${transfer.completedConfirmations + 1} of ${transfer.neededConfirmations}`
         case SYNC: return 'Depositing in NEAR'
         case MINT: return 'Transfer complete'
@@ -96,7 +96,12 @@ export const i18n = {
         case SYNC: return 'Deposit'
         default: return null
       }
-    }
+    },
+    errors: transfer => ({
+      cannotCheckStatus: `Don't know how to checkStatus for transfer ${transfer.id}`,
+      conflictingTransfer: 'Another transfer is already in progress, please complete the "Transfer" step and try again',
+      noActionDefined: `Don't know how to act on transfer: ${transfer.id}`
+    })
   }
 }
 
@@ -110,7 +115,7 @@ export function act (transfer) {
     case APPROVE: return lock(transfer)
     case LOCK: return checkSync(transfer)
     case SYNC: return mint(transfer)
-    default: throw new Error(`Don't know how to act on transfer: ${transfer.id}`)
+    default: throw new Error(localizedError(transfer, 'noActionDefined'))
   }
 }
 
@@ -124,7 +129,7 @@ export function checkStatus (transfer) {
     case APPROVE: return checkLock(transfer)
     case LOCK: return checkSync(transfer)
     case SYNC: return checkMint(transfer)
-    default: throw new Error(`Don't know how to checkStatus for transfer ${transfer.id}`)
+    default: throw new Error(localizedError(transfer, 'cannotCheckStatus'))
   }
 }
 
@@ -192,9 +197,7 @@ export async function initiate ({
       (!completedStep || completedStep === APPROVE)
   })
   if (conflictingTransfer) {
-    throw new Error(
-      'Another transfer is already in progress, please complete the "Lock" step and try again'
-    )
+    throw new Error(localizedError(transferDraft, 'conflictingTransfer'))
   }
 
   // TODO: move to core 'decorate'; get both from contracts

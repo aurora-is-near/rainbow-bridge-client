@@ -40,10 +40,11 @@ export type DecoratedTransfer = Transfer & {
   callToAction?: string
 }
 
-interface Localizations {
+export interface Localizations {
   steps: (t: Transfer) => Step[]
   callToAction: (t: Transfer) => string | null
   statusMessage: (t: Transfer) => string
+  errors: (t: Transfer) => { [key: string]: string }
 }
 
 export interface ConnectorLib {
