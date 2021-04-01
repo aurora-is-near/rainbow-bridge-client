@@ -329,7 +329,6 @@ async function withdraw (transfer) {
   // able to correctly identify the transfer and see if the transaction
   // succeeded.
   setTimeout(async () => {
-    urlParams.set({ withdrawing: transfer.id })
     await nearAccount.functionCall(
       transfer.sourceToken,
       'withdraw',
@@ -342,6 +341,10 @@ async function withdraw (transfer) {
       new BN('1')
     )
   }, 100)
+  // Set url params before this withdraw() returns, otherwise there is a chance that checkWithdraw() is called before
+  // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
+  // url param is not there
+  urlParams.set({ withdrawing: transfer.id })
 
   return {
     ...transfer,
