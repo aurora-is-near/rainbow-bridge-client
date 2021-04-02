@@ -1,3 +1,15 @@
+## <small>1.2.1 (2021-04-02)</small>
+
+* fix: set url param before updating status.IN_PROGRESS ([8a92734](https://github.com/near/rainbow-bridge-client/commit/8a92734))
+* fix: upgrade web3, handle possible invalid receipt.status ([2c64118](https://github.com/near/rainbow-bridge-client/commit/2c64118))
+* chore: release nep141-erc20 v1.2.1 ([80baae6](https://github.com/near/rainbow-bridge-client/commit/80baae6))
+* chore: release nep141-erc20 v1.2.3 ([3486ab9](https://github.com/near/rainbow-bridge-client/commit/3486ab9))
+* bump nep141-erc20 version to 1.2.2 ([a7e2f74](https://github.com/near/rainbow-bridge-client/commit/a7e2f74))
+* Revert "fix: reduce mint deposit 10x" ([9eaed46](https://github.com/near/rainbow-bridge-client/commit/9eaed46))
+* style: rename transfer steps ([a9fe8af](https://github.com/near/rainbow-bridge-client/commit/a9fe8af))
+
+
+
 ## 1.2.0 (2021-03-31)
 
 * fix: fix lock event search ([bb6a873](https://github.com/near/rainbow-bridge-client/commit/bb6a873))
