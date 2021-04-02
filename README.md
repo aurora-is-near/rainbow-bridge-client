@@ -26,3 +26,45 @@ You should also see eslint & TypeScript support in your editor.
 
   [Node.js]: https://nodejs.org/en/download/package-manager/
   [yarn]: https://yarnpkg.com/
+
+Releases
+=========
+Pull requests
+-------------
+
+
+This project follows the [Yarn2 release workflow](https://yarnpkg.com/features/release-workflow) with deffered versioning.
+
+Before a branch is merged run:
+```
+yarn version check -i
+```
+And select the appropriate release which should be applied for each package changed by the PR: patch(fix), minor(feature) or major(breaking change).
+
+Commit `.yarn/version`.
+
+Release the repository
+----------------------
+Maintainers can run the following to apply deferred releases:
+```
+yarn version apply --all
+```
+
+Update the repository CHANGELOG:
+```
+yarn changelog
+```
+
+Commit and push master (also commit .yarn/version):
+```
+git commit -m "chore: release v2.0.0"
+git tag v2.0.0
+```
+
+NPM release a package
+---------------------
+```
+yarn build
+cd packages/package-name
+yarn npm publish --access public
+```

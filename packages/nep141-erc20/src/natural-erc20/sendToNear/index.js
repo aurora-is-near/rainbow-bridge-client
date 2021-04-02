@@ -483,7 +483,18 @@ async function checkSync (transfer) {
 async function mint (transfer) {
   const nearAccount = await getNearAccount()
   const lockReceipt = last(transfer.lockReceipts)
-  const proof = await findProof(lockReceipt.transactionHash)
+  let proof
+
+  try {
+    proof = await findProof(lockReceipt.transactionHash)
+  } catch (error) {
+    console.error(error)
+    return {
+      ...transfer,
+      status: status.FAILED,
+      errors: [...transfer.errors, error.message]
+    }
+  }
 
   // Calling `nearFungibleTokenFactory.deposit` causes a redirect to NEAR Wallet.
   //

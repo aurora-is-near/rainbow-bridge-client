@@ -39,6 +39,15 @@ export default async function findProof (lockTxHash) {
   )
 
   const receipt = await web3.eth.getTransactionReceipt(lockTxHash)
+  if (!receipt.status) {
+    // When connecting via walletConnect, a random bug can happen where the receipt.status
+    // is false event though we know it should be true.
+    // https://github.com/near/rainbow-bridge-client/issues/12
+    throw new Error(
+      `Invalid Ethereum receipt status received from provider, please try again.
+       If retrying doesn't solve this error, connecting a Metamask account may solve the issue`
+    )
+  }
   const block = await web3.eth.getBlock(receipt.blockNumber)
   const tree = await buildTree(block)
   const proof = await extractProof(
