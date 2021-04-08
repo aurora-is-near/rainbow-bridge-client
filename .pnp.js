@@ -592,8 +592,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["eth-object", "https://github.com/near/eth-object.git#commit=54e03b8aac8208cf724e206d49ffb8bdd30451d7"],
             ["eth-revert-reason", "npm:1.0.3"],
             ["eth-util-lite", "https://github.com/near/eth-util-lite.git#commit=ae0210cbe127b4d43ba01fd7cd4898d1a3f6c96a"],
+            ["ethereumjs-util", "npm:7.0.10"],
             ["near-api-js", "npm:0.39.0"],
             ["promisfy", "npm:1.2.0"],
+            ["rlp", "npm:2.2.6"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
             ["web3", "npm:1.3.4"],
             ["web3-utils", "npm:1.3.4"]
@@ -3578,6 +3580,19 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["bn.js", "npm:4.11.9"],
             ["create-hash", "npm:1.2.0"],
             ["elliptic", "npm:6.5.4"],
+            ["ethereum-cryptography", "npm:0.1.3"],
+            ["ethjs-util", "npm:0.1.6"],
+            ["rlp", "npm:2.2.6"]
+          ],
+          "linkType": "HARD",
+        }],
+        ["npm:7.0.10", {
+          "packageLocation": "./.yarn/cache/ethereumjs-util-npm-7.0.10-d5fa3ce0cb-4dd40fd920.zip/node_modules/ethereumjs-util/",
+          "packageDependencies": [
+            ["ethereumjs-util", "npm:7.0.10"],
+            ["@types/bn.js", "npm:5.1.0"],
+            ["bn.js", "npm:5.2.0"],
+            ["create-hash", "npm:1.2.0"],
             ["ethereum-cryptography", "npm:0.1.3"],
             ["ethjs-util", "npm:0.1.6"],
             ["rlp", "npm:2.2.6"]

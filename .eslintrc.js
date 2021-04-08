@@ -18,5 +18,7 @@ module.exports = {
     '@typescript-eslint'
   ],
   rules: {
+    "@typescript-eslint/strict-boolean-expressions": 0,
+    "@typescript-eslint/no-non-null-assertion": 0
   }
 }
