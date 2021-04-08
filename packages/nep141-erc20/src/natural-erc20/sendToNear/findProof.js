@@ -1,7 +1,8 @@
-import Tree from 'merkle-patricia-tree'
+import { Trie } from './merkle-patricia-tree'
+// import Tree from 'merkle-patricia-tree'
+// import { promisfy } from 'promisfy'
 import { encode } from 'eth-util-lite'
 import { Header, Proof, Receipt, Log } from 'eth-object'
-import { promisfy } from 'promisfy'
 import utils from 'ethereumjs-util'
 import { serialize as serializeBorsh } from 'near-api-js/lib/utils/serialize'
 import Web3 from 'web3'
@@ -41,7 +42,7 @@ export default async function findProof (lockTxHash) {
   )
 
   const receipt = await web3.eth.getTransactionReceipt(lockTxHash)
-  if (!receipt.status) {
+  if (receipt.status !== true) {
     // When connecting via walletConnect, a random bug can happen where the receipt.status
     // is false event though we know it should be true.
     // https://github.com/near/rainbow-bridge-client/issues/12
@@ -90,7 +91,8 @@ async function buildTree (block) {
     block.transactions.map(t => web3.eth.getTransactionReceipt(t))
   )
 
-  // Build a Patricia Merkle Trie
+  /*
+  // Keep this here in case we need testing
   const tree = new Tree()
   await Promise.all(
     blockReceipts.map(receipt => {
@@ -99,8 +101,20 @@ async function buildTree (block) {
       return promisfy(tree.put, tree)(path, serializedReceipt)
     })
   )
+  */
 
-  return tree
+  // Build a Patricia Merkle Trie
+  const trie = new Trie()
+  blockReceipts.forEach(receipt => {
+    const path = encode(receipt.transactionIndex)
+    const serializedReceipt = Receipt.fromWeb3(receipt).serialize()
+    trie.put(path, serializedReceipt)
+  })
+  if (trie.root.toString('hex') !== block.receiptsRoot.slice(2)) {
+    throw new Error('Failed to build receipts trie root.')
+  }
+
+  return trie
 }
 
 async function extractProof (block, tree, transactionIndex) {
@@ -108,10 +122,17 @@ async function extractProof (block, tree, transactionIndex) {
   // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
   const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
+  const stack = tree.findPath(encode(transactionIndex)).stack.map(
+    node => { return { raw: node.raw() } }
+  )
+
+  /*
+  // Keep this here in case we need testing
   const [, , stack] = await promisfy(
     tree.findPath,
     tree
   )(encode(transactionIndex))
+  */
 
   const blockData = await web3.eth.getBlock(block.number)
   // Correctly compose and encode the header.

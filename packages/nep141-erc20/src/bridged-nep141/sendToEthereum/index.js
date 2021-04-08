@@ -54,7 +54,7 @@ const transferDraft = {
   // Cache eth tx information used for finding a replaced (speedup/cancel) tx.
   // ethCache: {
   //   signer,                   // tx.from of last broadcasted eth tx
-  //   safeReorgHeight,           // Lower boundary for replacement tx search
+  //   safeReorgHeight,          // Lower boundary for replacement tx search
   //   nonce                     // tx.nonce of last broadcasted eth tx
   // }
 
@@ -76,7 +76,7 @@ export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
       [WITHDRAW]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from NEAR`,
-      [AWAIT_FINALITY]: `Confirming in NEAR`,
+      [AWAIT_FINALITY]: 'Confirming in NEAR',
       [SYNC]: 'Confirming in Ethereum. This can take around 16 hours. Feel free to return to this window later, to complete the final step of the transfer.',
       [UNLOCK]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in Ethereum`
     }),

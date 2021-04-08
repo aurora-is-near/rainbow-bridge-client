@@ -144,7 +144,7 @@ export async function nearAuthedAgainst (contract: string): Promise<boolean> {
   return authedAgainst === contract
 }
 
-export function formatLargeNum (n, decimals = 18) {
+export function formatLargeNum (n: string, decimals = 18): Decimal {
   // decimals defaults to 18 for old transfers in state that didn't record transfer.decimals
   if (!n) {
     return new Decimal(0)

@@ -48,7 +48,7 @@ const transferDraft = {
   // Cache eth tx information used for finding a replaced (speedup/cancel) tx.
   // ethCache: {
   //   signer,                   // tx.from of last broadcasted eth tx
-  //   safeReorgHeight,           // Lower boundary for replacement tx search
+  //   safeReorgHeight,          // Lower boundary for replacement tx search
   //   nonce                     // tx.nonce of last broadcasted eth tx
   // }
 
@@ -196,7 +196,7 @@ export async function initiate ({
   })
   if (conflictingTransfer) {
     throw new Error(
-      'Another transfer is already in progress, please complete the "Lock" step and try again'
+      'Another transfer is already in progress, please complete the "Start transfer" step and try again.'
     )
   }
 

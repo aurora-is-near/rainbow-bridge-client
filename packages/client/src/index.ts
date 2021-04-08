@@ -81,7 +81,8 @@ export function decorate (
 ): DecoratedTransfer {
   const type = getTransferType(transfer)
 
-  // @ts-expect-error
+  // not needed with structNullChecks false: @ts-expect-error
+  // to be improved
   let localized = type.i18n[locale]
   if (localized === undefined) {
     const availableLocales = Object.keys(type.i18n)
@@ -93,7 +94,8 @@ export function decorate (
         }\n\nFalling back to ${fallback}`
       )
     }
-    // @ts-expect-error
+    // not needed with structNullChecks false: @ts-expect-error
+    // to be improved
     localized = type.i18n[fallback]
   }
 
