@@ -12,7 +12,9 @@ import { getEthProvider } from '@near-eth/client/dist/utils'
  * @param {Function} event.validate Function to validate the content of event
  */
 export async function findReplacementTx (safeHeightBeforeEthTx, tx, event) {
-  const web3 = new Web3(getEthProvider())
+  const provider = getEthProvider()
+  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
+  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
   const currentNonce = await web3.eth.getTransactionCount(tx.from, 'latest')
 

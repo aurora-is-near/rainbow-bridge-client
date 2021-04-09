@@ -31,7 +31,9 @@ const proofBorshSchema = new Map([
 // be passed to the FungibleTokenFactory contract, which verifies the proof
 // against a Prover contract.
 export default async function findProof (lockTxHash) {
-  const web3 = new Web3(getEthProvider())
+  const provider = getEthProvider()
+  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
+  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
   const ethTokenLocker = new web3.eth.Contract(
     JSON.parse(process.env.ethLockerAbiText),
@@ -80,7 +82,9 @@ export default async function findProof (lockTxHash) {
 }
 
 async function buildTree (block) {
-  const web3 = new Web3(getEthProvider())
+  const provider = getEthProvider()
+  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
+  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
   const blockReceipts = await Promise.all(
     block.transactions.map(t => web3.eth.getTransactionReceipt(t))
@@ -100,7 +104,9 @@ async function buildTree (block) {
 }
 
 async function extractProof (block, tree, transactionIndex) {
-  const web3 = new Web3(getEthProvider())
+  const provider = getEthProvider()
+  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
+  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
   const [, , stack] = await promisfy(
     tree.findPath,

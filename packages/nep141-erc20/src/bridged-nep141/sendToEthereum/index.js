@@ -619,7 +619,10 @@ async function unlock (transfer) {
 }
 
 async function checkUnlock (transfer) {
-  const web3 = new Web3(getEthProvider())
+  const provider = getEthProvider()
+  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
+  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
+
   const ethNetwork = await web3.eth.net.getNetworkType()
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(

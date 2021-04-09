@@ -134,7 +134,10 @@ export function checkStatus (transfer) {
  * @param {*} lockTxHash
  */
 export async function recover (lockTxHash) {
-  const web3 = new Web3(getEthProvider())
+  const provider = getEthProvider()
+  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
+  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
+
   const receipt = await web3.eth.getTransactionReceipt(lockTxHash)
   const ethTokenLocker = new web3.eth.Contract(
     JSON.parse(process.env.ethLockerAbiText),
@@ -269,7 +272,10 @@ async function approve (transfer) {
 }
 
 async function checkApprove (transfer) {
-  const web3 = new Web3(getEthProvider())
+  const provider = getEthProvider()
+  // If available connect to rpcUrl to avoid issues with WalletConnectProvider
+  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
+
   const ethNetwork = await web3.eth.net.getNetworkType()
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(
@@ -381,8 +387,11 @@ async function lock (transfer) {
 }
 
 async function checkLock (transfer) {
+  const provider = getEthProvider()
+  // If available connect to rpcUrl to avoid issues with WalletConnectProvider
+  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
+
   const lockHash = last(transfer.lockHashes)
-  const web3 = new Web3(getEthProvider())
   const ethNetwork = await web3.eth.net.getNetworkType()
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(
