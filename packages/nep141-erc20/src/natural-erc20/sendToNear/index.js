@@ -304,8 +304,9 @@ async function checkApprove (transfer) {
         validate: ({ returnValues: { owner, spender, value } }) => {
           return (
             owner.toLowerCase() === transfer.sender.toLowerCase() &&
-            spender.toLowerCase() === process.env.ethLockerAddress.toLowerCase() &&
-            value === transfer.amount
+            spender.toLowerCase() === process.env.ethLockerAddress.toLowerCase()
+            // Don't check value as the user may have increased approval before signing.
+            // value === transfer.amount
           )
         }
       }
