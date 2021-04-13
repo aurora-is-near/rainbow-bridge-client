@@ -591,7 +591,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["bs58", "npm:4.0.1"],
             ["eth-object", "https://github.com/near/eth-object.git#commit=54e03b8aac8208cf724e206d49ffb8bdd30451d7"],
             ["eth-revert-reason", "npm:1.0.3"],
-            ["eth-util-lite", "https://github.com/near/eth-util-lite.git#commit=ae0210cbe127b4d43ba01fd7cd4898d1a3f6c96a"],
             ["ethereumjs-util", "npm:7.0.10"],
             ["near-api-js", "npm:0.39.0"],
             ["promisfy", "npm:1.2.0"],

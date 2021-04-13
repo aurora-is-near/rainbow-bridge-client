@@ -3,7 +3,7 @@ import { Decimal } from 'decimal.js'
 import bs58 from 'bs58'
 import getRevertReason from 'eth-revert-reason'
 import Web3 from 'web3'
-import { toBuffer } from 'eth-util-lite'
+import { toBuffer } from 'ethereumjs-util'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
 import { utils } from 'near-api-js'
 import {
