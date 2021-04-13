@@ -1,9 +1,8 @@
 import { Trie } from './merkle-patricia-tree'
 // import Tree from 'merkle-patricia-tree'
 // import { promisfy } from 'promisfy'
-import { encode } from 'eth-util-lite'
 import { Header, Proof, Receipt, Log } from 'eth-object'
-import utils from 'ethereumjs-util'
+import { rlp } from 'ethereumjs-util'
 import { serialize as serializeBorsh } from 'near-api-js/lib/utils/serialize'
 import Web3 from 'web3'
 import { getEthProvider } from '@near-eth/client/dist/utils'
@@ -76,7 +75,7 @@ export default async function findProof (lockTxHash) {
     receipt_index: proof.txIndex,
     receipt_data: Array.from(Receipt.fromWeb3(receipt).serialize()),
     header_data: Array.from(proof.header_rlp),
-    proof: Array.from(proof.receiptProof).map(utils.rlp.encode).map(b => Array.from(b))
+    proof: Array.from(proof.receiptProof).map(rlp.encode).map(b => Array.from(b))
   })
 
   return serializeBorsh(proofBorshSchema, formattedProof)
@@ -96,7 +95,7 @@ async function buildTree (block) {
   const tree = new Tree()
   await Promise.all(
     blockReceipts.map(receipt => {
-      const path = encode(receipt.transactionIndex)
+      const path = rlp.encode(receipt.transactionIndex)
       const serializedReceipt = Receipt.fromWeb3(receipt).serialize()
       return promisfy(tree.put, tree)(path, serializedReceipt)
     })
@@ -110,7 +109,7 @@ async function buildTree (block) {
   // Build a Patricia Merkle Trie
   const trie = new Trie()
   blockReceipts.forEach(receipt => {
-    const path = encode(receipt.transactionIndex)
+    const path = rlp.encode(receipt.transactionIndex)
     const serializedReceipt = Receipt.fromWeb3(receipt).serialize()
     trie.put(path, serializedReceipt)
   })
@@ -126,7 +125,7 @@ async function extractProof (block, tree, transactionIndex) {
   // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
   const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
-  const stack = tree.findPath(encode(transactionIndex)).stack.map(
+  const stack = tree.findPath(rlp.encode(transactionIndex)).stack.map(
     node => { return { raw: node.raw() } }
   )
 
@@ -135,7 +134,7 @@ async function extractProof (block, tree, transactionIndex) {
   const [, , stack] = await promisfy(
     tree.findPath,
     tree
-  )(encode(transactionIndex))
+  )(rlp.encode(transactionIndex))
   */
 
   const blockData = await web3.eth.getBlock(block.number)
