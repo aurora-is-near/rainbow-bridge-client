@@ -1,3 +1,12 @@
+## 1.3.0 (2021-04-13)
+
+* fix: add light patricia trie for browser support ([7c273d7](https://github.com/near/rainbow-bridge-client/commit/7c273d7))
+* fix: don't use WalletConnectProvider for receipt queries ([e66c724](https://github.com/near/rainbow-bridge-client/commit/e66c724))
+* fix: find approval replacement tx shouldn't check value ([8f886d6](https://github.com/near/rainbow-bridge-client/commit/8f886d6))
+* chore: release nep141-erc20 v1.2.5 ([72f4ec9](https://github.com/near/rainbow-bridge-client/commit/72f4ec9))
+
+
+
 ## <small>1.2.1 (2021-04-02)</small>
 
 * fix: set url param before updating status.IN_PROGRESS ([8a92734](https://github.com/near/rainbow-bridge-client/commit/8a92734))
