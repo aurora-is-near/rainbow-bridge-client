@@ -101,6 +101,10 @@ async function buildTree (block) {
       return promisfy(tree.put, tree)(path, serializedReceipt)
     })
   )
+  console.log(block)
+  if (tree.root.toString('hex') !== block.receiptsRoot.slice(2)) {
+    throw new Error('Failed to build receipts trie root: tree')
+  }
   */
 
   // Build a Patricia Merkle Trie
