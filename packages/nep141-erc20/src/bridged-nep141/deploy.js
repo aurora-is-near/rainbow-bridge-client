@@ -1,6 +1,7 @@
 import BN from 'bn.js'
 import { utils } from 'near-api-js'
 import { getNearAccount } from '@near-eth/client/dist/utils'
+import * as urlParams from '../natural-erc20/sendToNear/urlParams'
 
 /**
  * Deploy a BridgeToken contract for the given erc20Address.
@@ -35,6 +36,7 @@ import { getNearAccount } from '@near-eth/client/dist/utils'
  */
 export default async function deployBridgeToken (erc20Address) {
   const nearAccount = await getNearAccount()
+  urlParams.set({ bridging: erc20Address })
 
   // causes redirect to NEAR Wallet
   await nearAccount.functionCall(
