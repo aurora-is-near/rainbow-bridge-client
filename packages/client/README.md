@@ -10,7 +10,7 @@ command line?
 Did you build a custom Rainbow Bridge [Connector] and now you want to figure
 out how to build a client library for it, so other people can actually use it?
 
-If you answered "Yes" to any of the above questions, this is the library for you!
+If you answered "Yes" to any of the above questions, this is the library for you! (Ok, ok, the CLI interface is not yet supported!)
 
   [Ethereum]: https://ethereum.org/
   [NEAR]: https://near.org/
@@ -21,7 +21,8 @@ Read on to find out how to:
 
 - [Add it to your browser app](#add-it-to-your-browser-app)
 - [Author a custom connector library](#author-a-custom-connector-library)
-- [Contributing](#contributing)
+
+To contribute to this library, see [github.com/near/rainbow-bridge-client](https://github.com/near/rainbow-bridge-client).
 
 
 Add it to your browser app
@@ -105,21 +106,7 @@ window.nearConnection = new WalletConnection(
 setNearConnection(window.nearConnection)
 ```
 
-If you don't know what to put for the settings passed to `new Near`, you can import the sensible defaults used by `@near-eth/client`:
-
-```js
-import { Near, WalletConnection } from 'near-api-js'
-import { config, setNearConnection } from '@near-eth/client'
-
-window.nearConnection = new WalletConnection(
-  new Near(config.ropsten.near)
-)
-
-setNearConnection(window.nearConnection)
-```
-
-Learn [more about `config` from `@near-eth/client`](#TODO)
-
+If you don't know what to put for the settings passed to `new Near`, check out the [cheat sheet](https://docs.near.org/docs/api/naj-quick-reference).
 
 #### `requestSignIn()`
 
@@ -132,17 +119,10 @@ Additionally, you'll probably want to verify that a user has a NEAR account befo
 You can add this handler:
 
 ```js
-// For this library's functionality, the specific contract address passed to
-// `requestSignIn` is not super important, but you may want to use a contract
-// from a connector library rather than the core client library
-import { config } from '@near-eth/nep141-erc20'
-
 document.querySelector('#authNear').onclick = () => {
-  window.nearConnection.requestSignIn(config.ropsten.bridgeTokenFactory)
+  window.nearConnection.requestSignIn()
 }
 ```
-
-Learn [more about `config` from `@near-eth/nep141-erc20`](#TODO)
 
 ### Ethereum Authentication
 
@@ -226,7 +206,7 @@ Here's code to render the list of transfers:
 import { get, onChange } from '@near-eth/client'
 
 function renderTransfers () {
-  const transfers = get({ filter: { status: 'in-progress' } })
+  const transfers = get({ filter: t => t.status === 'in-progress' })
   document.querySelector('#transfers-go-here').innerHTML =
     transfers.map(renderTransfer).join('')
 }
@@ -239,11 +219,39 @@ renderTransfers()
 If using React, you'd want something like:
 
 ```jsx
-TODO
+import React, { useState, useEffect } from 'react';
+import { get, onChange } from '@near-eth/client'
+
+// See below for an example Transfer component
+import Transfer from './Transfer'
+
+// You can write a simple custom hook to suit your needs;
+// see https://reactjs.org/docs/hooks-custom.html
+function useTransfers(filter) {
+  const [transfers, setTransfers] = useState([])
+
+  useEffect(() => {
+    get({ filter }).then(setTransfers)
+
+    onChange(() => get({ filter }).then(setTransfers))
+  }, [])
+
+  return transfers
+}
+
+export function Transfers () {
+  const transfers = useTransfers(t => t.status === 'in-progress')
+  return (
+    <ol>
+      {transfers.map(transfer =>
+        <Transfer key={transfer.id} transfer={transfer} />
+      )}
+    </ol>
+  )
+}
 ```
 
-And here's what `renderTransfer` might look like, using vanilla JS (translation
-to React is straightforward):
+And here's what `renderTransfer` might look like, using vanilla JS:
 
 ```js
 import { act, decorate } from '@near-eth/client'
@@ -264,7 +272,7 @@ function renderTransfer (transfer) {
       `}
     </li>
   `
-})
+}
 
 // Vanilla JS shenanigans: add a click handler to `body`, because transfers are
 // rendered with JS and therefore unavailable for adding click handlers at
@@ -277,6 +285,30 @@ document.querySelector('body').addEventListener('click', event => {
     act(transferId)
   }
 })
+```
+
+And an equivalent `Transfer` component, if using React:
+
+```jsx
+import { act, decorate } from '@near-eth/client'
+
+export function Transfer (transfer) {
+  // "decorate" transfer with realtime info & other data that would bloat localStorage
+  transfer = decorate(transfer, { locale: 'en_US' })
+  return (
+    <li>
+      {transfer.amount}
+      {transfer.sourceTokenName} from
+      {transfer.sender} to
+      {transfer.recipient}
+      {transfer.callToAction &&
+        <button onClick={() => act(transfer.id)}>
+          {transfer.callToAction}
+        </button>
+      }
+    </li>
+  )
+}
 ```
 
 Here's some [docs about act][act], and [two][act2] [example][act3]
@@ -298,9 +330,7 @@ transfers, prior to being decorated.
 Step 4: check & update status of in-progress transfers
 ------------------------------------------------------
 
-Your app will need to prompt users to sign in with both Ethereum
-([example][authEthereum]) and NEAR ([example][authNear]). After the
-authorization process completes for both chains, you need this:
+Wait for the Ethereum & NEAR authentications described in Step 1 to complete, then call this:
 
 ```js
 import { checkStatusAll } from '@near-eth/client'
@@ -339,7 +369,7 @@ just four steps. 🌈🌉🎉
 To make it more beautiful, check out [the API docs](#TODO🙃) and [example
 code][example] (implemented in vanilla/no-framework JavaScript).
 
-  [example]: https://github.com/near/rainbow-bridge-frontend/blob/bfcd96178316f8408451417371bebd253cc64abd1/src/html/transfers.html#L339-L388
+  [example]: https://github.com/near/rainbow-bridge-frontend/blob/master/src/html/transfers.html
 
 
 Author a custom connector library
@@ -347,5 +377,6 @@ Author a custom connector library
 
 1. Copy the code in the [`@near-eth/nep141-erc20`] library
 2. Adjust for your needs
+3. Send a Pull Request to add your client to [the `getTransferType` lookup logic](https://github.com/near/rainbow-bridge-client/blob/482fbeb6af42f5d73cda1e501c806fbaa84e781b/packages/client/src/index.ts#L14-L29) in `@near-eth/client`
 
-  [`@near-eth/nep141-erc20`]: https://github.com/near/rainbow-bridge-frontend/tree/526ed49248974e38b438d92c12ede1b6305eb869/src/js/transfers/erc20%2Bnep141
+  [`@near-eth/nep141-erc20`]: https://www.npmjs.com/package/@near-eth/nep141-erc20
