@@ -311,20 +311,16 @@ export function Transfer (transfer) {
 }
 ```
 
-Here's some [docs about act][act], and [two][act2] [example][act3]
-connector-specific behaviors. Here's some [docs about decorate][decorate], and
-[two][decorate2] [example][decorate3] connector-specific behaviors. Here's the
-attributes for [two][initiate-natural] [kinds][initiate-bridged] of raw
-transfers, prior to being decorated.
+Here's some [docs about act][act], and [two][act2] [example][act3] connector-specific behaviors.
+Here's some [docs about decorate][decorate].
+Here's the attributes for [two][initiate-natural] [kinds][initiate-bridged] of raw transfers, prior to being decorated.
 
-  [act]: https://github.com/near/rainbow-bridge-frontend/blob/bfcd96178316f8408451417371bebd253cc64abd1/src/js/transfers/index.js#L132-L140
-  [act2]: https://github.com/near/rainbow-bridge-frontend/blob/bfcd96178316f8408451417371bebd253cc64abd1/src/js/transfers/erc20%2Bnep141/natural-erc20-to-nep141/index.js#L62-L69
-  [act3]: https://github.com/near/rainbow-bridge-frontend/blob/bfcd96178316f8408451417371bebd253cc64abd1/src/js/transfers/erc20%2Bnep141/bridged-nep141-to-erc20/index.js#L67-L73
-  [decorate]: https://github.com/near/rainbow-bridge-frontend/blob/bfcd96178316f8408451417371bebd253cc64abd1/src/js/transfers/index.js#L46-L68
-  [decorate2]: https://github.com/near/rainbow-bridge-frontend/blob/bfcd96178316f8408451417371bebd253cc64abd1/src/js/transfers/erc20%2Bnep141/natural-erc20-to-nep141/index.js#L19-L59
-  [decorate3]: https://github.com/near/rainbow-bridge-frontend/blob/bfcd96178316f8408451417371bebd253cc64abd1/src/js/transfers/erc20%2Bnep141/bridged-nep141-to-erc20/index.js#L141-L64
-  [initiate-natural]: https://github.com/near/rainbow-bridge-frontend/blob/bfcd96178316f8408451417371bebd253cc64abd1/src/js/transfers/erc20%2Bnep141/natural-erc20-to-nep141/index.js#L97-L117
-  [initiate-bridged]: https://github.com/near/rainbow-bridge-frontend/blob/bfcd96178316f8408451417371bebd253cc64abd1/src/js/transfers/erc20%2Bnep141/bridged-nep141-to-erc20/index.js#L98-L1141
+  [act]: https://github.com/near/rainbow-bridge-client/blob/1a4f1756dbcebd20a7459a51b595462d09b6564c/packages/client/src/index.ts#L185-L193
+  [act2]: https://github.com/near/rainbow-bridge-client/blob/1a4f1756dbcebd20a7459a51b595462d09b6564c/packages/nep141-erc20/src/natural-erc20/sendToNear/index.js#L103-L115
+  [act3]: https://github.com/near/rainbow-bridge-client/blob/1a4f1756dbcebd20a7459a51b595462d09b6564c/packages/nep141-erc20/src/bridged-nep141/sendToEthereum/index.js#L110-L121
+  [decorate]: https://github.com/near/rainbow-bridge-client/blob/1a4f1756dbcebd20a7459a51b595462d09b6564c/packages/client/src/index.ts#L55-L77
+  [initiate-natural]: https://github.com/near/rainbow-bridge-client/blob/1a4f1756dbcebd20a7459a51b595462d09b6564c/packages/nep141-erc20/src/natural-erc20/sendToNear/index.js#L35-L63
+  [initiate-bridged]: https://github.com/near/rainbow-bridge-client/blob/1a4f1756dbcebd20a7459a51b595462d09b6564c/packages/nep141-erc20/src/bridged-nep141/sendToEthereum/index.js#L41-L73
 
 
 Step 4: check & update status of in-progress transfers
