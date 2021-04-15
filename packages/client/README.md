@@ -46,7 +46,7 @@ Or, if using yarn:
 
 The Rainbow Bridge between Ethereum and NEAR has [many pieces][Rainbow Bridge]. One piece is **Connector** contracts. The connector code for converting ERC20 tokens in Ethereum to NEP141 tokens in NEAR lives at [github.com/near/rainbow-token-connector][Connector].
 
-The code for using a given connector from an app has its own library. The one for the connector above is [`@near-eth/nep141-erc20`].
+The code for using a given connector from an app has its own library. The one for the connector above is [`@near-eth/nep141-erc20`](https://www.npmjs.com/package/@near-eth/nep141-erc20).
 
 Anyone can make connector contracts, and anyone can make client libraries for these contracts. If they follow the format of `@near-eth/nep141-erc20`, these client libraries will work automatically with the core Rainbow Bridge transfer library at `@near-eth/client`.
 
@@ -371,8 +371,6 @@ code][example] (implemented in vanilla/no-framework JavaScript).
 Author a custom connector library
 =================================
 
-1. Copy the code in the [`@near-eth/nep141-erc20`] library
+1. Copy the code in the [`@near-eth/nep141-erc20`](../../packages/nep141-erc20) library
 2. Adjust for your needs
 3. Send a Pull Request to add your client to [the `getTransferType` lookup logic](https://github.com/near/rainbow-bridge-client/blob/482fbeb6af42f5d73cda1e501c806fbaa84e781b/packages/client/src/index.ts#L14-L29) in `@near-eth/client`
-
-  [`@near-eth/nep141-erc20`]: https://www.npmjs.com/package/@near-eth/nep141-erc20
