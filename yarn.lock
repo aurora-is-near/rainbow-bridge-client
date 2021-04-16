@@ -475,6 +475,33 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@near-eth/e-near@workspace:packages/e-near":
+  version: 0.0.0-use.local
+  resolution: "@near-eth/e-near@workspace:packages/e-near"
+  dependencies:
+    "@commitlint/cli": "*"
+    "@commitlint/config-conventional": "*"
+    "@commitlint/travis-cli": "*"
+    "@near-eth/client": "workspace:*"
+    "@near-eth/utils": "workspace:*"
+    "@types/bn.js": ^5.1.0
+    "@types/node": ^14.14.28
+    "@yarnpkg/pnpify": ^2.4.0
+    bn.js: ^5.1.3
+    bs58: ^4.0.1
+    eth-object: "near/eth-object#54e03b8aac8208cf724e206d49ffb8bdd30451d7"
+    eth-revert-reason: ^1.0.3
+    eth-utils: "workspace:*"
+    ethereumjs-util: ^7.0.10
+    near-api-js: ^0.39.0
+    promisfy: ^1.2.0
+    rlp: ^2.2.6
+    typescript: 4.1.5
+    web3: ^1.3.4
+    web3-utils: ^1.3.4
+  languageName: unknown
+  linkType: soft
+
 "@near-eth/nep141-erc20@workspace:packages/nep141-erc20":
   version: 0.0.0-use.local
   resolution: "@near-eth/nep141-erc20@workspace:packages/nep141-erc20"
@@ -496,6 +523,23 @@ __metadata:
     rlp: ^2.2.6
     typescript: 4.1.5
     web3: ^1.3.4
+    web3-utils: ^1.3.4
+  languageName: unknown
+  linkType: soft
+
+"@near-eth/utils@workspace:*, @near-eth/utils@workspace:packages/utils":
+  version: 0.0.0-use.local
+  resolution: "@near-eth/utils@workspace:packages/utils"
+  dependencies:
+    "@commitlint/cli": "*"
+    "@commitlint/config-conventional": "*"
+    "@commitlint/travis-cli": "*"
+    "@types/bn.js": ^5.1.0
+    "@types/node": ^14.14.28
+    "@yarnpkg/pnpify": ^2.4.0
+    bs58: ^4.0.1
+    near-api-js: ^0.39.0
+    typescript: 4.1.5
     web3-utils: ^1.3.4
   languageName: unknown
   linkType: soft
@@ -2955,6 +2999,23 @@ __metadata:
   checksum: 881528b08e9a4096e0e4d5a4bcd078371de518211956a630a2b5dc94eddb44344ba8a4f1056884cd64c2a4188c66a71383718b7317c3e9b082f8357252d39062
   languageName: node
   linkType: hard
+
+"eth-utils@workspace:*, eth-utils@workspace:packages/eth-utils":
+  version: 0.0.0-use.local
+  resolution: "eth-utils@workspace:packages/eth-utils"
+  dependencies:
+    "@commitlint/cli": "*"
+    "@commitlint/config-conventional": "*"
+    "@commitlint/travis-cli": "*"
+    "@types/bn.js": ^5.1.0
+    "@types/node": ^14.14.28
+    "@yarnpkg/pnpify": ^2.4.0
+    ethereumjs-util: ^7.0.10
+    rlp: ^2.2.6
+    typescript: 4.1.5
+    web3: ^1.3.4
+  languageName: unknown
+  linkType: soft
 
 "ethereum-bloom-filters@npm:^1.0.6":
   version: 1.0.9
