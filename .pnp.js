@@ -27,15 +27,30 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         "reference": "workspace:packages/client"
       },
       {
+        "name": "@near-eth/e-near",
+        "reference": "workspace:packages/e-near"
+      },
+      {
+        "name": "eth-utils",
+        "reference": "workspace:packages/eth-utils"
+      },
+      {
         "name": "@near-eth/nep141-erc20",
         "reference": "workspace:packages/nep141-erc20"
+      },
+      {
+        "name": "@near-eth/utils",
+        "reference": "workspace:packages/utils"
       }
     ],
     "enableTopLevelFallback": true,
     "ignorePatternData": "(^(?:\\.yarn\\/sdks(?:\\/(?!\\.)(?:(?:(?!(?:^|\\/)\\.).)*?)|$))$)",
     "fallbackExclusionList": [
       ["@near-eth/client", ["workspace:packages/client"]],
+      ["@near-eth/e-near", ["workspace:packages/e-near"]],
       ["@near-eth/nep141-erc20", ["workspace:packages/nep141-erc20"]],
+      ["@near-eth/utils", ["workspace:packages/utils"]],
+      ["eth-utils", ["workspace:packages/eth-utils"]],
       ["rainbow-bridge-client-monorepo", ["workspace:."]]
     ],
     "fallbackPool": [
@@ -575,6 +590,35 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "linkType": "SOFT",
         }]
       ]],
+      ["@near-eth/e-near", [
+        ["workspace:packages/e-near", {
+          "packageLocation": "./packages/e-near/",
+          "packageDependencies": [
+            ["@near-eth/e-near", "workspace:packages/e-near"],
+            ["@commitlint/cli", "npm:12.0.1"],
+            ["@commitlint/config-conventional", "npm:12.0.1"],
+            ["@commitlint/travis-cli", "npm:12.0.1"],
+            ["@near-eth/client", "workspace:packages/client"],
+            ["@near-eth/utils", "workspace:packages/utils"],
+            ["@types/bn.js", "npm:5.1.0"],
+            ["@types/node", "npm:14.14.31"],
+            ["@yarnpkg/pnpify", "virtual:b169caab91376c9920d84f10c6906a51fae16a06caf940bd48d492471ff9295afe466f685176ed7711cab35cf2afad8f26e7132f2c775db0e312b41bca505f2f#npm:2.4.0"],
+            ["bn.js", "npm:5.2.0"],
+            ["bs58", "npm:4.0.1"],
+            ["eth-object", "https://github.com/near/eth-object.git#commit=54e03b8aac8208cf724e206d49ffb8bdd30451d7"],
+            ["eth-revert-reason", "npm:1.0.3"],
+            ["eth-utils", "workspace:packages/eth-utils"],
+            ["ethereumjs-util", "npm:7.0.10"],
+            ["near-api-js", "npm:0.39.0"],
+            ["promisfy", "npm:1.2.0"],
+            ["rlp", "npm:2.2.6"],
+            ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
+            ["web3", "npm:1.3.4"],
+            ["web3-utils", "npm:1.3.4"]
+          ],
+          "linkType": "SOFT",
+        }]
+      ]],
       ["@near-eth/nep141-erc20", [
         ["workspace:packages/nep141-erc20", {
           "packageLocation": "./packages/nep141-erc20/",
@@ -586,7 +630,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@near-eth/client", "workspace:packages/client"],
             ["@types/bn.js", "npm:5.1.0"],
             ["@types/node", "npm:14.14.31"],
-            ["@yarnpkg/pnpify", "virtual:7626c1335ea20d3e6a0783893abf90b552173f3a960bd0ecfd1837d142e2a1bd8e949c2f6eac36f9582720e726bc0bee144e962fe0dcd59301cf2e860410ad30#npm:2.4.0"],
+            ["@yarnpkg/pnpify", "virtual:b169caab91376c9920d84f10c6906a51fae16a06caf940bd48d492471ff9295afe466f685176ed7711cab35cf2afad8f26e7132f2c775db0e312b41bca505f2f#npm:2.4.0"],
             ["bn.js", "npm:5.2.0"],
             ["bs58", "npm:4.0.1"],
             ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=fb57468391112502792ba5fd8c586f5d2467a89f"],
@@ -597,6 +641,25 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["rlp", "npm:2.2.6"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
             ["web3", "npm:1.3.4"],
+            ["web3-utils", "npm:1.3.4"]
+          ],
+          "linkType": "SOFT",
+        }]
+      ]],
+      ["@near-eth/utils", [
+        ["workspace:packages/utils", {
+          "packageLocation": "./packages/utils/",
+          "packageDependencies": [
+            ["@near-eth/utils", "workspace:packages/utils"],
+            ["@commitlint/cli", "npm:12.0.1"],
+            ["@commitlint/config-conventional", "npm:12.0.1"],
+            ["@commitlint/travis-cli", "npm:12.0.1"],
+            ["@types/bn.js", "npm:5.1.0"],
+            ["@types/node", "npm:14.14.31"],
+            ["@yarnpkg/pnpify", "virtual:b169caab91376c9920d84f10c6906a51fae16a06caf940bd48d492471ff9295afe466f685176ed7711cab35cf2afad8f26e7132f2c775db0e312b41bca505f2f#npm:2.4.0"],
+            ["bs58", "npm:4.0.1"],
+            ["near-api-js", "npm:0.39.0"],
+            ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
             ["web3-utils", "npm:1.3.4"]
           ],
           "linkType": "SOFT",
@@ -1114,10 +1177,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           ],
           "linkType": "SOFT",
         }],
-        ["virtual:7626c1335ea20d3e6a0783893abf90b552173f3a960bd0ecfd1837d142e2a1bd8e949c2f6eac36f9582720e726bc0bee144e962fe0dcd59301cf2e860410ad30#npm:2.4.0", {
-          "packageLocation": "./.yarn/$$virtual/@yarnpkg-pnpify-virtual-60dc812c9f/0/cache/@yarnpkg-pnpify-npm-2.4.0-f9312c18ed-89bbbe7f62.zip/node_modules/@yarnpkg/pnpify/",
+        ["virtual:b169caab91376c9920d84f10c6906a51fae16a06caf940bd48d492471ff9295afe466f685176ed7711cab35cf2afad8f26e7132f2c775db0e312b41bca505f2f#npm:2.4.0", {
+          "packageLocation": "./.yarn/$$virtual/@yarnpkg-pnpify-virtual-338c551af0/0/cache/@yarnpkg-pnpify-npm-2.4.0-f9312c18ed-89bbbe7f62.zip/node_modules/@yarnpkg/pnpify/",
           "packageDependencies": [
-            ["@yarnpkg/pnpify", "virtual:7626c1335ea20d3e6a0783893abf90b552173f3a960bd0ecfd1837d142e2a1bd8e949c2f6eac36f9582720e726bc0bee144e962fe0dcd59301cf2e860410ad30#npm:2.4.0"],
+            ["@yarnpkg/pnpify", "virtual:b169caab91376c9920d84f10c6906a51fae16a06caf940bd48d492471ff9295afe466f685176ed7711cab35cf2afad8f26e7132f2c775db0e312b41bca505f2f#npm:2.4.0"],
             ["@types/eslint", null],
             ["@types/typescript", null],
             ["@yarnpkg/core", "npm:2.4.0"],
@@ -3514,6 +3577,25 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["safe-buffer", "npm:5.2.1"]
           ],
           "linkType": "HARD",
+        }]
+      ]],
+      ["eth-utils", [
+        ["workspace:packages/eth-utils", {
+          "packageLocation": "./packages/eth-utils/",
+          "packageDependencies": [
+            ["eth-utils", "workspace:packages/eth-utils"],
+            ["@commitlint/cli", "npm:12.0.1"],
+            ["@commitlint/config-conventional", "npm:12.0.1"],
+            ["@commitlint/travis-cli", "npm:12.0.1"],
+            ["@types/bn.js", "npm:5.1.0"],
+            ["@types/node", "npm:14.14.31"],
+            ["@yarnpkg/pnpify", "virtual:b169caab91376c9920d84f10c6906a51fae16a06caf940bd48d492471ff9295afe466f685176ed7711cab35cf2afad8f26e7132f2c775db0e312b41bca505f2f#npm:2.4.0"],
+            ["ethereumjs-util", "npm:7.0.10"],
+            ["rlp", "npm:2.2.6"],
+            ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
+            ["web3", "npm:1.3.4"]
+          ],
+          "linkType": "SOFT",
         }]
       ]],
       ["ethereum-bloom-filters", [
