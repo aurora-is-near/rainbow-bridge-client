@@ -61,8 +61,8 @@ For `@near-eth/nep141-erc20`, these main exports are:
 
 1. `naturalErc20` – example: go from DAI (a popular ERC20 token) to nDAI
 2. `bridgedNep141` – example: convert nDAI back to DAI
-3. `naturalNep141` – example: go from a natural NEAR token, such as BNNA Tokens in berryclub.io, to BNNAᵉ in Ethereum
-4. `bridgedErc20` – example: convert BNNAᵉ back to BNNA
+3. `naturalNep141` – example: go from a natural NEAR token, such as BNNA Tokens in berryclub.io, to eBNNA in Ethereum
+4. `bridgedErc20` – example: convert eBNNA back to BNNA
 
 You can have multiple connector libraries in your app, some which may be maintained by NEAR and are in the `@near-eth` organization, and some which are not. An example `package.json` might end up looking something like:
 
