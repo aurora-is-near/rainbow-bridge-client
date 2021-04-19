@@ -475,9 +475,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@near-eth/e-near@workspace:packages/e-near":
+"@near-eth/near-ether@workspace:packages/near-ether":
   version: 0.0.0-use.local
-  resolution: "@near-eth/e-near@workspace:packages/e-near"
+  resolution: "@near-eth/near-ether@workspace:packages/near-ether"
   dependencies:
     "@commitlint/cli": "*"
     "@commitlint/config-conventional": "*"
@@ -491,8 +491,9 @@ __metadata:
     bs58: ^4.0.1
     eth-object: "near/eth-object#54e03b8aac8208cf724e206d49ffb8bdd30451d7"
     eth-revert-reason: ^1.0.3
-    eth-utils: "workspace:*"
     ethereumjs-util: ^7.0.10
+    find-replacement-tx: "workspace:*"
+    lite-merkle-patricia-tree: "workspace:*"
     near-api-js: ^0.39.0
     promisfy: ^1.2.0
     rlp: ^2.2.6
@@ -3000,23 +3001,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eth-utils@workspace:*, eth-utils@workspace:packages/eth-utils":
-  version: 0.0.0-use.local
-  resolution: "eth-utils@workspace:packages/eth-utils"
-  dependencies:
-    "@commitlint/cli": "*"
-    "@commitlint/config-conventional": "*"
-    "@commitlint/travis-cli": "*"
-    "@types/bn.js": ^5.1.0
-    "@types/node": ^14.14.28
-    "@yarnpkg/pnpify": ^2.4.0
-    ethereumjs-util: ^7.0.10
-    rlp: ^2.2.6
-    typescript: 4.1.5
-    web3: ^1.3.4
-  languageName: unknown
-  linkType: soft
-
 "ethereum-bloom-filters@npm:^1.0.6":
   version: 1.0.9
   resolution: "ethereum-bloom-filters@npm:1.0.9"
@@ -3325,6 +3309,21 @@ __metadata:
   checksum: f2e5b6bfe2201f13e74408530a7f354b7846ab3e648b3dde4f8ed3b773c8a743c16b0f378cb5113df7fef84c5be364bb1a3655f0a75571f163c982289fbd9671
   languageName: node
   linkType: hard
+
+"find-replacement-tx@workspace:*, find-replacement-tx@workspace:packages/find-replacement-tx":
+  version: 0.0.0-use.local
+  resolution: "find-replacement-tx@workspace:packages/find-replacement-tx"
+  dependencies:
+    "@commitlint/cli": "*"
+    "@commitlint/config-conventional": "*"
+    "@commitlint/travis-cli": "*"
+    "@types/bn.js": ^5.1.0
+    "@types/node": ^14.14.28
+    "@yarnpkg/pnpify": ^2.4.0
+    typescript: 4.1.5
+    web3: ^1.3.4
+  languageName: unknown
+  linkType: soft
 
 "find-up@npm:^1.0.0":
   version: 1.1.2
@@ -4629,6 +4628,22 @@ __metadata:
   checksum: 798b80ed7ae3fba34d43fe29591ccb4f16f6fca1da4e1f9922b92264b91d931012433c248daf8e44caa74feb40c0eaa0f27a14f8ee68b6ffb425f3c3f785af27
   languageName: node
   linkType: hard
+
+"lite-merkle-patricia-tree@workspace:*, lite-merkle-patricia-tree@workspace:packages/lite-merkle-patricia-tree":
+  version: 0.0.0-use.local
+  resolution: "lite-merkle-patricia-tree@workspace:packages/lite-merkle-patricia-tree"
+  dependencies:
+    "@commitlint/cli": "*"
+    "@commitlint/config-conventional": "*"
+    "@commitlint/travis-cli": "*"
+    "@types/bn.js": ^5.1.0
+    "@types/node": ^14.14.28
+    "@yarnpkg/pnpify": ^2.4.0
+    ethereumjs-util: ^7.0.10
+    rlp: ^2.2.6
+    typescript: 4.1.5
+  languageName: unknown
+  linkType: soft
 
 "load-json-file@npm:^1.0.0":
   version: 1.1.0
