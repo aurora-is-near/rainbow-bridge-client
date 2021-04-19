@@ -11,11 +11,11 @@ import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client
 import findProof from './findProof'
 import { lastBlockNumber } from './ethOnNearClient'
 import * as urlParams from './urlParams'
-import { findReplacementTx } from '../../utils'
+import { findReplacementTx } from 'find-replacement-tx'
 
 export const SOURCE_NETWORK = 'ethereum'
 export const DESTINATION_NETWORK = 'near'
-export const TRANSFER_TYPE = '@near-eth/nep141-erc20/natural-erc20/sendToNear'
+export const TRANSFER_TYPE = '@near-eth/near-ether/bridged-near/sendToNear'
 
 const BURN = 'burn-e-near-to-natural-near'
 const SYNC = 'sync-e-near-to-natural-near'
@@ -58,9 +58,9 @@ const transferDraft = {
 export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
-      [BURN]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} eNEAR to NEAR`,
+      [BURN]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to NEAR`,
       [SYNC]: `Wait for ${transfer.neededConfirmations} transfer confirmations for security`,
-      [UNLOCK]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} $NEAR in NEAR`
+      [UNLOCK]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in NEAR`
     }),
     statusMessage: transfer => {
       if (transfer.status === status.FAILED) return 'Failed'
@@ -126,11 +126,11 @@ export async function recover (burnTxHash) {
   const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
   const receipt = await web3.eth.getTransactionReceipt(burnTxHash)
-  const ethTokenLocker = new web3.eth.Contract( // TODO correct burner
-    JSON.parse(process.env.ethLockerAbiText),
-    process.env.ethLockerAddress
+  const eNEAR = new web3.eth.Contract( // TODO correct burner
+    JSON.parse(process.env.eNEARAbiText),
+    process.env.eNEARAddress
   )
-  const events = await ethTokenLocker.getPastEvents('Locked', { // TODO correct event
+  const events = await eNEAR.getPastEvents('TransferToNearInitiated', {
     fromBlock: receipt.blockNumber,
     toBlock: receipt.blockNumber
   })
@@ -212,9 +212,9 @@ async function burn (transfer) {
   const web3 = new Web3(getEthProvider())
   const ethUserAddress = (await web3.eth.getAccounts())[0]
 
-  const ethTokenLocker = new web3.eth.Contract( // TODO correct contract
-    JSON.parse(process.env.ethLockerAbiText),
-    process.env.ethLockerAddress,
+  const ethTokenLocker = new web3.eth.Contract(
+    JSON.parse(process.env.eNEARAbiText),
+    process.env.eNEARAddress,
     { from: ethUserAddress }
   )
 
@@ -223,7 +223,7 @@ async function burn (transfer) {
   const safeReorgHeight = await web3.eth.getBlockNumber() - 20
   const burnHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
-      .lockToken(transfer.sourceToken, transfer.amount, transfer.recipient).send() // TODO correct function
+      .transferToNear(transfer.amount, transfer.recipient).send()
       .on('transactionHash', resolve)
       .catch(reject)
   })
@@ -268,12 +268,11 @@ async function checkBurn (transfer) {
         to: process.env.ethLockerAddress
       }
       const event = {
-        name: 'Locked', // TODO correct event
-        abi: process.env.ethLockerAbiText,
-        validate: ({ returnValues: { token, sender, amount, accountId } }) => {
+        name: 'TransferToNearInitiated',
+        abi: process.env.eNEARAbiText,
+        validate: ({ returnValues: { sender, amount, accountId } }) => {
           if (!event) return false
           return (
-            token.toLowerCase() === transfer.sourceToken.toLowerCase() &&
             sender.toLowerCase() === transfer.sender.toLowerCase() &&
             amount === transfer.amount &&
             accountId === transfer.recipient
@@ -371,9 +370,9 @@ async function unlock (transfer) {
   // able to correctly identify the transfer and see if the transaction
   // succeeded.
   setTimeout(async () => {
-    await nearAccount.functionCall( // TODO correct function
-      process.env.nearTokenFactoryAccount,
-      'deposit',
+    await nearAccount.functionCall( // TODO fix gas
+      process.env.nativeNEARLockerAddress,
+      'finalise_eth_to_near_transfer',
       proof,
       // 200Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
       new BN('200' + '0'.repeat(12)),

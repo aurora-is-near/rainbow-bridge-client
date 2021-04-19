@@ -15,16 +15,16 @@ import { track } from '@near-eth/client'
 import { borshifyOutcomeProof } from './borshify-proof'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import * as urlParams from '../../natural-erc20/sendToNear/urlParams'
-import { findReplacementTx } from '../../utils'
+import { findReplacementTx } from 'find-replacement-tx'
 
 export const SOURCE_NETWORK = 'near'
 export const DESTINATION_NETWORK = 'ethereum'
-export const TRANSFER_TYPE = '@near-eth/e-near/natural-near/sendToEthereum'
+export const TRANSFER_TYPE = '@near-eth/near-ether/natural-near/sendToEthereum'
 
-const LOCK = 'lock-natural-near-to-erc20'
-const AWAIT_FINALITY = 'await-finality-natural-near-to-erc20'
-const SYNC = 'sync-natural-near-to-erc20'
-const MINT = 'mint-natural-near-to-erc20'
+const LOCK = 'lock-natural-near-to-e-near'
+const AWAIT_FINALITY = 'await-finality-natural-near-to-e-near'
+const SYNC = 'sync-natural-near-to-e-near'
+const MINT = 'mint-natural-near-to-e-near'
 
 const steps = [
   LOCK,
@@ -72,10 +72,10 @@ const transferDraft = {
 export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
-      [LOCK]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} $NEAR$ from NEAR`,
+      [LOCK]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from NEAR`,
       [AWAIT_FINALITY]: 'Confirming in NEAR',
       [SYNC]: 'Confirming in Ethereum. This can take around 16 hours. Feel free to return to this window later, to complete the final step of the transfer.',
-      [MINT]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} $NEAR in Ethereum`
+      [MINT]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in Ethereum`
     }),
     statusMessage: transfer => {
       if (transfer.status === status.FAILED) return 'Failed'
@@ -175,7 +175,7 @@ export async function recover (lockTxHash, sender = 'todo') {
       fields: [
         ['flag', 'u8'],
         ['amount', 'u128'],
-        ['token', [20]],
+        ['token', [20]], // TODO remove unnecessary field
         ['recipient', [20]]
       ]
     }]
@@ -237,29 +237,28 @@ async function parseLockReceipt (lockTx, sender) {
   let lockReceiptId
 
   // Check if this tx was made from a 2fa
-  /*
-  // TODO FIXME, sourceToken is not needed anymore
+  // TODO test 2fa, sourceToken is replaced by process.env.nativeNEARLockedAddress as executor_id
   switch (successReceiptExecutorId) {
     case sender: {
       // `confirm` transaction executed on 2fa account
-      const withdrawReceiptOutcome = lockTx.receipts_outcome
+      const lockReceiptOutcome = lockTx.receipts_outcome
         .find(r => r.id === successReceiptId)
         .outcome
 
-      lockReceiptId = withdrawReceiptOutcome.status.SuccessReceiptId
+      lockReceiptId = lockReceiptOutcome.status.SuccessReceiptId
 
-      const withdrawReceiptExecutorId = withdrawReceiptOutcome.executor_id
+      const lockReceiptExecutorId = lockReceiptOutcome.executor_id
       // Expect this receipt to be the 2fa FunctionCall
-      if (withdrawReceiptExecutorId !== sourceToken) {
+      if (lockReceiptExecutorId !== process.env.nativeNEARLockerAddress) {
         throw new TransferError(
           `Unexpected receipt outcome format in 2fa transaction.
-          Expected sourceToken '${sourceToken}', got '${withdrawReceiptExecutorId}'
+          Expected sourceToken '${process.env.nativeNEARLockerAddress}', got '${lockReceiptExecutorId}'
           Full withdrawal transaction: ${JSON.stringify(lockTx)}`
         )
       }
       break
     }
-    case sourceToken:
+    case process.env.nativeNEARLockerAddress:
       // `lock` called directly, successReceiptId is already correct, nothing to do
       lockReceiptId = successReceiptId
       break
@@ -269,7 +268,6 @@ async function parseLockReceipt (lockTx, sender) {
         Full withdrawal transaction: ${JSON.stringify(lockTx)}`
       )
   }
-  */
 
   const txReceiptBlockHash = lockTx.receipts_outcome
     .find(r => r.id === lockReceiptId).block_hash
@@ -323,9 +321,10 @@ async function lock (transfer) {
   // succeeded.
   setTimeout(async () => {
     await nearAccount.functionCall(
-      'lock', // TODO correct function call
+      process.env.nativeNEARLockerAddress,
+      'migrate_to_ethereum',
       {
-        amount: String(transfer.amount),
+        amount: String(transfer.amount), // TODO fix arguments and gas
         recipient: transfer.recipient.replace('0x', '')
       },
       // 100Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
@@ -578,9 +577,9 @@ async function mint (transfer) {
   const web3 = new Web3(getEthProvider())
   const ethUserAddress = (await web3.eth.getAccounts())[0]
 
-  const ethTokenLocker = new web3.eth.Contract(
-    JSON.parse(process.env.ethLockerAbiText),
-    process.env.ethLockerAddress,
+  const eNEAR = new web3.eth.Contract(
+    JSON.parse(process.env.eNEARAbiText),
+    process.env.eNEARAddress,
     { from: ethUserAddress }
   )
 
@@ -591,8 +590,8 @@ async function mint (transfer) {
   // in case there was a reorg.
   const safeReorgHeight = await web3.eth.getBlockNumber() - 20
   const mintHash = await new Promise((resolve, reject) => {
-    ethTokenLocker.methods
-      .unlockToken(borshProof, nearOnEthClientBlockHeight).send() // TODO correct function call
+    eNEAR.methods
+      .finaliseNearToEthTransfer(borshProof, nearOnEthClientBlockHeight).send() // TODO correct function call
       .on('transactionHash', resolve)
       .catch(reject)
   })
@@ -638,11 +637,12 @@ async function checkMint (transfer) {
         to: process.env.ethLockerAddress
       }
       const event = {
-        name: 'Unlocked', // TODO correct event
-        abi: process.env.ethLockerAbiText,
-        validate: ({ returnValues: { amount, recipient } }) => {
+        name: 'NearToEthTransferFinalised', // TODO test speedup
+        abi: process.env.eNEARAbiText,
+        validate: ({ returnValues: { sender, amount, recipient } }) => {
           if (!event) return false
           return (
+            // sender.toLowerCase() === transfer.sender.toLowerCase() && // Don't check sender, anyone can mint
             amount === transfer.amount &&
             recipient.toLowerCase() === transfer.recipient.toLowerCase()
           )

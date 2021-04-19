@@ -1,6 +1,6 @@
 {
-  "name": "@near-eth/e-near",
-  "version": "0.0.0",
+  "name": "lite-merkle-patricia-tree",
+  "version": "0.0.1",
   "license": "(MIT AND Apache-2.0)",
   "main": "dist/index.js",
   "files": [
@@ -19,19 +19,8 @@
     "typescript": "4.1.5"
   },
   "dependencies": {
-    "@near-eth/client": "workspace:*",
-    "@near-eth/utils": "workspace:*",
-    "bn.js": "^5.1.3",
-    "bs58": "^4.0.1",
-    "eth-object": "near/eth-object#54e03b8aac8208cf724e206d49ffb8bdd30451d7",
-    "eth-revert-reason": "^1.0.3",
-    "eth-utils": "workspace:*",
     "ethereumjs-util": "^7.0.10",
-    "near-api-js": "^0.39.0",
-    "promisfy": "^1.2.0",
-    "rlp": "^2.2.6",
-    "web3": "^1.3.4",
-    "web3-utils": "^1.3.4"
+    "rlp": "^2.2.6"
   },
   "browserslist": [
     "since 2017-04"

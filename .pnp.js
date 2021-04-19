@@ -27,12 +27,16 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         "reference": "workspace:packages/client"
       },
       {
-        "name": "@near-eth/e-near",
-        "reference": "workspace:packages/e-near"
+        "name": "find-replacement-tx",
+        "reference": "workspace:packages/find-replacement-tx"
       },
       {
-        "name": "eth-utils",
-        "reference": "workspace:packages/eth-utils"
+        "name": "lite-merkle-patricia-tree",
+        "reference": "workspace:packages/lite-merkle-patricia-tree"
+      },
+      {
+        "name": "@near-eth/near-ether",
+        "reference": "workspace:packages/near-ether"
       },
       {
         "name": "@near-eth/nep141-erc20",
@@ -47,10 +51,11 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
     "ignorePatternData": "(^(?:\\.yarn\\/sdks(?:\\/(?!\\.)(?:(?:(?!(?:^|\\/)\\.).)*?)|$))$)",
     "fallbackExclusionList": [
       ["@near-eth/client", ["workspace:packages/client"]],
-      ["@near-eth/e-near", ["workspace:packages/e-near"]],
+      ["@near-eth/near-ether", ["workspace:packages/near-ether"]],
       ["@near-eth/nep141-erc20", ["workspace:packages/nep141-erc20"]],
       ["@near-eth/utils", ["workspace:packages/utils"]],
-      ["eth-utils", ["workspace:packages/eth-utils"]],
+      ["find-replacement-tx", ["workspace:packages/find-replacement-tx"]],
+      ["lite-merkle-patricia-tree", ["workspace:packages/lite-merkle-patricia-tree"]],
       ["rainbow-bridge-client-monorepo", ["workspace:."]]
     ],
     "fallbackPool": [
@@ -590,11 +595,11 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "linkType": "SOFT",
         }]
       ]],
-      ["@near-eth/e-near", [
-        ["workspace:packages/e-near", {
-          "packageLocation": "./packages/e-near/",
+      ["@near-eth/near-ether", [
+        ["workspace:packages/near-ether", {
+          "packageLocation": "./packages/near-ether/",
           "packageDependencies": [
-            ["@near-eth/e-near", "workspace:packages/e-near"],
+            ["@near-eth/near-ether", "workspace:packages/near-ether"],
             ["@commitlint/cli", "npm:12.0.1"],
             ["@commitlint/config-conventional", "npm:12.0.1"],
             ["@commitlint/travis-cli", "npm:12.0.1"],
@@ -602,13 +607,14 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@near-eth/utils", "workspace:packages/utils"],
             ["@types/bn.js", "npm:5.1.0"],
             ["@types/node", "npm:14.14.31"],
-            ["@yarnpkg/pnpify", "virtual:b169caab91376c9920d84f10c6906a51fae16a06caf940bd48d492471ff9295afe466f685176ed7711cab35cf2afad8f26e7132f2c775db0e312b41bca505f2f#npm:2.4.0"],
+            ["@yarnpkg/pnpify", "virtual:edb8de0a6612d26e450cbcee4595d05d8115076d71562a33aad579cd940c3078fe6e7531087f300f5073f887128e1eb95287c20e4fd8fa0a0324793bc96fd84f#npm:2.4.0"],
             ["bn.js", "npm:5.2.0"],
             ["bs58", "npm:4.0.1"],
             ["eth-object", "https://github.com/near/eth-object.git#commit=54e03b8aac8208cf724e206d49ffb8bdd30451d7"],
             ["eth-revert-reason", "npm:1.0.3"],
-            ["eth-utils", "workspace:packages/eth-utils"],
             ["ethereumjs-util", "npm:7.0.10"],
+            ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
+            ["lite-merkle-patricia-tree", "workspace:packages/lite-merkle-patricia-tree"],
             ["near-api-js", "npm:0.39.0"],
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
@@ -630,7 +636,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@near-eth/client", "workspace:packages/client"],
             ["@types/bn.js", "npm:5.1.0"],
             ["@types/node", "npm:14.14.31"],
-            ["@yarnpkg/pnpify", "virtual:b169caab91376c9920d84f10c6906a51fae16a06caf940bd48d492471ff9295afe466f685176ed7711cab35cf2afad8f26e7132f2c775db0e312b41bca505f2f#npm:2.4.0"],
+            ["@yarnpkg/pnpify", "virtual:edb8de0a6612d26e450cbcee4595d05d8115076d71562a33aad579cd940c3078fe6e7531087f300f5073f887128e1eb95287c20e4fd8fa0a0324793bc96fd84f#npm:2.4.0"],
             ["bn.js", "npm:5.2.0"],
             ["bs58", "npm:4.0.1"],
             ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=fb57468391112502792ba5fd8c586f5d2467a89f"],
@@ -656,7 +662,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@commitlint/travis-cli", "npm:12.0.1"],
             ["@types/bn.js", "npm:5.1.0"],
             ["@types/node", "npm:14.14.31"],
-            ["@yarnpkg/pnpify", "virtual:b169caab91376c9920d84f10c6906a51fae16a06caf940bd48d492471ff9295afe466f685176ed7711cab35cf2afad8f26e7132f2c775db0e312b41bca505f2f#npm:2.4.0"],
+            ["@yarnpkg/pnpify", "virtual:edb8de0a6612d26e450cbcee4595d05d8115076d71562a33aad579cd940c3078fe6e7531087f300f5073f887128e1eb95287c20e4fd8fa0a0324793bc96fd84f#npm:2.4.0"],
             ["bs58", "npm:4.0.1"],
             ["near-api-js", "npm:0.39.0"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
@@ -1177,10 +1183,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           ],
           "linkType": "SOFT",
         }],
-        ["virtual:b169caab91376c9920d84f10c6906a51fae16a06caf940bd48d492471ff9295afe466f685176ed7711cab35cf2afad8f26e7132f2c775db0e312b41bca505f2f#npm:2.4.0", {
-          "packageLocation": "./.yarn/$$virtual/@yarnpkg-pnpify-virtual-338c551af0/0/cache/@yarnpkg-pnpify-npm-2.4.0-f9312c18ed-89bbbe7f62.zip/node_modules/@yarnpkg/pnpify/",
+        ["virtual:edb8de0a6612d26e450cbcee4595d05d8115076d71562a33aad579cd940c3078fe6e7531087f300f5073f887128e1eb95287c20e4fd8fa0a0324793bc96fd84f#npm:2.4.0", {
+          "packageLocation": "./.yarn/$$virtual/@yarnpkg-pnpify-virtual-4fdbc2cbd1/0/cache/@yarnpkg-pnpify-npm-2.4.0-f9312c18ed-89bbbe7f62.zip/node_modules/@yarnpkg/pnpify/",
           "packageDependencies": [
-            ["@yarnpkg/pnpify", "virtual:b169caab91376c9920d84f10c6906a51fae16a06caf940bd48d492471ff9295afe466f685176ed7711cab35cf2afad8f26e7132f2c775db0e312b41bca505f2f#npm:2.4.0"],
+            ["@yarnpkg/pnpify", "virtual:edb8de0a6612d26e450cbcee4595d05d8115076d71562a33aad579cd940c3078fe6e7531087f300f5073f887128e1eb95287c20e4fd8fa0a0324793bc96fd84f#npm:2.4.0"],
             ["@types/eslint", null],
             ["@types/typescript", null],
             ["@yarnpkg/core", "npm:2.4.0"],
@@ -3579,25 +3585,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "linkType": "HARD",
         }]
       ]],
-      ["eth-utils", [
-        ["workspace:packages/eth-utils", {
-          "packageLocation": "./packages/eth-utils/",
-          "packageDependencies": [
-            ["eth-utils", "workspace:packages/eth-utils"],
-            ["@commitlint/cli", "npm:12.0.1"],
-            ["@commitlint/config-conventional", "npm:12.0.1"],
-            ["@commitlint/travis-cli", "npm:12.0.1"],
-            ["@types/bn.js", "npm:5.1.0"],
-            ["@types/node", "npm:14.14.31"],
-            ["@yarnpkg/pnpify", "virtual:b169caab91376c9920d84f10c6906a51fae16a06caf940bd48d492471ff9295afe466f685176ed7711cab35cf2afad8f26e7132f2c775db0e312b41bca505f2f#npm:2.4.0"],
-            ["ethereumjs-util", "npm:7.0.10"],
-            ["rlp", "npm:2.2.6"],
-            ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
-            ["web3", "npm:1.3.4"]
-          ],
-          "linkType": "SOFT",
-        }]
-      ]],
       ["ethereum-bloom-filters", [
         ["npm:1.0.9", {
           "packageLocation": "./.yarn/cache/ethereum-bloom-filters-npm-1.0.9-9d071dcb02-0a1ae56da3.zip/node_modules/ethereum-bloom-filters/",
@@ -3933,6 +3920,23 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["unpipe", "npm:1.0.0"]
           ],
           "linkType": "HARD",
+        }]
+      ]],
+      ["find-replacement-tx", [
+        ["workspace:packages/find-replacement-tx", {
+          "packageLocation": "./packages/find-replacement-tx/",
+          "packageDependencies": [
+            ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
+            ["@commitlint/cli", "npm:12.0.1"],
+            ["@commitlint/config-conventional", "npm:12.0.1"],
+            ["@commitlint/travis-cli", "npm:12.0.1"],
+            ["@types/bn.js", "npm:5.1.0"],
+            ["@types/node", "npm:14.14.31"],
+            ["@yarnpkg/pnpify", "virtual:edb8de0a6612d26e450cbcee4595d05d8115076d71562a33aad579cd940c3078fe6e7531087f300f5073f887128e1eb95287c20e4fd8fa0a0324793bc96fd84f#npm:2.4.0"],
+            ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
+            ["web3", "npm:1.3.4"]
+          ],
+          "linkType": "SOFT",
         }]
       ]],
       ["find-up", [
@@ -5393,6 +5397,24 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["lines-and-columns", "npm:1.1.6"]
           ],
           "linkType": "HARD",
+        }]
+      ]],
+      ["lite-merkle-patricia-tree", [
+        ["workspace:packages/lite-merkle-patricia-tree", {
+          "packageLocation": "./packages/lite-merkle-patricia-tree/",
+          "packageDependencies": [
+            ["lite-merkle-patricia-tree", "workspace:packages/lite-merkle-patricia-tree"],
+            ["@commitlint/cli", "npm:12.0.1"],
+            ["@commitlint/config-conventional", "npm:12.0.1"],
+            ["@commitlint/travis-cli", "npm:12.0.1"],
+            ["@types/bn.js", "npm:5.1.0"],
+            ["@types/node", "npm:14.14.31"],
+            ["@yarnpkg/pnpify", "virtual:edb8de0a6612d26e450cbcee4595d05d8115076d71562a33aad579cd940c3078fe6e7531087f300f5073f887128e1eb95287c20e4fd8fa0a0324793bc96fd84f#npm:2.4.0"],
+            ["ethereumjs-util", "npm:7.0.10"],
+            ["rlp", "npm:2.2.6"],
+            ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
+          ],
+          "linkType": "SOFT",
         }]
       ]],
       ["load-json-file", [
