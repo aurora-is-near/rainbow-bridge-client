@@ -15,14 +15,14 @@ If you answered "Yes" to any of the above questions, this is the library for you
   [Ethereum]: https://ethereum.org/
   [NEAR]: https://near.org/
   [Rainbow Bridge]: https://near.org/blog/eth-near-rainbow-bridge/
-  [Connector]: https://github.com/near/rainbow-token-connector
+  [Connector]: https://github.com/aurora-is-near/rainbow-token-connector
 
 Read on to find out how to:
 
 - [Add it to your browser app](#add-it-to-your-browser-app)
 - [Author a custom connector library](#author-a-custom-connector-library)
 
-To contribute to this library, see [github.com/near/rainbow-bridge-client](https://github.com/near/rainbow-bridge-client).
+To contribute to this library, see [github.com/aurora-is-near/rainbow-bridge-client](https://github.com/aurora-is-near/rainbow-bridge-client).
 
 
 Add it to your browser app
@@ -315,12 +315,12 @@ Here's some [docs about act][act], and [two][act2] [example][act3] connector-spe
 Here's some [docs about decorate][decorate].
 Here's the attributes for [two][initiate-natural] [kinds][initiate-bridged] of raw transfers, prior to being decorated.
 
-  [act]: https://github.com/near/rainbow-bridge-client/blob/1a4f1756dbcebd20a7459a51b595462d09b6564c/packages/client/src/index.ts#L185-L193
-  [act2]: https://github.com/near/rainbow-bridge-client/blob/1a4f1756dbcebd20a7459a51b595462d09b6564c/packages/nep141-erc20/src/natural-erc20/sendToNear/index.js#L103-L115
-  [act3]: https://github.com/near/rainbow-bridge-client/blob/1a4f1756dbcebd20a7459a51b595462d09b6564c/packages/nep141-erc20/src/bridged-nep141/sendToEthereum/index.js#L110-L121
-  [decorate]: https://github.com/near/rainbow-bridge-client/blob/1a4f1756dbcebd20a7459a51b595462d09b6564c/packages/client/src/index.ts#L55-L77
-  [initiate-natural]: https://github.com/near/rainbow-bridge-client/blob/1a4f1756dbcebd20a7459a51b595462d09b6564c/packages/nep141-erc20/src/natural-erc20/sendToNear/index.js#L35-L63
-  [initiate-bridged]: https://github.com/near/rainbow-bridge-client/blob/1a4f1756dbcebd20a7459a51b595462d09b6564c/packages/nep141-erc20/src/bridged-nep141/sendToEthereum/index.js#L41-L73
+  [act]: https://github.com/aurora-is-near/rainbow-bridge-client/blob/227c50ba6506f4f81e6105a0bbb1873a3adee754/packages/client/src/index.ts#L194
+  [act2]: https://github.com/aurora-is-near/rainbow-bridge-client/blob/227c50ba6506f4f81e6105a0bbb1873a3adee754/packages/nep141-erc20/src/natural-erc20/sendToNear/index.js#L107
+  [act3]: https://github.com/aurora-is-near/rainbow-bridge-client/blob/227c50ba6506f4f81e6105a0bbb1873a3adee754/packages/nep141-erc20/src/bridged-nep141/sendToEthereum/index.js#L114
+  [decorate]: https://github.com/aurora-is-near/rainbow-bridge-client/blob/227c50ba6506f4f81e6105a0bbb1873a3adee754/packages/client/src/index.ts#L78
+  [initiate-natural]: https://github.com/aurora-is-near/rainbow-bridge-client/blob/227c50ba6506f4f81e6105a0bbb1873a3adee754/packages/nep141-erc20/src/natural-erc20/sendToNear/index.js#L186
+  [initiate-bridged]: https://github.com/aurora-is-near/rainbow-bridge-client/blob/227c50ba6506f4f81e6105a0bbb1873a3adee754/packages/nep141-erc20/src/bridged-nep141/sendToEthereum/index.js#L288
 
 
 Step 4: check & update status of in-progress transfers
@@ -352,8 +352,8 @@ see if transactions have been mined, synced, or finalized, and update transfers
 in localStorage accordingly. When transfers are updated, the `onChange`
 function in Step 3 will trigger a UI update.
 
-  [authEthereum]: https://github.com/near/rainbow-bridge-frontend/blob/bfcd96178316f8408451417371bebd253cc64abd1/src/js/authEthereum.js
-  [authNear]: https://github.com/near/rainbow-bridge-frontend/blob/bfcd96178316f8408451417371bebd253cc64abd1/src/js/authNear.js
+  [authEthereum]: https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/src/js/authEthereum.js
+  [authNear]: https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/src/js/authNear.js
 
 
 Step 5: there is no step 5!
@@ -365,7 +365,7 @@ just four steps. 🌈🌉🎉
 To make it more beautiful, check out [the API docs](#TODO🙃) and [example
 code][example] (implemented in vanilla/no-framework JavaScript).
 
-  [example]: https://github.com/near/rainbow-bridge-frontend/blob/master/src/html/transfers.html
+  [example]: https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/30d2bca74e6c6c3128504c025b44e55b2fb4dac6/src/html/transfers.html#L452
 
 
 Author a custom connector library
@@ -373,4 +373,4 @@ Author a custom connector library
 
 1. Copy the code in the [`@near-eth/nep141-erc20`](../../packages/nep141-erc20) library
 2. Adjust for your needs
-3. Send a Pull Request to add your client to [the `getTransferType` lookup logic](https://github.com/near/rainbow-bridge-client/blob/482fbeb6af42f5d73cda1e501c806fbaa84e781b/packages/client/src/index.ts#L14-L29) in `@near-eth/client`
+3. Send a Pull Request to add your client to [the `getTransferType` lookup logic](https://github.com/aurora-is-near/rainbow-bridge-client/blob/227c50ba6506f4f81e6105a0bbb1873a3adee754/packages/client/src/index.ts#L14) in `@near-eth/client`
