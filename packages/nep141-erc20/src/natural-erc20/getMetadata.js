@@ -39,7 +39,11 @@ const erc20Icons = {}
 async function getIcon (address) {
   if (erc20Icons[address] !== undefined) return erc20Icons[address]
 
-  const url = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${address}/logo.png`
+  // Checksum address needed to fetch token icons.
+  const url = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${
+    Web3.utils.toChecksumAddress(address)
+  }/logo.png`
+
   erc20Icons[address] = await new Promise(resolve => {
     const img = new Image()
     img.onload = () => resolve(url)
