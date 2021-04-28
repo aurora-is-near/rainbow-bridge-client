@@ -12,9 +12,8 @@ import {
 import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { track } from '@near-eth/client'
-import { borshifyOutcomeProof } from '@near-eth/utils'
+import { borshifyOutcomeProof, urlParams } from '@near-eth/utils'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
-import * as urlParams from '../../bridged-near/sendToNear/urlParams'
 import { findReplacementTx } from 'find-replacement-tx'
 
 export const SOURCE_NETWORK = 'near'

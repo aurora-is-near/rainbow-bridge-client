@@ -3,7 +3,7 @@
 // dependence on URL Params only needed as workaround until
 // https://github.com/near/near-api-js/pull/467 is merged
 
-export function getUrlParams (...paramNames) {
+export function get (...paramNames) {
   const params = new URLSearchParams(window.location.search)
 
   if (paramNames.length === 0) {
@@ -20,7 +20,7 @@ export function getUrlParams (...paramNames) {
   )
 }
 
-export function setUrlParams (newParams) {
+export function set (newParams) {
   const params = new URLSearchParams(window.location.search)
   for (const param in newParams) {
     params.set(param, newParams[param])
@@ -28,7 +28,7 @@ export function setUrlParams (newParams) {
   window.history.replaceState({}, '', `${location.pathname}?${params}`)
 }
 
-export function clearUrlParams (...paramNames) {
+export function clear (...paramNames) {
   if (paramNames.length === 0) {
     window.history.replaceState({}, '', location.pathname)
   } else {

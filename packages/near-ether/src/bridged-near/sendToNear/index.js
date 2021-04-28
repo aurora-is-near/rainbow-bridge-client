@@ -10,7 +10,7 @@ import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import findProof from './findProof'
 import { lastBlockNumber } from './ethOnNearClient'
-import * as urlParams from './urlParams'
+import { urlParams } from '@near-eth/utils'
 import { findReplacementTx } from 'find-replacement-tx'
 
 export const SOURCE_NETWORK = 'ethereum'
