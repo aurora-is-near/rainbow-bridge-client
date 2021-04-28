@@ -12,9 +12,9 @@ import {
 import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { track } from '@near-eth/client'
-import { borshifyOutcomeProof } from './borshify-proof'
+import { borshifyOutcomeProof } from '@near-eth/utils'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
-import * as urlParams from '../../natural-erc20/sendToNear/urlParams'
+import * as urlParams from '../../bridged-near/sendToNear/urlParams'
 import { findReplacementTx } from 'find-replacement-tx'
 
 export const SOURCE_NETWORK = 'near'
@@ -175,7 +175,6 @@ export async function recover (lockTxHash, sender = 'todo') {
       fields: [
         ['flag', 'u8'],
         ['amount', 'u128'],
-        ['token', [20]], // TODO remove unnecessary field
         ['recipient', [20]]
       ]
     }]
@@ -187,7 +186,7 @@ export async function recover (lockTxHash, sender = 'todo') {
   const amount = lockEvent.amount.toString()
   const recipient = '0x' + Buffer.from(lockEvent.recipient).toString('hex')
   const destinationTokenName = 'eNEAR'
-  const decimals = 18
+  const decimals = 24
   const sourceTokenName = '$NEAR'
 
   const lockReceipt = await parseLockReceipt(lockTx, sender)
@@ -237,7 +236,6 @@ async function parseLockReceipt (lockTx, sender) {
   let lockReceiptId
 
   // Check if this tx was made from a 2fa
-  // TODO test 2fa, sourceToken is replaced by process.env.nativeNEARLockedAddress as executor_id
   switch (successReceiptExecutorId) {
     case sender: {
       // `confirm` transaction executed on 2fa account
@@ -245,7 +243,7 @@ async function parseLockReceipt (lockTx, sender) {
         .find(r => r.id === successReceiptId)
         .outcome
 
-      lockReceiptId = lockReceiptOutcome.status.SuccessReceiptId
+      lockReceiptId = successReceiptId
 
       const lockReceiptExecutorId = lockReceiptOutcome.executor_id
       // Expect this receipt to be the 2fa FunctionCall
@@ -260,7 +258,7 @@ async function parseLockReceipt (lockTx, sender) {
     }
     case process.env.nativeNEARLockerAddress:
       // `lock` called directly, successReceiptId is already correct, nothing to do
-      lockReceiptId = successReceiptId
+      lockReceiptId = txReceiptId
       break
     default:
       throw new TransferError(
@@ -287,7 +285,7 @@ export async function initiate ({
   // TODO: move to core 'decorate'; get both from contracts
   const destinationTokenName = 'eNEAR'
   // TODO: call initiate with a formated amount and query decimals when decorate()
-  const decimals = 18
+  const decimals = 24
   const sourceTokenName = '$NEAR'
 
   // various attributes stored as arrays, to keep history of retries
@@ -324,12 +322,11 @@ async function lock (transfer) {
       process.env.nativeNEARLockerAddress,
       'migrate_to_ethereum',
       {
-        amount: String(transfer.amount), // TODO fix arguments and gas
-        recipient: transfer.recipient.replace('0x', '')
+        eth_recipient: transfer.recipient.replace('0x', '')
       },
       // 100Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
       new BN('100' + '0'.repeat(12)),
-      new BN('1')
+      new BN(transfer.amount)
     )
   }, 100)
   // Set url params before this lock() returns, otherwise there is a chance that checkLock() is called before
@@ -535,6 +532,9 @@ async function checkSync (transfer) {
   const { currentHeight } = await nearOnEthClient.methods.bridgeState().call()
   const nearOnEthClientBlockHeight = Number(currentHeight)
 
+  // TODO: replace finalityBlockHeight by lockReceiptBlockHeight
+  // recording latest finalityBlockHeight is not necessary.
+  // otherwise user needs to wait for the next relayed block for recovery
   if (nearOnEthClientBlockHeight <= finalityBlockHeight) {
     return {
       ...transfer,
@@ -591,7 +591,7 @@ async function mint (transfer) {
   const safeReorgHeight = await web3.eth.getBlockNumber() - 20
   const mintHash = await new Promise((resolve, reject) => {
     eNEAR.methods
-      .finaliseNearToEthTransfer(borshProof, nearOnEthClientBlockHeight).send() // TODO correct function call
+      .finaliseNearToEthTransfer(borshProof, nearOnEthClientBlockHeight).send()
       .on('transactionHash', resolve)
       .catch(reject)
   })
@@ -628,13 +628,11 @@ async function checkMint (transfer) {
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!mintReceipt) {
-    // don't break old transfers in case they were made before this functionality is released
-    if (!transfer.ethCache) return transfer
     try {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: process.env.ethLockerAddress
+        to: process.env.eNEARAddress
       }
       const event = {
         name: 'NearToEthTransferFinalised', // TODO test speedup
@@ -648,7 +646,7 @@ async function checkMint (transfer) {
           )
         }
       }
-      mintReceipt = await findReplacementTx(transfer.ethCache.safeReorgHeight, tx, event)
+      mintReceipt = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
     } catch (error) {
       console.error(error)
       return {

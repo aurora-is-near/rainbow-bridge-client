@@ -143,7 +143,7 @@ export async function recover (burnTxHash) {
   const recipient = burnEvent.returnValues.accountId
   const sender = burnEvent.returnValues.sender
   const sourceTokenName = 'eNEAR'
-  const decimals = 18
+  const decimals = 24
   const destinationTokenName = '$NEAR'
 
   const transfer = {
@@ -171,7 +171,6 @@ export async function recover (burnTxHash) {
 // blocking to wait for transaction to be mined. Status of transactionHash
 // being mined is then checked in checkStatus.
 export async function initiate ({
-  erc20Address,
   amount,
   sender,
   recipient
@@ -179,7 +178,7 @@ export async function initiate ({
   // TODO: move to core 'decorate'; get both from contracts
   const sourceTokenName = 'eNEAR'
   // TODO: call initiate with a formated amount and query decimals when decorate()
-  const decimals = 18
+  const decimals = 24
   const destinationTokenName = '$NEAR'
   const decimalAmount = new Decimal(amount).times(10 ** decimals)
 
@@ -191,7 +190,7 @@ export async function initiate ({
     destinationTokenName,
     recipient,
     sender,
-    sourceToken: erc20Address,
+    sourceToken: process.env.eNEARAddress,
     sourceTokenName,
     decimals
   }
@@ -259,13 +258,11 @@ async function checkBurn (transfer) {
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!burnReceipt) {
-    // don't break old transfers in case they were made before this functionality is released
-    if (!transfer.ethCache) return transfer
     try {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: process.env.ethLockerAddress
+        to: process.env.eNEARAddress
       }
       const event = {
         name: 'TransferToNearInitiated',
@@ -279,7 +276,7 @@ async function checkBurn (transfer) {
           )
         }
       }
-      burnReceipt = await findReplacementTx(transfer.ethCache.safeReorgHeight, tx, event)
+      burnReceipt = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
     } catch (error) {
       console.error(error)
       return {
