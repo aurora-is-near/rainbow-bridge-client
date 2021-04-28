@@ -1,3 +1,20 @@
+## <small>1.3.1 (2021-04-28)</small>
+
+* fix: broken links in README ([01240d2](https://github.com/aurora-is-near/rainbow-bridge-client/commit/01240d2))
+* fix: checksum address needed for trustwallet icon fetch ([4f8dfeb](https://github.com/aurora-is-near/rainbow-bridge-client/commit/4f8dfeb))
+* fix: update eth-object for Berlin hard fork fix ([9896978](https://github.com/aurora-is-near/rainbow-bridge-client/commit/9896978))
+* fix: use bridging urlParam to handle redirect ([227c50b](https://github.com/aurora-is-near/rainbow-bridge-client/commit/227c50b))
+* chore: add CODEOWNERS ([0b3907b](https://github.com/aurora-is-near/rainbow-bridge-client/commit/0b3907b))
+* chore: release nep141-erc20 v1.3.1 ([482fbeb](https://github.com/aurora-is-near/rainbow-bridge-client/commit/482fbeb))
+* chore: release nep141-erc20 v1.3.2 ([1c75a6e](https://github.com/aurora-is-near/rainbow-bridge-client/commit/1c75a6e))
+* chore: update aurora-is-near url ([cc553ba](https://github.com/aurora-is-near/rainbow-bridge-client/commit/cc553ba))
+* docs: eBNNA, not BNNAᵉ ([5f7e50b](https://github.com/aurora-is-near/rainbow-bridge-client/commit/5f7e50b))
+* docs: README updates ([0c6768a](https://github.com/aurora-is-near/rainbow-bridge-client/commit/0c6768a))
+* README link improvements ([1a88f52](https://github.com/aurora-is-near/rainbow-bridge-client/commit/1a88f52))
+* build: remove eth-util-lite ([2e09f18](https://github.com/aurora-is-near/rainbow-bridge-client/commit/2e09f18))
+
+
+
 ## 1.3.0 (2021-04-13)
 
 * fix: add light patricia trie for browser support ([7c273d7](https://github.com/near/rainbow-bridge-client/commit/7c273d7))
