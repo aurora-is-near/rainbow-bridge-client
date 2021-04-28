@@ -488,7 +488,7 @@ __metadata:
     "@yarnpkg/pnpify": ^2.4.0
     bn.js: ^5.1.3
     bs58: ^4.0.1
-    eth-object: "near/eth-object#54e03b8aac8208cf724e206d49ffb8bdd30451d7"
+    eth-object: "aurora-is-near/eth-object#fb57468391112502792ba5fd8c586f5d2467a89f"
     eth-revert-reason: ^1.0.3
     ethereumjs-util: ^7.0.10
     near-api-js: ^0.39.0
@@ -2922,14 +2922,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eth-object@near/eth-object#54e03b8aac8208cf724e206d49ffb8bdd30451d7":
+"eth-object@aurora-is-near/eth-object#fb57468391112502792ba5fd8c586f5d2467a89f":
   version: 1.0.3
-  resolution: "eth-object@https://github.com/near/eth-object.git#commit=54e03b8aac8208cf724e206d49ffb8bdd30451d7"
+  resolution: "eth-object@https://github.com/aurora-is-near/eth-object.git#commit=fb57468391112502792ba5fd8c586f5d2467a89f"
   dependencies:
     eth-util-lite: "near/eth-util-lite#master"
     ethereumjs-util: ^7.0.3
     web3: ^1.2.9
-  checksum: bcdd7afbe17245c24c156165db645adc6abff18077b1e2f6ffff19b3da25591dd81e7a9d19ed8425b4975e7c41c55675d6b39354ebc8e3c0e104fadb49630e12
+  checksum: 8efbf3c90ea3ac57e5335440c1b6f5d47acdfeec2140f4c7e889adb79a21f96e6ace0785009b8f964a14fd33094c212371049cf94347709919c2063c7eafd64d
   languageName: node
   linkType: hard
 

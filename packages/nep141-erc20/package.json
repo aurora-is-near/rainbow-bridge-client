@@ -22,7 +22,7 @@
     "@near-eth/client": "workspace:*",
     "bn.js": "^5.1.3",
     "bs58": "^4.0.1",
-    "eth-object": "near/eth-object#54e03b8aac8208cf724e206d49ffb8bdd30451d7",
+    "eth-object": "aurora-is-near/eth-object#fb57468391112502792ba5fd8c586f5d2467a89f",
     "eth-revert-reason": "^1.0.3",
     "ethereumjs-util": "^7.0.10",
     "near-api-js": "^0.39.0",
