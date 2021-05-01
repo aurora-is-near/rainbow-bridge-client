@@ -3,6 +3,8 @@ import { Decimal } from 'decimal.js'
 
 let ethProvider: any // TODO add proper Ethereum Provider typing
 let nearConnection: WalletConnection
+let auroraProvider: any
+let signerProvider: any
 
 /**
  * Set ethProvider
@@ -25,6 +27,18 @@ export function setEthProvider (provider: any): any {
   ethProvider = provider
   // TODO: verify provider meets expectations
   return ethProvider
+}
+
+export function setAuroraProvider (provider: any) {
+  auroraProvider = provider
+  // TODO: verify provider meets expectations
+  return auroraProvider
+}
+
+export function setSignerProvider (provider: any) {
+  signerProvider = provider
+  // TODO: verify provider meets expectations
+  return signerProvider
 }
 
 /**
@@ -64,6 +78,14 @@ export function setNearConnection (connection: WalletConnection): WalletConnecti
  */
 export function getEthProvider (): any {
   return ethProvider
+}
+
+export function getAuroraProvider () {
+  return auroraProvider
+}
+
+export function getSignerProvider () {
+  return signerProvider
 }
 
 /**
