@@ -633,6 +633,31 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@near-eth/aurora-erc20@workspace:packages/aurora-erc20":
+  version: 0.0.0-use.local
+  resolution: "@near-eth/aurora-erc20@workspace:packages/aurora-erc20"
+  dependencies:
+    "@commitlint/cli": "*"
+    "@commitlint/config-conventional": "*"
+    "@commitlint/travis-cli": "*"
+    "@near-eth/client": "workspace:*"
+    "@types/bn.js": ^5.1.0
+    "@types/node": ^14.14.28
+    "@yarnpkg/pnpify": ^2.4.0
+    bn.js: ^5.1.3
+    bs58: ^4.0.1
+    eth-object: "aurora-is-near/eth-object#fb57468391112502792ba5fd8c586f5d2467a89f"
+    eth-revert-reason: ^1.0.3
+    ethereumjs-util: ^7.0.10
+    near-api-js: ^0.39.0
+    promisfy: ^1.2.0
+    rlp: ^2.2.6
+    typescript: 4.1.5
+    web3: ^1.3.4
+    web3-utils: ^1.3.4
+  languageName: unknown
+  linkType: soft
+
 "@near-eth/client@workspace:*, @near-eth/client@workspace:packages/client":
   version: 0.0.0-use.local
   resolution: "@near-eth/client@workspace:packages/client"

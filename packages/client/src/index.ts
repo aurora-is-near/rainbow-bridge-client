@@ -9,7 +9,11 @@ import {
 } from './types'
 
 export { onChange } from './storage'
-export { setEthProvider, setNearConnection } from './utils'
+export {
+  setEthProvider, setNearConnection, setAuroraProvider, setSignerProvider,
+  getSignerProvider, getEthProvider, getAuroraProvider
+} from './utils'
+export * as utils from './utils'
 
 /**
  * Get the connector library for the given transfer's type
@@ -27,6 +31,10 @@ function getTransferType (transfer: Transfer): ConnectorLib {
         return require('@near-eth/near-ether/dist/natural-near/sendToEthereum')
       case '@near-eth/near-ether/bridged-near/sendToNear':
         return require('@near-eth/near-ether/dist/bridged-near/sendToNear')
+      case '@near-eth/aurora-erc20/natural-erc20/sendToAurora':
+        return require('@near-eth/aurora-erc20/dist/natural-erc20/sendToAurora')
+      case '@near-eth/aurora-erc20/bridged-erc20/sendToEthereum':
+        return require('@near-eth/aurora-erc20/dist/bridged-erc20/sendToEthereum')
       default:
         throw new Error(`Unregistered library for transfer with type=${transfer.type}`)
     }
