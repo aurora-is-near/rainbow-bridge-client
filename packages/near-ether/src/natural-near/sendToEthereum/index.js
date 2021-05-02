@@ -276,6 +276,9 @@ async function parseLockReceipt (lockTx, sender) {
   return { id: lockReceiptId, blockHeight: receiptBlockHeight }
 }
 
+/**
+ * Create a new transfer.
+ */
 export async function initiate ({
   amount,
   sender,
@@ -304,18 +307,13 @@ export async function initiate ({
   await lock(transfer)
 }
 
+/**
+ * Lock native NEAR to migrate to Ethereum.
+ * @param {*} transfer
+ */
 async function lock (transfer) {
   const nearAccount = await getNearAccount()
-  // Calling `BridgeToken.lock` causes a redirect to NEAR Wallet.
-  //
-  // This adds some info about the current transaction to the URL params, then
-  // returns to mark the transfer as in-progress, and THEN executes the
-  // `lock` function.
-  //
-  // Since this happens very quickly in human time, a user will not have time
-  // to start two `deposit` calls at the same time, and the `checkLock` will be
-  // able to correctly identify the transfer and see if the transaction
-  // succeeded.
+
   setTimeout(async () => {
     await nearAccount.functionCall(
       process.env.nativeNEARLockerAddress,
@@ -323,14 +321,11 @@ async function lock (transfer) {
       {
         eth_recipient: transfer.recipient.replace('0x', '')
       },
-      // 100Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
-      new BN('100' + '0'.repeat(12)),
+      new BN('10' + '0'.repeat(12)), // 10TGas
       new BN(transfer.amount)
     )
   }, 100)
-  // Set url params before this lock() returns, otherwise there is a chance that checkLock() is called before
-  // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
-  // url param is not there
+
   urlParams.set({ locking: transfer.id })
 
   return {
