@@ -610,7 +610,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@yarnpkg/pnpify", "virtual:edb8de0a6612d26e450cbcee4595d05d8115076d71562a33aad579cd940c3078fe6e7531087f300f5073f887128e1eb95287c20e4fd8fa0a0324793bc96fd84f#npm:2.4.0"],
             ["bn.js", "npm:5.2.0"],
             ["bs58", "npm:4.0.1"],
-            ["eth-object", "https://github.com/near/eth-object.git#commit=54e03b8aac8208cf724e206d49ffb8bdd30451d7"],
+            ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=fb57468391112502792ba5fd8c586f5d2467a89f"],
             ["eth-revert-reason", "npm:1.0.3"],
             ["ethereumjs-util", "npm:7.0.10"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],

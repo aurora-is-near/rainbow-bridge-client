@@ -9,8 +9,7 @@ import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import findProof from './findProof'
-import { lastBlockNumber } from './ethOnNearClient'
-import { urlParams } from '@near-eth/utils'
+import { urlParams, lastBlockNumber } from '@near-eth/utils'
 import { findReplacementTx } from 'find-replacement-tx'
 
 export const SOURCE_NETWORK = 'ethereum'
@@ -164,12 +163,9 @@ export async function recover (burnTxHash) {
   return transfer
 }
 
-// Call contract given by `erc20` contract, requesting permission for contract
-// at `process.env.ethLockerAddress` to transfer 'amount' tokens
-// on behalf of the default user set up in authEthereum.js.
-// Only wait for transaction to have dependable transactionHash created. Avoid
-// blocking to wait for transaction to be mined. Status of transactionHash
-// being mined is then checked in checkStatus.
+/**
+ * Create a new transfer.
+ */
 export async function initiate ({
   amount,
   sender,
@@ -373,9 +369,7 @@ async function unlock (transfer) {
       proof,
       // 200Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
       new BN('200' + '0'.repeat(12)),
-      // We need to attach tokens because minting increases the contract state, by <600 bytes, which
-      // requires an additional 0.06 NEAR to be deposited to the account for state staking.
-      // Note technically 0.0537 NEAR should be enough, but we round it up to stay on the safe side.
+      // TODO how much deposit required for recording proof ?
       new BN('100000000000000000000').mul(new BN('600'))
     )
   }, 100)

@@ -30,17 +30,17 @@ const proofBorshSchema = new Map([
 // Compute proof that Locked event was fired in Ethereum. This proof can then
 // be passed to the FungibleTokenFactory contract, which verifies the proof
 // against a Prover contract.
-export default async function findProof (lockTxHash) {
+export default async function findProof (burnTxHash) {
   const provider = getEthProvider()
   // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
   const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
-  const ethTokenLocker = new web3.eth.Contract(
-    JSON.parse(process.env.ethLockerAbiText),
-    process.env.ethLockerAddress
+  const eNEARContract = new web3.eth.Contract(
+    JSON.parse(process.env.eNEARAbiText),
+    process.env.eNEARAddress
   )
 
-  const receipt = await web3.eth.getTransactionReceipt(lockTxHash)
+  const receipt = await web3.eth.getTransactionReceipt(burnTxHash)
   if (receipt.status !== true) {
     // When connecting via walletConnect, a random bug can happen where the receipt.status
     // is false event though we know it should be true.
@@ -58,11 +58,11 @@ export default async function findProof (lockTxHash) {
     receipt.transactionIndex
   )
 
-  const events = await ethTokenLocker.getPastEvents('Locked', {
+  const events = await eNEARContract.getPastEvents('TransferToNearInitiated', {
     fromBlock: receipt.blockNumber,
     toBlock: receipt.blockNumber
   })
-  const lockedEvent = events.find(event => event.transactionHash === lockTxHash)
+  const lockedEvent = events.find(event => event.transactionHash === burnTxHash)
   // `log.logIndex` does not necessarily match the log's order in the array of logs
   const logIndexInArray = receipt.logs.findIndex(
     l => l.logIndex === lockedEvent.logIndex
