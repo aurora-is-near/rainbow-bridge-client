@@ -5,6 +5,7 @@ import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getSignerProvider, formatLargeNum } from '@near-eth/client/dist/utils'
 import { findReplacementTx } from '../../utils'
+import { lastBlockNumber } from './ethOnNearClient'
 
 export const SOURCE_NETWORK = 'ethereum'
 export const DESTINATION_NETWORK = 'aurora'
@@ -12,10 +13,12 @@ export const TRANSFER_TYPE = '@near-eth/aurora-ether/natural-ether/sendToAurora'
 
 const LOCK = 'lock-natural-ether-to-aurora'
 const SYNC = 'sync-natural-ether-to-aurora'
+const MINT = 'mint-natural-ether-to-aurora'
 
 const steps = [
   LOCK,
-  SYNC
+  SYNC,
+  MINT
 ]
 
 const transferDraft = {
@@ -50,7 +53,8 @@ export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
       [LOCK]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to Aurora`,
-      [SYNC]: `Wait for ${transfer.neededConfirmations} transfer confirmations for security`
+      [SYNC]: `Wait for ${transfer.neededConfirmations} transfer confirmations for security`,
+      [MINT]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in Aurora`
     }),
     statusMessage: transfer => {
       if (transfer.status === status.FAILED) return 'Failed'
@@ -64,6 +68,7 @@ export const i18n = {
         case null: return 'Approving transfer'
         case LOCK: return `Confirming transfer ${transfer.completedConfirmations + 1} of ${transfer.neededConfirmations}`
         case SYNC: return 'Depositing in Aurora'
+        case MINT: return 'Transfer complete'
         default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
       }
     },
@@ -86,6 +91,7 @@ export function act (transfer) {
   switch (transfer.completedStep) {
     case null: return lock(transfer)
     case LOCK: return checkSync(transfer)
+    // case SYNC: return mint(transfer) // Not implemented, done by relayer
     default: throw new Error(`Don't know how to act on transfer: ${transfer.id}`)
   }
 }
@@ -98,6 +104,7 @@ export function checkStatus (transfer) {
   switch (transfer.completedStep) {
     case null: return checkLock(transfer)
     case LOCK: return checkSync(transfer)
+    // case SYNC: return checkMint(transfer) // Not implemented, done by relayer
     default: throw new Error(`Don't know how to checkStatus for transfer ${transfer.id}`)
   }
 }
@@ -136,13 +143,9 @@ export async function initiate ({ amount, token }) {
     decimals
   }
 
-  transfer = await lock({
-    ...transfer,
-    status: status.ACTION_NEEDED
-  })
+  transfer = await lock(transfer)
 
-  track(transfer)
-  return transfer
+  return track(transfer)
 }
 
 /**
@@ -176,8 +179,8 @@ async function lock (transfer) {
   const lockHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
       .depositToEVM(
-        transfer.recipient,
-        '1' // TODO uint256 fee,
+        transfer.recipient.slice(2).toLowerCase(),
+        '0' // TODO: currently 0 at launch
       )
       .send({ value: transfer.amount })
       .on('transactionHash', resolve)
@@ -221,7 +224,7 @@ async function checkLock (transfer) {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: process.env.ethLockerAddress
+        to: process.env.etherCustodianAddress
       }
       const event = {
         name: 'Deposited',
@@ -230,9 +233,9 @@ async function checkLock (transfer) {
           if (!event) return false
           return (
             sender.toLowerCase() === transfer.sender.toLowerCase() &&
-            recipient.toLowerCase() === transfer.recipient.toLowerCase() &&
+            recipient.toLowerCase() === (process.env.auroraEvmAccount + ':' + transfer.recipient.slice(2).toLowerCase()) &&
             amount === transfer.amount &&
-            fee === '1' // TODO
+            fee === '0' // TODO
           )
         }
       }
@@ -284,10 +287,6 @@ async function checkLock (transfer) {
 }
 
 async function checkSync (transfer) {
-  // TODO check that the transfer has been relayed
-  // NEAR provider required ?
-  // Can we know this by querying Aurora only ?
-  /*
   const lockReceipt = last(transfer.lockReceipts)
   const eventEmittedAt = lockReceipt.blockNumber
   const syncedTo = await lastBlockNumber()
@@ -307,7 +306,5 @@ async function checkSync (transfer) {
     completedStep: SYNC,
     status: status.ACTION_NEEDED
   }
-  */
-  return transfer
 }
 const last = arr => arr[arr.length - 1]

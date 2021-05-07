@@ -158,7 +158,7 @@ export async function initiate ({
     status: status.ACTION_NEEDED
   })
 
-  track(transfer)
+  return track(transfer)
 }
 
 async function approve (transfer) {
