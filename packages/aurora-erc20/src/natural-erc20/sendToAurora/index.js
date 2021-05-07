@@ -5,19 +5,22 @@ import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getSignerProvider, formatLargeNum } from '@near-eth/client/dist/utils'
 import { findReplacementTx } from '../../utils'
+import { lastBlockNumber } from './ethOnNearClient'
 
 export const SOURCE_NETWORK = 'ethereum'
 export const DESTINATION_NETWORK = 'aurora'
 export const TRANSFER_TYPE = '@near-eth/aurora-erc20/natural-erc20/sendToAurora'
 
+// APPROVE step is only used in checkApprove(), but transfers are only recorded at lock step
 const APPROVE = 'approve-natural-erc20-to-aurora'
 const LOCK = 'lock-natural-erc20-to-aurora'
 const SYNC = 'sync-natural-erc20-to-aurora'
+const MINT = 'mint-natural-erc20-to-aurora'
 
 const steps = [
-  APPROVE,
   LOCK,
-  SYNC
+  SYNC,
+  MINT
 ]
 
 const transferDraft = {
@@ -198,47 +201,28 @@ export async function approve ({ amount, token }) {
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  // const safeReorgHeight = await web3.eth.getBlockNumber() - 20
+  const safeReorgHeight = await web3.eth.getBlockNumber() - 20
   const approvalHash = await new Promise((resolve, reject) => {
     erc20Contract.methods
       .approve(process.env.ethLockerAddress, amount).send()
       .on('transactionHash', resolve)
       .catch(reject)
   })
-  // const pendingApprovalTx = await web3.eth.getTransaction(approvalHash)
+  const pendingApprovalTx = await web3.eth.getTransaction(approvalHash)
 
   return {
     ...transfer,
-    // ethCache: {
-    //   from: pendingApprovalTx.from,
-    //   safeReorgHeight,
-    //   nonce: pendingApprovalTx.nonce
-    // },
+    ethCache: {
+      from: pendingApprovalTx.from,
+      safeReorgHeight,
+      nonce: pendingApprovalTx.nonce
+    },
     approvalHashes: [...transfer.approvalHashes, approvalHash],
     status: status.IN_PROGRESS
   }
 }
 
-async function checkApprove ({ amount, token }) {
-// export async function getAllowance ({ sender, token }) {
-  /*
-  A transfer is recorded after the lock step. So the approval hash is not recorded in
-  a transfer object in local storage.
-  Instead of checking that transaction, we can instead check that the allowance has
-  become enough.
-  */
-  // TODO check allowance is larger than transfer amount.
-  /*
-  const web3 = new Web3(getEthProvider())
-
-  const erc20Contract = new web3.eth.Contract(
-    JSON.parse(process.env.ethErc20AbiText),
-    token.address
-  )
-
-  const allowance = await erc20Contract.methods.allowance(sender, process.env.ethLockerAddress).call()
-  console.log('allowance: ', allowance)
-  return allowance
+export async function checkApprove (transfer) {
   const provider = getEthProvider()
   // If available connect to rpcUrl to avoid issues with WalletConnectProvider
   const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
@@ -257,8 +241,6 @@ async function checkApprove ({ amount, token }) {
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!approvalReceipt) {
-    // don't break old transfers in case they were made before this functionality is released
-    if (!transfer.ethCache) return transfer
     try {
       const tx = {
         nonce: transfer.ethCache.nonce,
@@ -312,7 +294,6 @@ async function checkApprove ({ amount, token }) {
     completedStep: APPROVE,
     status: status.ACTION_NEEDED
   }
-  */
 }
 
 /**
@@ -455,10 +436,6 @@ async function checkLock (transfer) {
 }
 
 async function checkSync (transfer) {
-  // TODO check that the transfer has been relayed
-  // NEAR provider required ?
-  // Can we know this by querying Aurora only ?
-  /*
   const lockReceipt = last(transfer.lockReceipts)
   const eventEmittedAt = lockReceipt.blockNumber
   const syncedTo = await lastBlockNumber()
@@ -478,7 +455,5 @@ async function checkSync (transfer) {
     completedStep: SYNC,
     status: status.ACTION_NEEDED
   }
-  */
-  return transfer
 }
 const last = arr => arr[arr.length - 1]
