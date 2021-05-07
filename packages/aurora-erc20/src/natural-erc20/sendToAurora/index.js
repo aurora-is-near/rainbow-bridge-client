@@ -64,6 +64,7 @@ export const i18n = {
       if (transfer.status === status.FAILED) return 'Failed'
       if (transfer.status === status.ACTION_NEEDED) {
         switch (transfer.completedStep) {
+          case null: return 'Ready to transfer from Ethereum'
           case SYNC: return 'Ready to deposit in Aurora'
           default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
         }
