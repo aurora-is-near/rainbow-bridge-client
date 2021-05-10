@@ -139,7 +139,7 @@ export async function initiate ({ amount, token }) {
     destinationTokenName,
     recipient,
     sender,
-    sourceToken: token.address,
+    sourceToken: token.address, // null
     sourceTokenName,
     decimals
   }
