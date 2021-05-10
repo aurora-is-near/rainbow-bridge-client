@@ -53,20 +53,27 @@ const transferDraft = {
   // }
 
   // Attributes specific to natural-erc20-to-nep141 transfers
-  approvalHashes: [],
-  approvalReceipts: [],
-  completedConfirmations: 0,
+  finalityBlockHeights: [],
+  finalityBlockTimestamps: [],
+  nearOnEthClientBlockHeight: null, // calculated & set to a number during checkSync
+  securityWindow: 4 * 60, // in minutes. TODO: seconds instead? hours? TODO: get from connector contract? prover?
+  securityWindowProgress: 0,
   burnHashes: [],
   burnReceipts: [],
-  neededConfirmations: 20, // hard-coding until connector contract is updated with this information
-  unlockHashes: []
+  nearBurnHashes: [],
+  nearBurnReceipts: [],
+  nearBurnReceiptBlockHeights: [],
+  unlockHashes: [],
+  unlockReceipts: [],
+  nearOnEthClientBlockHeights: [],
+  proofs: []
 }
 
 export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
       [BURN]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to Ethereum`,
-      [AWAIT_FINALITY]: 'Confirming in NEAR',
+      [AWAIT_FINALITY]: 'Confirming in Aurora',
       [SYNC]: 'Confirming in Aurora. This can take around 16 hours. Feel free to return to this window later, to complete the final step of the transfer.',
       [UNLOCK]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in Ethereum`
     }),
@@ -189,7 +196,7 @@ async function burn (transfer) {
 
   // TODO: BURN tokens on Aurora
   const ethTokenLocker = new web3.eth.Contract(
-    JSON.parse(process.env.ethLockerAbiText),
+    JSON.parse(process.env.ethLockerAbiText), // TODO burn precompile address and abi
     process.env.ethLockerAddress,
     { from: transfer.sender }
   )
@@ -199,19 +206,19 @@ async function burn (transfer) {
   const safeReorgHeight = await web3.eth.getBlockNumber() - 20
   const burnHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
-      .lockToken(transfer.sourceToken, transfer.amount, transfer.recipient).send()
+      .lockToken(transfer.sourceToken, transfer.amount, transfer.recipient).send() // TODO burn precompile
       .on('transactionHash', resolve)
       .catch(reject)
   })
-  const pendingLockTx = await web3.eth.getTransaction(burnHash)
+  const pendingBurnTx = await web3.eth.getTransaction(burnHash)
 
   return {
     ...transfer,
     status: status.IN_PROGRESS,
     ethCache: {
-      from: pendingLockTx.from,
+      from: pendingBurnTx.from,
       safeReorgHeight,
-      nonce: pendingLockTx.nonce
+      nonce: pendingBurnTx.nonce
     },
     burnHashes: [...transfer.burnHashes, burnHash]
   }
@@ -246,7 +253,7 @@ async function checkBurn (transfer) {
         to: process.env.ethLockerAddress // TODO
       }
       const event = {
-        name: 'Locked',
+        name: 'Locked', // TODO
         abi: process.env.ethLockerAbiText,
         validate: ({ returnValues: { token, sender, amount, accountId } }) => {
           if (!event) return false
@@ -254,7 +261,7 @@ async function checkBurn (transfer) {
             token.toLowerCase() === transfer.sourceToken.toLowerCase() &&
             sender.toLowerCase() === transfer.sender.toLowerCase() &&
             amount === transfer.amount &&
-            accountId === transfer.recipient // TODO account id is aurora_near_account:recipient_eth_address
+            accountId === transfer.recipient // TODO
           )
         }
       }
@@ -292,10 +299,12 @@ async function checkBurn (transfer) {
       ...transfer,
       status: status.IN_PROGRESS,
       completedStep: BURN,
-      lockHashes: [...transfer.lockHashes, burnReceipt.transactionHash],
-      lockReceipts: [...transfer.lockReceipts, burnReceipt]
+      burnHashes: [...transfer.burnHashes, burnReceipt.transactionHash],
+      burnReceipts: [...transfer.burnReceipts, burnReceipt]
     }
   }
+
+  // TODO parse burn receipt block height like in nep141 checkWithdraw
 
   return {
     ...transfer,
