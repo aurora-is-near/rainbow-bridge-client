@@ -27,6 +27,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         "reference": "workspace:packages/aurora-erc20"
       },
       {
+        "name": "@near-eth/aurora-ether",
+        "reference": "workspace:packages/aurora-ether"
+      },
+      {
         "name": "@near-eth/client",
         "reference": "workspace:packages/client"
       },
@@ -55,6 +59,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
     "ignorePatternData": "(^(?:\\.yarn\\/sdks(?:\\/(?!\\.)(?:(?:(?!(?:^|\\/)\\.).)*?)|$))$)",
     "fallbackExclusionList": [
       ["@near-eth/aurora-erc20", ["workspace:packages/aurora-erc20"]],
+      ["@near-eth/aurora-ether", ["workspace:packages/aurora-ether"]],
       ["@near-eth/client", ["workspace:packages/client"]],
       ["@near-eth/near-ether", ["workspace:packages/near-ether"]],
       ["@near-eth/nep141-erc20", ["workspace:packages/nep141-erc20"]],
@@ -749,6 +754,33 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageLocation": "./packages/aurora-erc20/",
           "packageDependencies": [
             ["@near-eth/aurora-erc20", "workspace:packages/aurora-erc20"],
+            ["@commitlint/cli", "npm:12.0.1"],
+            ["@commitlint/config-conventional", "npm:12.0.1"],
+            ["@commitlint/travis-cli", "npm:12.0.1"],
+            ["@near-eth/client", "workspace:packages/client"],
+            ["@types/bn.js", "npm:5.1.0"],
+            ["@types/node", "npm:14.14.31"],
+            ["@yarnpkg/pnpify", "virtual:ad1bb2aa2f3a5b68893b30d4744c4a4569c9cea163e36a3b6b836a15510a26b0c3901ee8d8047495d1282ce81bba3249aa3d40a7e2e075092bc62e3a7fcde51a#npm:2.4.0"],
+            ["bn.js", "npm:5.2.0"],
+            ["bs58", "npm:4.0.1"],
+            ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=fb57468391112502792ba5fd8c586f5d2467a89f"],
+            ["eth-revert-reason", "npm:1.0.3"],
+            ["ethereumjs-util", "npm:7.0.10"],
+            ["near-api-js", "npm:0.39.0"],
+            ["promisfy", "npm:1.2.0"],
+            ["rlp", "npm:2.2.6"],
+            ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
+            ["web3", "npm:1.3.4"],
+            ["web3-utils", "npm:1.3.4"]
+          ],
+          "linkType": "SOFT",
+        }]
+      ]],
+      ["@near-eth/aurora-ether", [
+        ["workspace:packages/aurora-ether", {
+          "packageLocation": "./packages/aurora-ether/",
+          "packageDependencies": [
+            ["@near-eth/aurora-ether", "workspace:packages/aurora-ether"],
             ["@commitlint/cli", "npm:12.0.1"],
             ["@commitlint/config-conventional", "npm:12.0.1"],
             ["@commitlint/travis-cli", "npm:12.0.1"],
