@@ -153,9 +153,6 @@ export async function initiate ({ amount, token }) {
   const sender = web3.currentProvider.selectedAddress
   const recipient = sender
 
-  // TODO query mapping
-  const auroraErc20Address = 'TODO'
-
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
     ...transferDraft,
@@ -164,7 +161,7 @@ export async function initiate ({ amount, token }) {
     destinationTokenName,
     recipient,
     sender,
-    sourceToken: auroraErc20Address,
+    sourceToken: token.auroraAddress,
     sourceTokenName,
     decimals
   }

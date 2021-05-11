@@ -143,7 +143,7 @@ export async function initiate ({ amount, token }) {
     destinationTokenName,
     recipient,
     sender,
-    sourceToken: token.address,
+    sourceToken: token.ethAddress,
     sourceTokenName,
     decimals
   }
@@ -182,14 +182,14 @@ export async function approve ({ amount, token }) {
     destinationTokenName,
     recipient,
     sender,
-    sourceToken: token.address,
+    sourceToken: token.ethAddress,
     sourceTokenName,
     decimals
   }
 
   const erc20Contract = new web3.eth.Contract(
     JSON.parse(process.env.ethErc20AbiText),
-    token.address,
+    token.ethAddress,
     { from: sender }
   )
 
