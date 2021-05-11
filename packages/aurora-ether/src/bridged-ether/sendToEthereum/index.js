@@ -161,7 +161,7 @@ export async function initiate ({ amount, token }) {
   let transfer = {
     ...transferDraft,
 
-    amount: amount.toFixed(),
+    amount: amount,
     destinationTokenName,
     recipient,
     sender,

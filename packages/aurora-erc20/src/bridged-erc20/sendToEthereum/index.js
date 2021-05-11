@@ -157,7 +157,7 @@ export async function initiate ({ amount, token }) {
   let transfer = {
     ...transferDraft,
 
-    amount: amount.toFixed(),
+    amount: amount,
     destinationTokenName,
     recipient,
     sender,
@@ -189,10 +189,9 @@ async function burn (transfer) {
     )
   }
 
-  // TODO: BURN tokens on Aurora
-  const ethTokenLocker = new web3.eth.Contract(
-    JSON.parse(process.env.ethLockerAbiText), // TODO burn precompile address and abi
-    process.env.ethLockerAddress,
+  const auroraErc20 = new web3.eth.Contract(
+    JSON.parse(process.env.auroraErc20AbiText), // TODO add abi to frontend
+    transfer.sourceToken,
     { from: transfer.sender }
   )
 
@@ -200,8 +199,8 @@ async function burn (transfer) {
   // in case there was a reorg.
   const safeReorgHeight = await web3.eth.getBlockNumber() - 20
   const burnHash = await new Promise((resolve, reject) => {
-    ethTokenLocker.methods
-      .lockToken(transfer.sourceToken, transfer.amount, transfer.recipient).send() // TODO burn precompile
+    auroraErc20.methods
+      .withdrawToEthereum(transfer.recipient, transfer.amount).send()
       .on('transactionHash', resolve)
       .catch(reject)
   })
@@ -245,18 +244,17 @@ async function checkBurn (transfer) {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: process.env.ethLockerAddress // TODO
+        to: transfer.sourceToken
       }
       const event = {
-        name: 'Locked', // TODO
-        abi: process.env.ethLockerAbiText,
-        validate: ({ returnValues: { token, sender, amount, accountId } }) => {
+        name: 'Transfer', // TODO
+        abi: process.env.auroraErc20AbiText,
+        validate: ({ returnValues: { from, to, value } }) => {
           if (!event) return false
           return (
-            token.toLowerCase() === transfer.sourceToken.toLowerCase() &&
-            sender.toLowerCase() === transfer.sender.toLowerCase() &&
-            amount === transfer.amount &&
-            accountId === transfer.recipient // TODO
+            from.toLowerCase() === transfer.sender.toLowerCase() &&
+            to === 0 && // TODO address(0)
+            value === transfer.amount
           )
         }
       }

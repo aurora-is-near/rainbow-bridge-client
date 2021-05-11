@@ -135,7 +135,7 @@ export async function initiate ({ amount, token }) {
   let transfer = {
     ...transferDraft,
 
-    amount: amount.toString(),
+    amount: amount,
     destinationTokenName,
     recipient,
     sender,
