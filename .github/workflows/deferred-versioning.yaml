@@ -1,0 +1,17 @@
+name: Deferred versioning check
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  check:
+    name: Check yarn2 deferred version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Check deferred version is set (yarn version check -i)
+        run: yarn version check
