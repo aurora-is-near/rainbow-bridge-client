@@ -184,14 +184,24 @@ export async function initiate ({ amount, token }) {
 async function burn (transfer) {
   const web3 = new Web3(getSignerProvider())
 
-  const ethNetwork = await web3.eth.net.getNetworkType()
-  if (ethNetwork !== process.env.auroraNetworkId) {
+  const ethChainId = await web3.eth.net.getId()
+  if (ethChainId !== Number(process.env.auroraChainId)) {
     // Webapp should prevent the user from confirming if the wrong network is selected
     throw new Error(
-      'Wrong eth network for checkLock, expected: %s, got: %s',
-      process.env.ethNetworkId, ethNetwork
+      `Wrong eth network for burn, expected: ${process.env.auroraChainId}, got: ${ethChainId}`
     )
   }
+
+  /*
+  const precompileAddress = '0x000000000000000000000000ee5dfa0eefcc8eab'
+  const tx = await web3.eth.sendTransaction({
+    from: transfer.sender, to: precompileAddress, value: transfer.amount,
+    data: recipient encoded,
+    gas: 31000
+  })
+  console.log(tx)
+  // https://github.com/aurora-is-near/aurora-engine/blob/36e9a91e31d735cba629c3f44cc4a57e5f7388da/src/precompiles/native.rs#L49
+  */
 
   const ethTokenLocker = new web3.eth.Contract(
     JSON.parse(process.env.ethLockerAbiText), // TODO burn precompile address and abi
@@ -231,10 +241,10 @@ async function checkBurn (transfer) {
 
   const burnHash = last(transfer.burnHashes)
   const ethNetwork = await web3.eth.net.getNetworkType()
-  if (ethNetwork !== process.env.ethNetworkId) {
+  if (ethNetwork !== process.env.auroraNetworkId) {
     console.log(
       'Wrong eth network for checkBurn, expected: %s, got: %s',
-      process.env.ethNetworkId, ethNetwork
+      process.env.auroraNetworkId, ethNetwork
     )
     return transfer
   }
