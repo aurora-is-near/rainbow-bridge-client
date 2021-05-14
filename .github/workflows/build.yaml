@@ -1,0 +1,17 @@
+name: Install and Build
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  build:
+    name: Install and Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the repository
+        uses: actions/checkout@v2
+      - name: Install and Build 🔧
+        run: |
+          yarn
+          yarn build
