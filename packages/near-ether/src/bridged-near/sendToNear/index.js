@@ -57,7 +57,7 @@ const transferDraft = {
 export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
-      [BURN]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to NEAR`,
+      [BURN]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from Ethereum`,
       [SYNC]: `Wait for ${transfer.neededConfirmations} transfer confirmations for security`,
       [UNLOCK]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in NEAR`
     }),
@@ -141,7 +141,7 @@ export async function recover (burnTxHash) {
   const amount = burnEvent.returnValues.amount
   const recipient = burnEvent.returnValues.accountId
   const sender = burnEvent.returnValues.sender
-  const sourceTokenName = 'eNEAR'
+  const sourceTokenName = 'NEAR'
   const decimals = 24
   const destinationTokenName = '$NEAR'
 
@@ -172,7 +172,7 @@ export async function initiate ({
   recipient
 }) {
   // TODO: move to core 'decorate'; get both from contracts
-  const sourceTokenName = 'eNEAR'
+  const sourceTokenName = 'NEAR'
   // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = 24
   const destinationTokenName = '$NEAR'

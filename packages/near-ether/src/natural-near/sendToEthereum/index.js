@@ -184,7 +184,7 @@ export async function recover (lockTxHash, sender = 'todo') {
 
   const amount = lockEvent.amount.toString()
   const recipient = '0x' + Buffer.from(lockEvent.recipient).toString('hex')
-  const destinationTokenName = 'eNEAR'
+  const destinationTokenName = 'NEAR'
   const decimals = 24
   const sourceTokenName = '$NEAR'
 
@@ -285,7 +285,7 @@ export async function initiate ({
   recipient
 }) {
   // TODO: move to core 'decorate'; get both from contracts
-  const destinationTokenName = 'eNEAR'
+  const destinationTokenName = 'NEAR'
   // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = 24
   const sourceTokenName = '$NEAR'
