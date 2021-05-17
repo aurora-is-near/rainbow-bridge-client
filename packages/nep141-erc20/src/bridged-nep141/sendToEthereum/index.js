@@ -60,15 +60,11 @@ const transferDraft = {
 
   // Attributes specific to bridged-nep141-to-erc20 transfers
   finalityBlockHeights: [],
-  finalityBlockTimestamps: [],
   nearOnEthClientBlockHeight: null, // calculated & set to a number during checkSync
-  securityWindow: 4 * 60, // in minutes. TODO: seconds instead? hours? TODO: get from connector contract? prover?
-  securityWindowProgress: 0,
   unlockHashes: [],
   unlockReceipts: [],
   withdrawReceiptBlockHeights: [],
   withdrawReceiptIds: [],
-  nearOnEthClientBlockHeights: [],
   proofs: []
 }
 
@@ -533,7 +529,6 @@ async function checkSync (transfer) {
     )
     return transfer
   }
-  const nearAccount = await getNearAccount()
 
   const nearOnEthClient = new web3.eth.Contract(
     JSON.parse(process.env.ethNearOnEthClientAbiText),
@@ -552,26 +547,10 @@ async function checkSync (transfer) {
     }
   }
 
-  const clientBlockHashB58 = bs58.encode(toBuffer(
-    await nearOnEthClient.methods
-      .blockHashes(nearOnEthClientBlockHeight).call()
-  ))
-  const withdrawReceiptId = last(transfer.withdrawReceiptIds)
-  const proof = await nearAccount.connection.provider.sendJsonRpc(
-    'light_client_proof',
-    {
-      type: 'receipt',
-      receipt_id: withdrawReceiptId,
-      receiver_id: transfer.sender,
-      light_client_head: clientBlockHashB58
-    }
-  )
-
   return {
     ...transfer,
     completedStep: SYNC,
-    nearOnEthClientBlockHeights: [...transfer.nearOnEthClientBlockHeights, nearOnEthClientBlockHeight],
-    proofs: [...transfer.proofs, proof],
+    nearOnEthClientBlockHeight,
     status: status.ACTION_NEEDED
   }
 }
@@ -584,6 +563,29 @@ async function checkSync (transfer) {
  */
 async function unlock (transfer) {
   const web3 = new Web3(getEthProvider())
+
+  // Build burn proof
+  const { nearOnEthClientBlockHeight } = await checkSync(transfer)
+  const nearOnEthClient = new web3.eth.Contract(
+    JSON.parse(process.env.ethNearOnEthClientAbiText),
+    process.env.ethClientAddress
+  )
+  const clientBlockHashB58 = bs58.encode(toBuffer(
+    await nearOnEthClient.methods
+      .blockHashes(nearOnEthClientBlockHeight).call()
+  ))
+  const withdrawReceiptId = last(transfer.withdrawReceiptIds)
+  const nearAccount = await getNearAccount()
+  const proof = await nearAccount.connection.provider.sendJsonRpc(
+    'light_client_proof',
+    {
+      type: 'receipt',
+      receipt_id: withdrawReceiptId,
+      receiver_id: transfer.sender,
+      light_client_head: clientBlockHashB58
+    }
+  )
+
   const ethUserAddress = (await web3.eth.getAccounts())[0]
 
   const ethTokenLocker = new web3.eth.Contract(
@@ -592,15 +594,14 @@ async function unlock (transfer) {
     { from: ethUserAddress }
   )
 
-  const borshProof = borshifyOutcomeProof(last(transfer.proofs))
-  const nearOnEthClientBlockHeight = new BN(last(transfer.nearOnEthClientBlockHeights))
+  const borshProof = borshifyOutcomeProof(proof)
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
   const safeReorgHeight = await web3.eth.getBlockNumber() - 20
   const unlockHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
-      .unlockToken(borshProof, nearOnEthClientBlockHeight).send()
+      .unlockToken(borshProof, new BN(nearOnEthClientBlockHeight)).send()
       .on('transactionHash', resolve)
       .catch(reject)
   })
