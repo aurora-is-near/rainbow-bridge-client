@@ -3,7 +3,6 @@ import { Decimal } from 'decimal.js'
 import bs58 from 'bs58'
 import getRevertReason from 'eth-revert-reason'
 import Web3 from 'web3'
-import { toBuffer } from 'ethereumjs-util'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
 import { utils } from 'near-api-js'
 import {
@@ -19,6 +18,7 @@ import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client
 import getNep141Address from '../getAddress'
 import * as urlParams from '../../natural-erc20/sendToNear/urlParams'
 import { findReplacementTx } from '../../utils'
+import findProof from './findProof'
 
 export const SOURCE_NETWORK = 'near'
 export const DESTINATION_NETWORK = 'ethereum'
@@ -217,31 +217,9 @@ export async function recover (withdrawTxHash, sender = 'todo') {
   }
 
   // Transfer ready to finalize: check if already finalized
+  const proof = await findProof(transfer)
+
   const web3 = new Web3(getEthProvider())
-  const ethNetwork = await web3.eth.net.getNetworkType()
-  if (ethNetwork !== process.env.ethNetworkId) {
-    throw new Error(
-      `Wrong eth network for recovery, expected: ${process.env.ethNetworkId}, got: ${ethNetwork}`
-    )
-  }
-  const nearOnEthClient = new web3.eth.Contract(
-    JSON.parse(process.env.ethNearOnEthClientAbiText),
-    process.env.ethClientAddress
-  )
-  const clientBlockHashB58 = bs58.encode(toBuffer(
-    await nearOnEthClient.methods
-      .blockHashes(transfer.nearOnEthClientBlockHeight).call()
-  ))
-  const withdrawReceiptId = last(transfer.withdrawReceiptIds)
-  const proof = await nearAccount.connection.provider.sendJsonRpc(
-    'light_client_proof',
-    {
-      type: 'receipt',
-      receipt_id: withdrawReceiptId,
-      receiver_id: transfer.sender,
-      light_client_head: clientBlockHashB58
-    }
-  )
   if (await proofAlreadyUsed(web3, proof)) {
     // TODO find the unlockTxHash (requires ERC20Locker upgrade)
     return {
@@ -598,7 +576,7 @@ async function checkSync (transfer) {
 }
 
 /**
- * Check is a NEAR outcome receipt_id has already been used to finalize a transfer to Ethereum.
+ * Check if a NEAR outcome receipt_id has already been used to finalize a transfer to Ethereum.
  * @param {*} web3
  * @param {*} proof
  */
@@ -621,36 +599,8 @@ async function unlock (transfer) {
   const web3 = new Web3(getEthProvider())
 
   // Build burn proof
-  const { nearOnEthClientBlockHeight } = await checkSync(transfer)
-  const nearOnEthClient = new web3.eth.Contract(
-    JSON.parse(process.env.ethNearOnEthClientAbiText),
-    process.env.ethClientAddress
-  )
-  const clientBlockHashB58 = bs58.encode(toBuffer(
-    await nearOnEthClient.methods
-      .blockHashes(nearOnEthClientBlockHeight).call()
-  ))
-  const withdrawReceiptId = last(transfer.withdrawReceiptIds)
-  const nearAccount = await getNearAccount()
-  const proof = await nearAccount.connection.provider.sendJsonRpc(
-    'light_client_proof',
-    {
-      type: 'receipt',
-      receipt_id: withdrawReceiptId,
-      receiver_id: transfer.sender,
-      light_client_head: clientBlockHashB58
-    }
-  )
-
-  const ethUserAddress = (await web3.eth.getAccounts())[0]
-
-  const ethTokenLocker = new web3.eth.Contract(
-    JSON.parse(process.env.ethLockerAbiText),
-    process.env.ethLockerAddress,
-    { from: ethUserAddress }
-  )
-
-  const borshProof = borshifyOutcomeProof(proof)
+  transfer = await checkSync(transfer)
+  const proof = await findProof(transfer)
 
   if (await proofAlreadyUsed(web3, proof)) {
     // TODO find the unlockTxHash (requires ERC20Locker upgrade)
@@ -662,12 +612,20 @@ async function unlock (transfer) {
     }
   }
 
+  const borshProof = borshifyOutcomeProof(proof)
+
+  const ethUserAddress = (await web3.eth.getAccounts())[0]
+  const ethTokenLocker = new web3.eth.Contract(
+    JSON.parse(process.env.ethLockerAbiText),
+    process.env.ethLockerAddress,
+    { from: ethUserAddress }
+  )
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
   const safeReorgHeight = await web3.eth.getBlockNumber() - 20
   const unlockHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
-      .unlockToken(borshProof, new BN(nearOnEthClientBlockHeight)).send()
+      .unlockToken(borshProof, new BN(transfer.nearOnEthClientBlockHeight)).send()
       .on('transactionHash', resolve)
       .catch(reject)
   })
