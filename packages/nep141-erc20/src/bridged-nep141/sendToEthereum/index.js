@@ -194,7 +194,7 @@ export async function recover (withdrawTxHash, sender = 'todo') {
   const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, sender, sourceToken)
 
   // various attributes stored as arrays, to keep history of retries
-  const transfer = {
+  let transfer = {
     ...transferDraft,
 
     amount,
@@ -208,6 +208,48 @@ export async function recover (withdrawTxHash, sender = 'todo') {
 
     withdrawReceiptBlockHeights: [withdrawReceipt.blockHeight],
     withdrawReceiptIds: [withdrawReceipt.id]
+  }
+
+  // Check transfer status
+  transfer = await checkSync(transfer)
+  if (transfer.status === status.IN_PROGRESS) {
+    return transfer
+  }
+
+  // Transfer ready to finalize: check if already finalized
+  const web3 = new Web3(getEthProvider())
+  const ethNetwork = await web3.eth.net.getNetworkType()
+  if (ethNetwork !== process.env.ethNetworkId) {
+    throw new Error(
+      `Wrong eth network for recovery, expected: ${process.env.ethNetworkId}, got: ${ethNetwork}`
+    )
+  }
+  const nearOnEthClient = new web3.eth.Contract(
+    JSON.parse(process.env.ethNearOnEthClientAbiText),
+    process.env.ethClientAddress
+  )
+  const clientBlockHashB58 = bs58.encode(toBuffer(
+    await nearOnEthClient.methods
+      .blockHashes(transfer.nearOnEthClientBlockHeight).call()
+  ))
+  const withdrawReceiptId = last(transfer.withdrawReceiptIds)
+  const proof = await nearAccount.connection.provider.sendJsonRpc(
+    'light_client_proof',
+    {
+      type: 'receipt',
+      receipt_id: withdrawReceiptId,
+      receiver_id: transfer.sender,
+      light_client_head: clientBlockHashB58
+    }
+  )
+  if (await proofAlreadyUsed(web3, proof)) {
+    // TODO find the unlockTxHash (requires ERC20Locker upgrade)
+    return {
+      ...transfer,
+      errors: [...transfer.errors, 'Unlock proof already used.'],
+      status: status.COMPLETE,
+      completedStep: UNLOCK
+    }
   }
   return transfer
 }
@@ -535,11 +577,11 @@ async function checkSync (transfer) {
     process.env.ethClientAddress
   )
 
-  const finalityBlockHeight = last(transfer.finalityBlockHeights)
+  const withdrawBlockHeight = last(transfer.withdrawReceiptBlockHeights)
   const { currentHeight } = await nearOnEthClient.methods.bridgeState().call()
   const nearOnEthClientBlockHeight = Number(currentHeight)
 
-  if (nearOnEthClientBlockHeight <= finalityBlockHeight) {
+  if (nearOnEthClientBlockHeight <= withdrawBlockHeight) {
     return {
       ...transfer,
       nearOnEthClientBlockHeight,
@@ -553,6 +595,20 @@ async function checkSync (transfer) {
     nearOnEthClientBlockHeight,
     status: status.ACTION_NEEDED
   }
+}
+
+/**
+ * Check is a NEAR outcome receipt_id has already been used to finalize a transfer to Ethereum.
+ * @param {*} web3
+ * @param {*} proof
+ */
+async function proofAlreadyUsed (web3, proof) {
+  const usedProofsKey = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
+  const usedProofsMappingPosition = '0'.repeat(63) + '3'
+  const storageIndex = web3.utils.sha3('0x' + usedProofsKey + usedProofsMappingPosition)
+  // eth_getStorageAt docs: https://eth.wiki/json-rpc/API
+  const proofIsUsed = await web3.eth.getStorageAt(process.env.ethLockerAddress, storageIndex)
+  return Number(proofIsUsed) === 1
 }
 
 /**
@@ -595,6 +651,16 @@ async function unlock (transfer) {
   )
 
   const borshProof = borshifyOutcomeProof(proof)
+
+  if (await proofAlreadyUsed(web3, proof)) {
+    // TODO find the unlockTxHash (requires ERC20Locker upgrade)
+    return {
+      ...transfer,
+      errors: [...transfer.errors, 'Unlock proof already used.'],
+      status: status.COMPLETE,
+      completedStep: UNLOCK
+    }
+  }
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
