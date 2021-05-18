@@ -3,7 +3,6 @@ import { Decimal } from 'decimal.js'
 import bs58 from 'bs58'
 import getRevertReason from 'eth-revert-reason'
 import Web3 from 'web3'
-import { toBuffer } from 'ethereumjs-util'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
 import { utils } from 'near-api-js'
 import {
@@ -15,6 +14,7 @@ import { track } from '@near-eth/client'
 import { borshifyOutcomeProof, urlParams } from '@near-eth/utils'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import { findReplacementTx } from 'find-replacement-tx'
+import findProof from './findProof'
 
 export const SOURCE_NETWORK = 'near'
 export const DESTINATION_NETWORK = 'ethereum'
@@ -56,16 +56,11 @@ const transferDraft = {
 
   // Attributes specific to bridged-nep141-to-erc20 transfers
   finalityBlockHeights: [],
-  finalityBlockTimestamps: [],
   nearOnEthClientBlockHeight: null, // calculated & set to a number during checkSync
-  securityWindow: 4 * 60, // in minutes. TODO: seconds instead? hours? TODO: get from connector contract? prover?
-  securityWindowProgress: 0,
   mintHashes: [],
   mintReceipts: [],
   lockReceiptBlockHeights: [],
-  lockReceiptIds: [],
-  nearOnEthClientBlockHeights: [],
-  proofs: []
+  lockReceiptIds: []
 }
 
 export const i18n = {
@@ -191,7 +186,7 @@ export async function recover (lockTxHash, sender = 'todo') {
   const lockReceipt = await parseLockReceipt(lockTx, sender)
 
   // various attributes stored as arrays, to keep history of retries
-  const transfer = {
+  let transfer = {
     ...transferDraft,
 
     amount,
@@ -205,6 +200,26 @@ export async function recover (lockTxHash, sender = 'todo') {
     lockReceiptBlockHeights: [lockReceipt.blockHeight],
     lockReceiptIds: [lockReceipt.id]
   }
+
+  // Check transfer status
+  transfer = await checkSync(transfer)
+  if (transfer.status === status.IN_PROGRESS) {
+    return transfer
+  }
+  // Transfer ready to finalize: check if already finalized
+  const proof = await findProof(transfer)
+
+  const web3 = new Web3(getEthProvider())
+  if (await proofAlreadyUsed(web3, proof)) {
+    // TODO find the mintTxHash (requires eNEAR upgrade)
+    return {
+      ...transfer,
+      errors: [...transfer.errors, 'Mint proof already used.'],
+      status: status.COMPLETE,
+      completedStep: MINT
+    }
+  }
+
   return transfer
 }
 
@@ -515,21 +530,17 @@ async function checkSync (transfer) {
     )
     return transfer
   }
-  const nearAccount = await getNearAccount()
 
   const nearOnEthClient = new web3.eth.Contract(
     JSON.parse(process.env.ethNearOnEthClientAbiText),
     process.env.ethClientAddress
   )
 
-  const finalityBlockHeight = last(transfer.finalityBlockHeights)
+  const lockReceiptBlockHeight = last(transfer.lockReceiptBlockHeights)
   const { currentHeight } = await nearOnEthClient.methods.bridgeState().call()
   const nearOnEthClientBlockHeight = Number(currentHeight)
 
-  // TODO: replace finalityBlockHeight by lockReceiptBlockHeight
-  // recording latest finalityBlockHeight is not necessary.
-  // otherwise user needs to wait for the next relayed block for recovery
-  if (nearOnEthClientBlockHeight <= finalityBlockHeight) {
+  if (nearOnEthClientBlockHeight <= lockReceiptBlockHeight) {
     return {
       ...transfer,
       nearOnEthClientBlockHeight,
@@ -537,28 +548,27 @@ async function checkSync (transfer) {
     }
   }
 
-  const clientBlockHashB58 = bs58.encode(toBuffer(
-    await nearOnEthClient.methods
-      .blockHashes(nearOnEthClientBlockHeight).call()
-  ))
-  const lockReceiptId = last(transfer.lockReceiptIds)
-  const proof = await nearAccount.connection.provider.sendJsonRpc(
-    'light_client_proof',
-    {
-      type: 'receipt',
-      receipt_id: lockReceiptId,
-      receiver_id: transfer.sender,
-      light_client_head: clientBlockHashB58
-    }
-  )
-
   return {
     ...transfer,
     completedStep: SYNC,
-    nearOnEthClientBlockHeights: [...transfer.nearOnEthClientBlockHeights, nearOnEthClientBlockHeight],
-    proofs: [...transfer.proofs, proof],
+    nearOnEthClientBlockHeight,
     status: status.ACTION_NEEDED
   }
+}
+
+/**
+ * Check if a NEAR outcome receipt_id has already been used to finalize a transfer to Ethereum.
+ * @param {*} web3
+ * @param {*} proof
+ */
+async function proofAlreadyUsed (web3, proof) {
+  const usedProofsKey = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
+  // The usedProofs_ mapping is the 9th variable defined in the contract storage.
+  const usedProofsMappingPosition = '0'.repeat(63) + '8'
+  const storageIndex = web3.utils.sha3('0x' + usedProofsKey + usedProofsMappingPosition)
+  // eth_getStorageAt docs: https://eth.wiki/json-rpc/API
+  const proofIsUsed = await web3.eth.getStorageAt(process.env.eNEARAddress, storageIndex)
+  return Number(proofIsUsed) === 1
 }
 
 /**
@@ -569,23 +579,36 @@ async function checkSync (transfer) {
  */
 async function mint (transfer) {
   const web3 = new Web3(getEthProvider())
-  const ethUserAddress = (await web3.eth.getAccounts())[0]
 
+  // Build lock proof
+  transfer = await checkSync(transfer)
+  const proof = await findProof(transfer)
+
+  if (await proofAlreadyUsed(web3, proof)) {
+    // TODO find the unlockTxHash (requires ERC20Locker upgrade)
+    return {
+      ...transfer,
+      errors: [...transfer.errors, 'Mint proof already used.'],
+      status: status.COMPLETE,
+      completedStep: MINT
+    }
+  }
+
+  const borshProof = borshifyOutcomeProof(proof)
+
+  const ethUserAddress = (await web3.eth.getAccounts())[0]
   const eNEAR = new web3.eth.Contract(
     JSON.parse(process.env.eNEARAbiText),
     process.env.eNEARAddress,
     { from: ethUserAddress }
   )
 
-  const borshProof = borshifyOutcomeProof(last(transfer.proofs))
-  const nearOnEthClientBlockHeight = new BN(last(transfer.nearOnEthClientBlockHeights))
-
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
   const safeReorgHeight = await web3.eth.getBlockNumber() - 20
   const mintHash = await new Promise((resolve, reject) => {
     eNEAR.methods
-      .finaliseNearToEthTransfer(borshProof, nearOnEthClientBlockHeight).send()
+      .finaliseNearToEthTransfer(borshProof, new BN(transfer.nearOnEthClientBlockHeight)).send()
       .on('transactionHash', resolve)
       .catch(reject)
   })

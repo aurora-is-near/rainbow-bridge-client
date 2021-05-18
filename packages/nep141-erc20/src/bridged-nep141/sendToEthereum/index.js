@@ -64,8 +64,7 @@ const transferDraft = {
   unlockHashes: [],
   unlockReceipts: [],
   withdrawReceiptBlockHeights: [],
-  withdrawReceiptIds: [],
-  proofs: []
+  withdrawReceiptIds: []
 }
 
 export const i18n = {
@@ -582,6 +581,7 @@ async function checkSync (transfer) {
  */
 async function proofAlreadyUsed (web3, proof) {
   const usedProofsKey = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
+  // The usedProofs_ mapping is the 4th variable defined in the contract storage.
   const usedProofsMappingPosition = '0'.repeat(63) + '3'
   const storageIndex = web3.utils.sha3('0x' + usedProofsKey + usedProofsMappingPosition)
   // eth_getStorageAt docs: https://eth.wiki/json-rpc/API
