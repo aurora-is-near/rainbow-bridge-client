@@ -1,0 +1,8 @@
+releases:
+  "@near-eth/client": minor
+  "@near-eth/near-ether": major
+  "@near-eth/nep141-erc20": minor
+  "@near-eth/utils": major
+  find-replacement-tx: major
+  lite-merkle-patricia-tree: major
+  rainbow-bridge-client-monorepo: minor
