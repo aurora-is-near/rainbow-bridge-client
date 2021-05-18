@@ -369,7 +369,6 @@ async function unlock (transfer) {
       proof,
       // 200Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
       new BN('200' + '0'.repeat(12)),
-      // TODO how much deposit required for recording proof ?
       new BN('100000000000000000000').mul(new BN('600'))
     )
   }, 100)
