@@ -1,4 +1,4 @@
-import { Trie } from './merkle-patricia-tree'
+import { Trie } from 'lite-merkle-patricia-tree'
 // import Tree from 'merkle-patricia-tree'
 // import { promisfy } from 'promisfy'
 import { Header, Proof, Receipt, Log } from 'eth-object'
