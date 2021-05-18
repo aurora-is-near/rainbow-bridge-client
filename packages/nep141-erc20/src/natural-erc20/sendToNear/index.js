@@ -8,13 +8,12 @@ import { utils } from 'near-api-js'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
+import { urlParams, lastBlockNumber } from '@near-eth/utils'
+import { findReplacementTx } from 'find-replacement-tx'
 import getName from '../getName'
 import getAllowance from '../getAllowance'
 import { getDecimals } from '../getMetadata'
 import findProof from './findProof'
-import { lastBlockNumber } from './ethOnNearClient'
-import * as urlParams from './urlParams'
-import { findReplacementTx } from '../../utils'
 
 export const SOURCE_NETWORK = 'ethereum'
 export const DESTINATION_NETWORK = 'near'
@@ -310,7 +309,7 @@ async function checkApprove (transfer) {
           )
         }
       }
-      approvalReceipt = await findReplacementTx(transfer.ethCache.safeReorgHeight, tx, event)
+      approvalReceipt = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
     } catch (error) {
       console.error(error)
       return {
@@ -426,7 +425,7 @@ async function checkLock (transfer) {
           )
         }
       }
-      lockReceipt = await findReplacementTx(transfer.ethCache.safeReorgHeight, tx, event)
+      lockReceipt = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
     } catch (error) {
       console.error(error)
       return {

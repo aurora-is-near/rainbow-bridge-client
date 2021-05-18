@@ -8,17 +8,16 @@ import { utils } from 'near-api-js'
 import {
   deserialize as deserializeBorsh
 } from 'near-api-js/lib/utils/serialize'
-import getErc20Name from '../../natural-erc20/getName'
-import { getDecimals } from '../../natural-erc20/getMetadata'
 import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { track } from '@near-eth/client'
-import { borshifyOutcomeProof } from './borshify-proof'
+import { borshifyOutcomeProof, urlParams } from '@near-eth/utils'
+import { findReplacementTx } from 'find-replacement-tx'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import getNep141Address from '../getAddress'
-import * as urlParams from '../../natural-erc20/sendToNear/urlParams'
-import { findReplacementTx } from '../../utils'
 import findProof from './findProof'
+import getErc20Name from '../../natural-erc20/getName'
+import { getDecimals } from '../../natural-erc20/getMetadata'
 
 export const SOURCE_NETWORK = 'near'
 export const DESTINATION_NETWORK = 'ethereum'
@@ -681,7 +680,7 @@ async function checkUnlock (transfer) {
           )
         }
       }
-      unlockReceipt = await findReplacementTx(transfer.ethCache.safeReorgHeight, tx, event)
+      unlockReceipt = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
     } catch (error) {
       console.error(error)
       return {

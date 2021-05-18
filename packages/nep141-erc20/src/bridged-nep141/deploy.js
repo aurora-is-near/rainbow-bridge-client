@@ -1,7 +1,7 @@
 import BN from 'bn.js'
 import { utils } from 'near-api-js'
 import { getNearAccount } from '@near-eth/client/dist/utils'
-import * as urlParams from '../natural-erc20/sendToNear/urlParams'
+import { urlParams } from '@near-eth/utils'
 
 /**
  * Deploy a BridgeToken contract for the given erc20Address.
