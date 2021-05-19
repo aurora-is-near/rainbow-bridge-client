@@ -27,6 +27,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/find-replacement-tx"
+    "url": "https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/lite-merkle-patricia-tree"
   }
 }

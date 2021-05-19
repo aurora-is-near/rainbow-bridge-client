@@ -44,7 +44,7 @@ Or, if using yarn:
 
 ### What is `@near-eth/nep141-erc20`?
 
-The Rainbow Bridge between Ethereum and NEAR has [many pieces][Rainbow Bridge]. One piece is **Connector** contracts. The connector code for converting ERC20 tokens in Ethereum to NEP141 tokens in NEAR lives at [github.com/near/rainbow-token-connector][Connector].
+The Rainbow Bridge between Ethereum and NEAR has [many pieces][Rainbow Bridge]. One piece is **Connector** contracts. The connector code for converting ERC20 tokens in Ethereum to NEP141 tokens in NEAR lives at [github.com/aurora-is-near/rainbow-token-connector][Connector].
 
 The code for using a given connector from an app has its own library. The one for the connector above is [`@near-eth/nep141-erc20`](https://www.npmjs.com/package/@near-eth/nep141-erc20).
 
