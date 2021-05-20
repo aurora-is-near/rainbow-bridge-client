@@ -12,4 +12,4 @@ jobs:
       - name: Clone the repository
         uses: actions/checkout@v2
       - name: Check codebase linting
-        # run: yarn lint
+        run: yarn lint
