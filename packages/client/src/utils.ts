@@ -21,7 +21,7 @@ let nearConnection: WalletConnection
  *
  * @returns `provider`
  */
-export function setEthProvider (provider: any) {
+export function setEthProvider (provider: any): any {
   ethProvider = provider
   // TODO: verify provider meets expectations
   return ethProvider
@@ -47,7 +47,7 @@ export function setEthProvider (provider: any) {
  *
  * @returns `connection`
  */
-export function setNearConnection (connection: WalletConnection) {
+export function setNearConnection (connection: WalletConnection): WalletConnection {
   nearConnection = connection
   // TODO: verify connection meets expectations
   return nearConnection
@@ -62,7 +62,7 @@ export function setNearConnection (connection: WalletConnection) {
  *
  * @returns an Ethereum Provider for use with ethers.js or web3js
  */
-export function getEthProvider () {
+export function getEthProvider (): any {
   return ethProvider
 }
 
@@ -105,12 +105,10 @@ export async function getNearAccount (
   if (!authAgainst) return nearConnection.account()
 
   if (!nearConnection.getAccountId()) {
-    // @ts-ignore: requestSignIn improperly typed
     await nearConnection.requestSignIn(authAgainst)
   }
   if (strict && !(await nearAuthedAgainst(authAgainst))) {
     nearConnection.signOut()
-    // @ts-ignore: requestSignIn improperly typed
     await nearConnection.requestSignIn(authAgainst)
   }
 
@@ -140,7 +138,7 @@ export async function nearAuthedAgainst (contract: string): Promise<boolean> {
   const { accessKey } = await nearConnection.account().findAccessKey(contract, []) as any
 
   // TODO: this logic may break with FullAccess keys
-  const authedAgainst = accessKey && accessKey.permission.FunctionCall.receiver_id
+  const authedAgainst = accessKey?.accessKey.permission.FunctionCall.receiver_id
   return authedAgainst === contract
 }
 
