@@ -709,6 +709,17 @@ async function checkUnlock (transfer) {
     }
   }
 
+  if (unlockReceipt.transactionHash !== unlockHash) {
+    // Record the replacement tx unlockHash
+    return {
+      ...transfer,
+      status: status.COMPLETE,
+      completedStep: UNLOCK,
+      unlockHashes: [...transfer.unlockHashes, unlockReceipt.transactionHash],
+      unlockReceipts: [...transfer.unlockReceipts, unlockReceipt]
+    }
+  }
+
   return {
     ...transfer,
     status: status.COMPLETE,

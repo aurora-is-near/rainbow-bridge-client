@@ -692,6 +692,17 @@ async function checkMint (transfer) {
     }
   }
 
+  if (mintReceipt.transactionHash !== mintHash) {
+    // Record the replacement tx mintHash
+    return {
+      ...transfer,
+      status: status.COMPLETE,
+      completedStep: MINT,
+      mintHashes: [...transfer.mintHashes, mintReceipt.transactionHash],
+      mintReceipts: [...transfer.mintReceipts, mintReceipt]
+    }
+  }
+
   return {
     ...transfer,
     status: status.COMPLETE,

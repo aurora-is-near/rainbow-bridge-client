@@ -338,6 +338,17 @@ async function checkApprove (transfer) {
     }
   }
 
+  if (approvalReceipt.transactionHash !== approvalHash) {
+    // Record the replacement tx approvalHash
+    return {
+      ...transfer,
+      status: status.ACTION_NEEDED,
+      completedStep: APPROVE,
+      approvalHashes: [...transfer.approvalHashes, approvalReceipt.transactionHash],
+      approvalReceipts: [...transfer.approvalReceipts, approvalReceipt]
+    }
+  }
+
   return {
     ...transfer,
     approvalReceipts: [...transfer.approvalReceipts, approvalReceipt],
@@ -450,6 +461,17 @@ async function checkLock (transfer) {
       ...transfer,
       status: status.FAILED,
       errors: [...transfer.errors, error],
+      lockReceipts: [...transfer.lockReceipts, lockReceipt]
+    }
+  }
+
+  if (lockReceipt.transactionHash !== lockHash) {
+    // Record the replacement tx lockHash
+    return {
+      ...transfer,
+      status: status.IN_PROGRESS,
+      completedStep: LOCK,
+      lockHashes: [...transfer.lockHashes, lockReceipt.transactionHash],
       lockReceipts: [...transfer.lockReceipts, lockReceipt]
     }
   }
