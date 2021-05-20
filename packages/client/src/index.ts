@@ -11,6 +11,10 @@ import {
 export { onChange } from './storage'
 export { setEthProvider, setNearConnection } from './utils'
 
+/**
+ * Get the connector library for the given transfer's type
+ * @param transfer Transfer object
+ */
 function getTransferType (transfer: Transfer): ConnectorLib {
   // TODO: find a way to `require(transfer.type)`
   try {
@@ -51,7 +55,7 @@ function getTransferType (transfer: Transfer): ConnectorLib {
 export async function get (
   { filter }: { filter?: (t: Transfer) => boolean } = {}
 ): Promise<Transfer[]> {
-  let transfers = await storage.getAll()
+  let transfers = storage.getAll()
   if (filter !== undefined) transfers = transfers.filter(filter)
   return transfers
 }

@@ -40,6 +40,10 @@ export type DecoratedTransfer = Transfer & {
   callToAction?: string
 }
 
+export interface Transfers {
+  [key: string]: Transfer
+}
+
 interface Localizations {
   steps: (t: Transfer) => Step[]
   callToAction: (t: Transfer) => string | null
