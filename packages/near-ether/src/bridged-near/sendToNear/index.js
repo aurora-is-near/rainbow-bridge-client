@@ -301,6 +301,17 @@ async function checkBurn (transfer) {
     }
   }
 
+  if (burnReceipt.transactionHash !== burnHash) {
+    // Record the replacement tx burnHash
+    return {
+      ...transfer,
+      status: status.IN_PROGRESS,
+      completedStep: BURN,
+      burnHashes: [...transfer.burnHashes, burnReceipt.transactionHash],
+      burnReceipts: [...transfer.burnReceipts, burnReceipt]
+    }
+  }
+
   return {
     ...transfer,
     status: status.IN_PROGRESS,
