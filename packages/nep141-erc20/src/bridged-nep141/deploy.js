@@ -31,7 +31,7 @@ import { urlParams } from '@near-eth/utils'
  * @param erc20Address Address of ERC20 token for which to deploy BridgeToken
  *
  * @returns void Doesn't actually return at all, as the contract call has an
- * attached deposit (of 30.02 $NEAR) and will thus always cause a redirect to
+ * attached deposit (of 30.02 NEAR) and will thus always cause a redirect to
  * NEAR Wallet for confirmation.
  */
 export default async function deployBridgeToken (erc20Address) {
@@ -46,7 +46,7 @@ export default async function deployBridgeToken (erc20Address) {
 
     // Default gas limit used by near-api-js is 3e13, but this tx fails with
     // that number. Doubling it works. Maybe slightly less would also work,
-    // but at min gas price of 100M yN, this will only amount to 0.006 $NEAR,
+    // but at min gas price of 100M yN, this will only amount to 0.006 NEAR,
     // which is already negligible compared to the deposit.
     new BN(3e13).mul(new BN(2)),
 

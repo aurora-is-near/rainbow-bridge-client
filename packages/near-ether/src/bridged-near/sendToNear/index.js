@@ -143,7 +143,7 @@ export async function recover (burnTxHash) {
   const sender = burnEvent.returnValues.sender
   const sourceTokenName = 'NEAR'
   const decimals = 24
-  const destinationTokenName = '$NEAR'
+  const destinationTokenName = 'NEAR'
 
   const transfer = {
     ...transferDraft,
@@ -175,7 +175,7 @@ export async function initiate ({
   const sourceTokenName = 'NEAR'
   // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = 24
-  const destinationTokenName = '$NEAR'
+  const destinationTokenName = 'NEAR'
   const decimalAmount = new Decimal(amount).times(10 ** decimals)
 
   // various attributes stored as arrays, to keep history of retries

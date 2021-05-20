@@ -181,7 +181,7 @@ export async function recover (lockTxHash, sender = 'todo') {
   const recipient = '0x' + Buffer.from(lockEvent.recipient).toString('hex')
   const destinationTokenName = 'NEAR'
   const decimals = 24
-  const sourceTokenName = '$NEAR'
+  const sourceTokenName = 'NEAR'
 
   const lockReceipt = await parseLockReceipt(lockTx, sender)
 
@@ -303,7 +303,7 @@ export async function initiate ({
   const destinationTokenName = 'NEAR'
   // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = 24
-  const sourceTokenName = '$NEAR'
+  const sourceTokenName = 'NEAR'
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
