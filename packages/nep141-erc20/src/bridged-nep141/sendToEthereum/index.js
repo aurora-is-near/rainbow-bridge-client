@@ -70,8 +70,8 @@ export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
       [WITHDRAW]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from NEAR`,
-      [AWAIT_FINALITY]: 'Confirming in NEAR',
-      [SYNC]: 'Confirming in Ethereum. This can take around 16 hours. Feel free to return to this window later, to complete the final step of the transfer.',
+      [AWAIT_FINALITY]: 'Confirm in NEAR',
+      [SYNC]: 'Confirm in Ethereum. This can take around 16 hours. Feel free to return to this window later, to complete the final step of the transfer.',
       [UNLOCK]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in Ethereum`
     }),
     statusMessage: transfer => {
