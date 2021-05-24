@@ -262,6 +262,7 @@ async function approve (transfer) {
     ...transfer,
     ethCache: {
       from: pendingApprovalTx.from,
+      to: pendingApprovalTx.to,
       safeReorgHeight,
       nonce: pendingApprovalTx.nonce
     },
@@ -295,11 +296,12 @@ async function checkApprove (transfer) {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: transfer.sourceToken
+        to: transfer.ethCache.to || transfer.sourceToken
       }
       const event = {
         name: 'Approval',
         abi: process.env.ethErc20AbiText,
+        address: transfer.sourceToken,
         validate: ({ returnValues: { owner, spender, value } }) => {
           return (
             owner.toLowerCase() === transfer.sender.toLowerCase() &&
@@ -309,7 +311,9 @@ async function checkApprove (transfer) {
           )
         }
       }
-      approvalReceipt = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      if (!foundTx) return transfer
+      approvalReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
       return {
@@ -390,6 +394,7 @@ async function lock (transfer) {
     status: status.IN_PROGRESS,
     ethCache: {
       from: pendingLockTx.from,
+      to: pendingLockTx.to,
       safeReorgHeight,
       nonce: pendingLockTx.nonce
     },
@@ -421,11 +426,12 @@ async function checkLock (transfer) {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: process.env.ethLockerAddress
+        to: transfer.ethCache.to || process.env.ethLockerAddress
       }
       const event = {
         name: 'Locked',
         abi: process.env.ethLockerAbiText,
+        address: process.env.ethLockerAddress,
         validate: ({ returnValues: { token, sender, amount, accountId } }) => {
           if (!event) return false
           return (
@@ -436,7 +442,9 @@ async function checkLock (transfer) {
           )
         }
       }
-      lockReceipt = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      if (!foundTx) return transfer
+      lockReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
       return {

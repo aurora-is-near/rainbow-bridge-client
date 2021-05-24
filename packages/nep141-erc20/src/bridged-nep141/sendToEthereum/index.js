@@ -635,6 +635,7 @@ async function unlock (transfer) {
     status: status.IN_PROGRESS,
     ethCache: {
       from: pendingUnlockTx.from,
+      to: pendingUnlockTx.to,
       safeReorgHeight,
       nonce: pendingUnlockTx.nonce
     },
@@ -667,11 +668,12 @@ async function checkUnlock (transfer) {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: process.env.ethLockerAddress
+        to: transfer.ethCache.to || process.env.ethLockerAddress
       }
       const event = {
         name: 'Unlocked',
         abi: process.env.ethLockerAbiText,
+        address: process.env.ethLockerAddress,
         validate: ({ returnValues: { amount, recipient } }) => {
           if (!event) return false
           return (
@@ -680,7 +682,9 @@ async function checkUnlock (transfer) {
           )
         }
       }
-      unlockReceipt = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      if (!foundTx) return transfer
+      unlockReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
       return {
