@@ -4,7 +4,6 @@ const bs58 = require('bs58')
 // Encode outcome proof according to its borsh schema.
 export function borshifyOutcomeProof (proof) {
   const statusToBuffer = (status) => {
-    console.log(status)
     if ('SuccessValue' in status) {
       const data = Buffer.from(status.SuccessValue, 'base64')
       return Buffer.concat([

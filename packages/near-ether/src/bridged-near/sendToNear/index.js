@@ -125,7 +125,7 @@ export async function recover (burnTxHash) {
   const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
   const receipt = await web3.eth.getTransactionReceipt(burnTxHash)
-  const eNEAR = new web3.eth.Contract( // TODO correct burner
+  const eNEAR = new web3.eth.Contract(
     JSON.parse(process.env.eNEARAbiText),
     process.env.eNEARAddress
   )
@@ -229,6 +229,7 @@ async function burn (transfer) {
     status: status.IN_PROGRESS,
     ethCache: {
       from: pendingBurnTx.from,
+      to: pendingBurnTx.to,
       safeReorgHeight,
       nonce: pendingBurnTx.nonce
     },
@@ -258,11 +259,12 @@ async function checkBurn (transfer) {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: process.env.eNEARAddress
+        to: transfer.ethCache.to || process.env.eNEARAddress
       }
       const event = {
         name: 'TransferToNearInitiated',
         abi: process.env.eNEARAbiText,
+        address: process.env.eNEARAddress,
         validate: ({ returnValues: { sender, amount, accountId } }) => {
           if (!event) return false
           return (
@@ -272,7 +274,9 @@ async function checkBurn (transfer) {
           )
         }
       }
-      burnReceipt = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      if (!foundTx) return transfer
+      burnReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
       return {
@@ -374,7 +378,7 @@ async function unlock (transfer) {
   // able to correctly identify the transfer and see if the transaction
   // succeeded.
   setTimeout(async () => {
-    await nearAccount.functionCall( // TODO fix gas
+    await nearAccount.functionCall(
       process.env.nativeNEARLockerAddress,
       'finalise_eth_to_near_transfer',
       proof,

@@ -619,6 +619,7 @@ async function mint (transfer) {
     status: status.IN_PROGRESS,
     ethCache: {
       from: pendingMintTx.from,
+      to: pendingMintTx.to,
       safeReorgHeight,
       nonce: pendingMintTx.nonce
     },
@@ -649,11 +650,12 @@ async function checkMint (transfer) {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: process.env.eNEARAddress
+        to: transfer.ethCache.to || process.env.eNEARAddress
       }
       const event = {
-        name: 'NearToEthTransferFinalised', // TODO test speedup
+        name: 'NearToEthTransferFinalised',
         abi: process.env.eNEARAbiText,
+        address: process.env.eNEARAddress,
         validate: ({ returnValues: { sender, amount, recipient } }) => {
           if (!event) return false
           return (
@@ -663,7 +665,9 @@ async function checkMint (transfer) {
           )
         }
       }
-      mintReceipt = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      if (!foundTx) return transfer
+      mintReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
       return {
