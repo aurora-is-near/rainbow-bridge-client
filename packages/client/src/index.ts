@@ -89,8 +89,7 @@ export function decorate (
 ): DecoratedTransfer {
   const type = getTransferType(transfer)
 
-  // not needed with structNullChecks false: @ts-expect-error
-  // to be improved
+  // @ts-expect-error
   let localized = type.i18n[locale]
   if (localized === undefined) {
     const availableLocales = Object.keys(type.i18n)
@@ -102,8 +101,7 @@ export function decorate (
         }\n\nFalling back to ${fallback}`
       )
     }
-    // not needed with structNullChecks false: @ts-expect-error
-    // to be improved
+    // @ts-expect-error
     localized = type.i18n[fallback]
   }
 
@@ -200,7 +198,10 @@ export async function checkStatusAll (
  * If the transfer failed, this will retry it.
  */
 export async function act (id: string): Promise<void> {
-  const transfer = await storage.get(id)
+  const transfer = storage.get(id)
+  if (!transfer) {
+    throw new Error(`Cannot find and act on transfer with id ${id}`)
+  }
   if (![status.FAILED, status.ACTION_NEEDED].includes(transfer.status)) {
     console.warn('No action needed for transfer with status', transfer.status)
     return
@@ -242,7 +243,10 @@ export async function track (transferRaw: UnsavedTransfer): Promise<Transfer> {
 
 // Check the status of a single transfer.
 async function checkStatus (id: string): Promise<void> {
-  let transfer = await storage.get(id)
+  let transfer = storage.get(id)
+  if (!transfer) {
+    throw new Error(`Cannot find and act on transfer with id ${id}`)
+  }
   const type = getTransferType(transfer)
 
   // only in-progress transfers need to be checked on

@@ -10,11 +10,11 @@ function localStorageGet (key: string): Transfers {
   try {
     const serializedState = localStorage.getItem(key)
     if (serializedState === null) {
-      return undefined
+      return {}
     }
     return JSON.parse(serializedState)
   } catch (err) {
-    return undefined
+    return {}
   }
 }
 
@@ -38,7 +38,7 @@ const STORAGE_KEY = 'rainbow-bridge-transfers'
  * Get all transfers object
  */
 function getAllRaw (): Transfers {
-  return localStorageGet(STORAGE_KEY) || {}
+  return localStorageGet(STORAGE_KEY)
 }
 
 /**
@@ -47,14 +47,14 @@ function getAllRaw (): Transfers {
  */
 export function getAll (): Transfer[] {
   const raw = getAllRaw()
-  return Object.keys(raw).sort((a, b) => b < a ? -1 : 1).map(id => raw[id])
+  return Object.keys(raw).sort((a, b) => b < a ? -1 : 1).map(id => raw[id]!)
 }
 
 /**
  * Get a transfer from, localStorage
  * @param id Transfer id
  */
-export function get (id: string): Transfer {
+export function get (id: string): Transfer | undefined {
   if (!id) throw new Error('must provide ID to fetch a single transfer')
   return getAllRaw()[id]
 }
