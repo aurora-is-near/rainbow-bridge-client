@@ -28,6 +28,9 @@ yarn add find-replacement-tx
 
 Usage
 -----
+* findReplacementTx
+
+Find and validate a replacement transaction (Metamask speedup).
 ```js
 import { findReplacementTx } from 'find-replacement-tx'
 
@@ -55,12 +58,12 @@ const pendingApprovalTx = await web3.eth.getTransaction(approvalHash)
 const tx = {
   nonce: pendingApprovalTx.nonce,
   from: pendingApprovalTx.from,
-  to: erc20TokenAddress
+  to: pendingApprovalTx.to
 }
-
 const event = {
   name: 'Approval',
   abi: erc20Abi,
+  address: erc20TokenAddress,
   validate: ({ returnValues: { owner, spender, value } }) => {
     return (
       owner.toLowerCase() === transfer.sender.toLowerCase() &&
@@ -70,8 +73,33 @@ const event = {
     )
   }
 }
+
 try {
-  const approvalReceipt = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+  const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+  if (!foundTx) {
+    // Tx pending
+  }
+  const approvalReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
 } catch (err) {
 }
+```
+
+* getTransactionByNonce
+
+Query a transaction by nonce.
+
+Similar to `web3.eth.getTransaction`.
+
+Returns a `Transaction` object or `null` if transaction nonce is pending. Throws if transaction is not found within range.
+
+```js
+  import { getTransactionByNonce } from 'find-replacement-tx'
+
+  const startSearch = await web3.eth.getBlockNumber() - 20
+  const transaction = await getTransactionByNonce(
+    provider, // Web3 provider
+    startSearch, // Lower search bound
+    from, // Transaction signer
+    nonce // Nonce of transaction to get
+  )
 ```
