@@ -398,9 +398,7 @@ export async function checkWithdraw (transfer) {
       errors: [...transfer.errors, newError]
     }
   }
-  if (!id) {
-    // checkstatus managed to call checkWithdraw withing the 100ms before wallet redirect
-    // so id is not yet set
+  if (!id || id === 'processing') {
     console.log('Waiting for Near wallet redirect to sign withdraw')
     return transfer
   }

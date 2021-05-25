@@ -379,9 +379,7 @@ export async function checkLock (transfer) {
       errors: [...transfer.errors, newError]
     }
   }
-  if (!id) {
-    // checkstatus managed to call checkLock withing the 100ms before wallet redirect
-    // so id is not yet set
+  if (!id || id === 'processing') {
     console.log('Waiting for Near wallet redirect to sign lock')
     return transfer
   }
