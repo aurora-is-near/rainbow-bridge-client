@@ -316,6 +316,8 @@ export async function initiate ({
     sourceTokenName,
     decimals
   }
+  // Prevent checkStatus from creating failed transfer when called between track and lock
+  urlParams.set({ locking: 'processing' })
 
   transfer = await track(transfer)
 
@@ -329,6 +331,8 @@ export async function initiate ({
 async function lock (transfer) {
   const nearAccount = await getNearAccount()
 
+  urlParams.set({ locking: transfer.id })
+
   setTimeout(async () => {
     await nearAccount.functionCall(
       process.env.nativeNEARLockerAddress,
@@ -340,8 +344,6 @@ async function lock (transfer) {
       new BN(transfer.amount)
     )
   }, 100)
-
-  urlParams.set({ locking: transfer.id })
 
   return {
     ...transfer,

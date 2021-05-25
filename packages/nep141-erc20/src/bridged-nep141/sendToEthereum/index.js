@@ -325,6 +325,9 @@ export async function initiate ({
     decimals
   }
 
+  // Prevent checkStatus from creating failed transfer when called between track and withdraw
+  urlParams.set({ withdrawing: 'processing' })
+
   transfer = await track(transfer)
 
   await withdraw(transfer)
@@ -332,6 +335,11 @@ export async function initiate ({
 
 async function withdraw (transfer) {
   const nearAccount = await getNearAccount()
+  // Set url params before this withdraw() returns, otherwise there is a chance that checkWithdraw() is called before
+  // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
+  // url param is not there
+  urlParams.set({ withdrawing: transfer.id })
+
   // Calling `BridgeToken.withdraw` causes a redirect to NEAR Wallet.
   //
   // This adds some info about the current transaction to the URL params, then
@@ -355,10 +363,6 @@ async function withdraw (transfer) {
       new BN('1')
     )
   }, 100)
-  // Set url params before this withdraw() returns, otherwise there is a chance that checkWithdraw() is called before
-  // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
-  // url param is not there
-  urlParams.set({ withdrawing: transfer.id })
 
   return {
     ...transfer,
