@@ -5,12 +5,13 @@ import {
 
 const near = new Near({
   keyStore: new keyStores.InMemoryKeyStore(),
-  networkId: process.env.nearNetworkId,
-  nodeUrl: process.env.nearNodeUrl
+  networkId: process.env.nearNetworkId!,
+  nodeUrl: process.env.nearNodeUrl!
 })
 
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 class EthOnNearClientBorsh {
-  constructor (args) {
+  constructor (args: any) {
     Object.assign(this, args)
   }
 }
@@ -24,17 +25,17 @@ const schema = new Map([
   }]
 ])
 
-function deserializeEthOnNearClient (raw) {
+function deserializeEthOnNearClient (raw: Buffer): any {
   return deserializeBorsh(schema, EthOnNearClientBorsh, raw)
 }
 
-export async function lastBlockNumber () {
+export async function ethOnNearSyncHeight (): Promise<number> {
   // near-api-js requires instantiating an "account" object, even though view
   // functions require no signature and therefore no associated account, so the
   // account name passed in doesn't matter.
-  const account = await near.account(process.env.nearClientAccount)
+  const account = await near.account(process.env.nearClientAccount!)
   const deserialized = await account.viewFunction(
-    process.env.nearClientAccount,
+    process.env.nearClientAccount!,
     'last_block_number',
     {},
     { parse: deserializeEthOnNearClient }

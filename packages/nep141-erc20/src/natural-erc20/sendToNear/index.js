@@ -8,7 +8,7 @@ import { utils } from 'near-api-js'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
-import { urlParams, lastBlockNumber } from '@near-eth/utils'
+import { urlParams, ethOnNearSyncHeight } from '@near-eth/utils'
 import { findReplacementTx } from 'find-replacement-tx'
 import getName from '../getName'
 import getAllowance from '../getAllowance'
@@ -495,7 +495,7 @@ async function checkLock (transfer) {
 async function checkSync (transfer) {
   const lockReceipt = last(transfer.lockReceipts)
   const eventEmittedAt = lockReceipt.blockNumber
-  const syncedTo = await lastBlockNumber()
+  const syncedTo = await ethOnNearSyncHeight()
   const completedConfirmations = Math.max(0, syncedTo - eventEmittedAt)
 
   if (completedConfirmations < transfer.neededConfirmations) {
