@@ -367,6 +367,11 @@ async function unlock (transfer) {
     }
   }
 
+  // Set url params before this unlock() returns, otherwise there is a chance that checkUnlock() is called before
+  // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
+  // url param is not there
+  urlParams.set({ unlocking: transfer.id })
+
   // Calling `nearFungibleTokenFactory.deposit` causes a redirect to NEAR Wallet.
   //
   // This adds some info about the current transaction to the URL params, then
@@ -387,10 +392,6 @@ async function unlock (transfer) {
       new BN('100000000000000000000').mul(new BN('600'))
     )
   }, 100)
-  // Set url params before this unlock() returns, otherwise there is a chance that checkUnlock() is called before
-  // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
-  // url param is not there
-  urlParams.set({ unlocking: transfer.id })
 
   return {
     ...transfer,
