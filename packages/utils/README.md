@@ -20,7 +20,8 @@ Usage
 ```js
 import {
   urlParams,
-  lastBlockNumber,
+  ethOnNearSyncHeight,
+  nearOnEthSyncHeight,
   borshifyOutcomeProof
 } from '@near-eth/utils'
 ```

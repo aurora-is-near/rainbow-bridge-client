@@ -11,7 +11,7 @@ import {
 import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { track } from '@near-eth/client'
-import { borshifyOutcomeProof, urlParams } from '@near-eth/utils'
+import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight } from '@near-eth/utils'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import { findReplacementTx } from 'find-replacement-tx'
 import findProof from './findProof'
@@ -521,7 +521,8 @@ async function checkFinality (transfer) {
  * @param {*} transfer
  */
 async function checkSync (transfer) {
-  const web3 = new Web3(getEthProvider())
+  const provider = getEthProvider()
+  const web3 = new Web3(provider)
   const ethNetwork = await web3.eth.net.getNetworkType()
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(
@@ -531,14 +532,8 @@ async function checkSync (transfer) {
     return transfer
   }
 
-  const nearOnEthClient = new web3.eth.Contract(
-    JSON.parse(process.env.ethNearOnEthClientAbiText),
-    process.env.ethClientAddress
-  )
-
   const lockReceiptBlockHeight = last(transfer.lockReceiptBlockHeights)
-  const { currentHeight } = await nearOnEthClient.methods.bridgeState().call()
-  const nearOnEthClientBlockHeight = Number(currentHeight)
+  const nearOnEthClientBlockHeight = await nearOnEthSyncHeight(provider)
 
   if (nearOnEthClientBlockHeight <= lockReceiptBlockHeight) {
     return {

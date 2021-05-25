@@ -664,11 +664,13 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@commitlint/config-conventional", "npm:12.0.1"],
             ["@commitlint/travis-cli", "npm:12.0.1"],
             ["@types/bn.js", "npm:5.1.0"],
+            ["@types/bs58", "npm:4.0.1"],
             ["@types/node", "npm:14.14.31"],
             ["@yarnpkg/pnpify", "virtual:edb8de0a6612d26e450cbcee4595d05d8115076d71562a33aad579cd940c3078fe6e7531087f300f5073f887128e1eb95287c20e4fd8fa0a0324793bc96fd84f#npm:2.4.0"],
             ["bs58", "npm:4.0.1"],
             ["near-api-js", "npm:0.39.0"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
+            ["web3", "npm:1.3.4"],
             ["web3-utils", "npm:1.3.4"]
           ],
           "linkType": "SOFT",
@@ -753,6 +755,16 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageDependencies": [
             ["@types/bn.js", "npm:5.1.0"],
             ["@types/node", "npm:14.14.31"]
+          ],
+          "linkType": "HARD",
+        }]
+      ]],
+      ["@types/bs58", [
+        ["npm:4.0.1", {
+          "packageLocation": "./.yarn/cache/@types-bs58-npm-4.0.1-179273a650-0fc89f90f5.zip/node_modules/@types/bs58/",
+          "packageDependencies": [
+            ["@types/bs58", "npm:4.0.1"],
+            ["base-x", "npm:3.0.8"]
           ],
           "linkType": "HARD",
         }]

@@ -8,7 +8,7 @@ import { utils } from 'near-api-js'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
-import { urlParams, lastBlockNumber } from '@near-eth/utils'
+import { urlParams, ethOnNearSyncHeight } from '@near-eth/utils'
 import { findReplacementTx } from 'find-replacement-tx'
 import findProof from './findProof'
 
@@ -327,7 +327,7 @@ async function checkBurn (transfer) {
 async function checkSync (transfer) {
   const burnReceipt = last(transfer.burnReceipts)
   const eventEmittedAt = burnReceipt.blockNumber
-  const syncedTo = await lastBlockNumber()
+  const syncedTo = await ethOnNearSyncHeight()
   const completedConfirmations = Math.max(0, syncedTo - eventEmittedAt)
 
   if (completedConfirmations < transfer.neededConfirmations) {

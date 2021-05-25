@@ -1,9 +1,12 @@
 import utils from 'web3-utils'
-const bs58 = require('bs58')
+import bs58 from 'bs58'
 
 // Encode outcome proof according to its borsh schema.
-export function borshifyOutcomeProof (proof) {
-  const statusToBuffer = (status) => {
+// import { LightClientProof } from 'near-api-js/lib/providers/provider'
+// export function borshifyOutcomeProof (proof: LightClientProof): Buffer {
+// TODO fix LightClientProof interface
+export function borshifyOutcomeProof (proof: any): Buffer {
+  const statusToBuffer = (status: any): Buffer => {
     if ('SuccessValue' in status) {
       const data = Buffer.from(status.SuccessValue, 'base64')
       return Buffer.concat([
@@ -23,7 +26,7 @@ export function borshifyOutcomeProof (proof) {
   return Buffer.concat([
     utils.toBN(proof.outcome_proof.proof.length).toBuffer('le', 4),
     Buffer.concat(
-      proof.outcome_proof.proof.map((p) =>
+      proof.outcome_proof.proof.map((p: any) =>
         Buffer.concat([
           bs58.decode(p.hash),
           Buffer.from([p.direction === 'Right' ? 1 : 0])
@@ -44,7 +47,7 @@ export function borshifyOutcomeProof (proof) {
         .toBN(proof.outcome_proof.outcome.receipt_ids.length)
         .toBuffer('le', 4),
       Buffer.concat(
-        proof.outcome_proof.outcome.receipt_ids.map((r) => bs58.decode(r))
+        proof.outcome_proof.outcome.receipt_ids.map((r: any) => bs58.decode(r))
       ),
 
       utils.toBN(proof.outcome_proof.outcome.gas_burnt).toBuffer('le', 8),
@@ -81,7 +84,7 @@ export function borshifyOutcomeProof (proof) {
 
       utils.toBN(proof.block_proof.length).toBuffer('le', 4),
       Buffer.concat(
-        proof.block_proof.map((bp) =>
+        proof.block_proof.map((bp: any) =>
           Buffer.concat([
             bs58.decode(bp.hash),
             Buffer.from([bp.direction === 'Right' ? 1 : 0])
