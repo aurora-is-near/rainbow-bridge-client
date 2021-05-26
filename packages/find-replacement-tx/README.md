@@ -7,9 +7,15 @@ Dapp interfaces need a way to check for these replacement transactions.
 
 This tool searches for replacement transactions of same nonce within a safe reorg height (binary searched).
 
-- A `receipt` is returned if `findReplacementTx` found a transaction with the same nonce and destination which emitted a valid event.
-- `findReplacementTx` will `throw` if the event couldn't be validated (transaction failed, different destination, or no replacement transaction found within the search range)
-- `null` is returned if the transaction is not yet mined.
+* findReplacementTx
+  - A `Transaction` is returned if `findReplacementTx` found a transaction with the same nonce and destination which emitted a valid event.
+  - `findReplacementTx` will throw a `SearchError` if the event couldn't be validated (transaction failed, different destination, or no replacement transaction found within the search range)
+  - `null` is returned if the transaction is not yet mined.
+
+* getTransactionByNonce
+  - A `Transaction` with the same nonce is returned.
+  - `getTransactionByNonce` will throw a `SearchError` if no transaction could be found within the search range.
+  - `null` is returned if the transaction is not yet mined.
 
 Related work: https://eips.ethereum.org/EIPS/eip-2831
 

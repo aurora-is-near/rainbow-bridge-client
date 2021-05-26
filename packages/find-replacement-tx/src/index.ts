@@ -2,6 +2,8 @@ import Web3 from 'web3'
 import { Transaction } from 'web3-core'
 import { PastEventOptions } from 'web3-eth-contract'
 
+export class SearchError extends Error {}
+
 /**
  * Binary search a trasaction with `nonce` and `from`
  * @param provider Web3 provider
@@ -49,14 +51,14 @@ export async function getTransactionByNonce (
   }
   if (!txBlock) {
     const error = 'Could not find replacement transaction. It may be due to a chain reorg.'
-    throw new Error(error)
+    throw new SearchError(error)
   }
   const block = await web3.eth.getBlock(txBlock, true)
   const transaction = block.transactions.find(
     blockTx => blockTx.from.toLowerCase() === from.toLowerCase() && blockTx.nonce === nonce
   )
   if (!transaction) {
-    throw new Error('Error finding transaction in block.')
+    throw new SearchError('Error finding transaction in block.')
   }
   return transaction
 }
@@ -93,7 +95,7 @@ export async function findReplacementTx (
 
   if (transaction.to!.toLowerCase() !== tx.to.toLowerCase()) {
     const error = `Transaction was dropped and replaced by '${transaction.hash}'`
-    throw new Error(error)
+    throw new SearchError(error)
   }
 
   const tokenContract = new web3.eth.Contract(
@@ -109,7 +111,7 @@ export async function findReplacementTx (
   if (!foundEvent || !event.validate(foundEvent)) {
     const error = `Transaction was dropped and replaced by '${transaction.hash}'
       with unexpected event: '${JSON.stringify(event)}'`
-    throw new Error(error)
+    throw new SearchError(error)
   }
   return transaction
 }
