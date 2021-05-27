@@ -11,5 +11,9 @@ jobs:
     steps:
       - name: Clone the repository
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Check codebase linting
-        run: yarn lint
+        run: |
+          yarn lint
+          yarn commitlint
