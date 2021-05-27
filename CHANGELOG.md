@@ -1,3 +1,36 @@
+## 1.4.0 (2021-05-27)
+
+* fix: Build proof before unlock. ([7a87f94](https://github.com/aurora-is-near/rainbow-bridge-client/commit/7a87f94))
+* fix: Fix failed transfer from NEAR at initiate. ([0bd4fe7](https://github.com/aurora-is-near/rainbow-bridge-client/commit/0bd4fe7))
+* fix: Fix findReplacementTx for multisig (Argent), refactor. ([327b975](https://github.com/aurora-is-near/rainbow-bridge-client/commit/327b975))
+* fix: Handle network errors for findReplacementTx. ([33f4c5b](https://github.com/aurora-is-near/rainbow-bridge-client/commit/33f4c5b))
+* fix: succeed to mint eNEAR and recover ([ef311ce](https://github.com/aurora-is-near/rainbow-bridge-client/commit/ef311ce))
+* fix: succeed to unlock  and recover ([717d629](https://github.com/aurora-is-near/rainbow-bridge-client/commit/717d629))
+* Fix: Handle NEAR wallet redirect edge case. ([4714794](https://github.com/aurora-is-near/rainbow-bridge-client/commit/4714794))
+* build: Convert find-replacement-tx to .ts. ([f4dac00](https://github.com/aurora-is-near/rainbow-bridge-client/commit/f4dac00))
+* build: Convert storage.js to ts. ([774fe8f](https://github.com/aurora-is-near/rainbow-bridge-client/commit/774fe8f))
+* build: DeclarationMap true for vscode go to def. ([7f1d61b](https://github.com/aurora-is-near/rainbow-bridge-client/commit/7f1d61b))
+* build: Update pre-release versions ([3f30d88](https://github.com/aurora-is-near/rainbow-bridge-client/commit/3f30d88))
+* refactor: Refactor and export findProof when unlock erc20 to Ethereum. ([5375c6c](https://github.com/aurora-is-near/rainbow-bridge-client/commit/5375c6c))
+* refactor: Rename lastBlockNumber ([033ca36](https://github.com/aurora-is-near/rainbow-bridge-client/commit/033ca36))
+* refactor: renaming, fix contract calls (not tested) ([c85fd1d](https://github.com/aurora-is-near/rainbow-bridge-client/commit/c85fd1d))
+* refactor: use urlParams from @near-eth/utils package ([4632147](https://github.com/aurora-is-near/rainbow-bridge-client/commit/4632147))
+* refactor: Used refactored packages in nep141-erc20. ([86dee50](https://github.com/aurora-is-near/rainbow-bridge-client/commit/86dee50))
+* docs: Update READMEs. ([9bcc13f](https://github.com/aurora-is-near/rainbow-bridge-client/commit/9bcc13f))
+* docs(find-replacement-tx): Update README. ([7b712e2](https://github.com/aurora-is-near/rainbow-bridge-client/commit/7b712e2))
+* style: Remove $NEAR. ([6953eab](https://github.com/aurora-is-near/rainbow-bridge-client/commit/6953eab))
+* style: Rename ...ing transfer steps. ([235a1eb](https://github.com/aurora-is-near/rainbow-bridge-client/commit/235a1eb))
+* style: Rename eNEAR to NEAR. ([e028111](https://github.com/aurora-is-near/rainbow-bridge-client/commit/e028111))
+* feat: add options for findProof() ([958578e](https://github.com/aurora-is-near/rainbow-bridge-client/commit/958578e))
+* feat: Check if unlock proof was already used. ([1d76727](https://github.com/aurora-is-near/rainbow-bridge-client/commit/1d76727))
+* feat: draft eNear package skeleton ([afe54bd](https://github.com/aurora-is-near/rainbow-bridge-client/commit/afe54bd))
+* feat: export findProof() ([9c40619](https://github.com/aurora-is-near/rainbow-bridge-client/commit/9c40619))
+* feat: Improve mint proofs ([417ecb5](https://github.com/aurora-is-near/rainbow-bridge-client/commit/417ecb5))
+* feat: Record speedup replacement tx hashes. ([9a62568](https://github.com/aurora-is-near/rainbow-bridge-client/commit/9a62568))
+* ci: Add gh workflows. ([5cc102c](https://github.com/aurora-is-near/rainbow-bridge-client/commit/5cc102c))
+
+
+
 ## <small>1.3.1 (2021-04-28)</small>
 
 * fix: broken links in README ([01240d2](https://github.com/aurora-is-near/rainbow-bridge-client/commit/01240d2))
