@@ -1,0 +1,7 @@
+releases:
+  find-replacement-tx: minor
+  rainbow-bridge-client-monorepo: minor
+
+declined:
+  - "@near-eth/near-ether"
+  - "@near-eth/nep141-erc20"
