@@ -29,13 +29,13 @@ export function setEthProvider (provider: any): any {
   return ethProvider
 }
 
-export function setAuroraProvider (provider: any) {
+export function setAuroraProvider (provider: any): any {
   auroraProvider = provider
   // TODO: verify provider meets expectations
   return auroraProvider
 }
 
-export function setSignerProvider (provider: any) {
+export function setSignerProvider (provider: any): any {
   signerProvider = provider
   // TODO: verify provider meets expectations
   return signerProvider
@@ -80,11 +80,11 @@ export function getEthProvider (): any {
   return ethProvider
 }
 
-export function getAuroraProvider () {
+export function getAuroraProvider (): any {
   return auroraProvider
 }
 
-export function getSignerProvider () {
+export function getSignerProvider (): any {
   return signerProvider
 }
 
