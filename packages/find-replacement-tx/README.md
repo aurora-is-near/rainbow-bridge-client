@@ -10,8 +10,9 @@ Dapp interfaces need a way to check for these replacement transactions.
 This tool searches for replacement transactions of same nonce within a safe reorg height (binary searched).
 
 * findReplacementTx
-  - A `Transaction` is returned if `findReplacementTx` found a transaction with the same nonce and destination which emitted a valid event.
-  - `findReplacementTx` will throw a `SearchError` if the event couldn't be validated (transaction failed, different destination, or no replacement transaction found within the search range)
+  - A `Transaction` is returned if `findReplacementTx` found a transaction with expected parameters (nonce, from, to, data, value, event)
+  - `findReplacementTx` will throw a `TxValidationError` if the transaction couldn't be validated: canceled, different destination, different data (optional) or event not validated(optional).
+  - `findReplacementTx` will throw a `SearchError` if no transaction could be found within the search range.
   - `null` is returned if the transaction is not yet mined.
 
 * getTransactionByNonce
@@ -66,9 +67,12 @@ const pendingApprovalTx = await web3.eth.getTransaction(approvalHash)
 const tx = {
   nonce: pendingApprovalTx.nonce,
   from: pendingApprovalTx.from,
-  to: pendingApprovalTx.to
+  to: pendingApprovalTx.to,
+  data: pendingApprovalTx.input, // (optional)
+  value: pendingApprovalTx.value // (optional)
 }
-const event = {
+// Validating an event is optional as tx.data should be sufficient in most cases.
+const event = { // (optional)
   name: 'Approval',
   abi: erc20Abi,
   address: erc20TokenAddress,
@@ -88,7 +92,14 @@ try {
     // Tx pending
   }
   const approvalReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
-} catch (err) {
+} catch (error) {
+  if (error instanceof SearchError) {
+    // No transaction found with given nonce inside the seach range
+  } else if (error instanceof TxValidationError) {
+    // Transactions canceled or replaced by unknown transaction
+  } else {
+    // Other errors like a networking error.
+  }
 }
 ```
 

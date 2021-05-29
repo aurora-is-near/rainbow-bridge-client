@@ -3,6 +3,7 @@ import { Transaction } from 'web3-core'
 import { PastEventOptions } from 'web3-eth-contract'
 
 export class SearchError extends Error {}
+export class TxValidationError extends Error {}
 
 /**
  * Binary search a trasaction with `nonce` and `from`
@@ -66,10 +67,12 @@ export async function getTransactionByNonce (
 /**
  * Search and validate a replaced transaction (speed up)
  * @param provider Web3 provider
- * @param safeHeightBeforeEthTx Lower search bound
+ * @param startSearch Lower search bound
  * @param tx.from Signer of the transaction searched
  * @param tx.to Recipient: multisig, erc20...
  * @param tx.nonce Nonce of the transaction searched
+ * @param tx.data Input data of the transaction searched
+ * @param tx.value Wei value transfered of the transaction searched
  * @param event.name Name of event expected if tx was speed up
  * @param event.abi Abi of contract emitting event
  * @param event.address Address of contract emitting the event
@@ -77,41 +80,68 @@ export async function getTransactionByNonce (
  */
 export async function findReplacementTx (
   provider: any,
-  safeHeightBeforeEthTx: number,
-  tx: { from: string, to: string, nonce: number },
-  event: {
+  startSearch: number,
+  tx: { from: string, to: string, nonce: number, data?: string, value?: string },
+  event?: {
     name: string
     abi: string
     address: string
     validate: ({ returnValues }: { returnValues: any }) => boolean
   }
 ): Promise<Transaction | null> {
-  const transaction = await getTransactionByNonce(provider, safeHeightBeforeEthTx, tx.from, tx.nonce)
+  const transaction = await getTransactionByNonce(provider, startSearch, tx.from, tx.nonce)
   // Transaction still pending
   if (!transaction) return null
 
   // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
   const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
-  if (transaction.to!.toLowerCase() !== tx.to.toLowerCase()) {
-    const error = `Transaction was dropped and replaced by '${transaction.hash}'`
-    throw new SearchError(error)
+  if (transaction.input === '0x' && transaction.from === transaction.to && transaction.value === '0') {
+    const error = 'Transaction canceled.'
+    throw new TxValidationError(error)
   }
 
-  const tokenContract = new web3.eth.Contract(
-    JSON.parse(event.abi),
-    event.address
-  )
-  const eventOptions: PastEventOptions = {
-    fromBlock: transaction.blockNumber!,
-    toBlock: transaction.blockNumber!
+  if (transaction.to!.toLowerCase() !== tx.to.toLowerCase()) {
+    const error = `Failed to validate transaction recipient.
+      Expected ${tx.to}, got ${transaction.to!}.
+      Transaction was dropped and replaced by '${transaction.hash}'`
+    throw new TxValidationError(error)
   }
-  const events = await tokenContract.getPastEvents(event.name, eventOptions)
-  const foundEvent = events.find(e => e.transactionHash === transaction.hash)
-  if (!foundEvent || !event.validate(foundEvent)) {
-    const error = `Transaction was dropped and replaced by '${transaction.hash}'
-      with unexpected event: '${JSON.stringify(event)}'`
-    throw new SearchError(error)
+
+  if (tx.data) {
+    if (transaction.input !== tx.data) {
+      const error = `Failed to validate transaction data.
+        Expected ${tx.data}, got ${transaction.input}.
+        Transaction was dropped and replaced by '${transaction.hash}'`
+      throw new TxValidationError(error)
+    }
+  }
+
+  if (tx.value) {
+    if (transaction.value !== tx.value) {
+      const error = `Failed to validate transaction value.
+        Expected ${tx.value}, got ${transaction.value}.
+        Transaction was dropped and replaced by '${transaction.hash}'`
+      throw new TxValidationError(error)
+    }
+  }
+
+  if (event) {
+    const tokenContract = new web3.eth.Contract(
+      JSON.parse(event.abi),
+      event.address
+    )
+    const eventOptions: PastEventOptions = {
+      fromBlock: transaction.blockNumber!,
+      toBlock: transaction.blockNumber!
+    }
+    const events = await tokenContract.getPastEvents(event.name, eventOptions)
+    const foundEvent = events.find(e => e.transactionHash === transaction.hash)
+    if (!foundEvent || !event.validate(foundEvent)) {
+      const error = `Failed to validate event.
+        Transaction was dropped and replaced by '${transaction.hash}'`
+      throw new TxValidationError(error)
+    }
   }
   return transaction
 }
