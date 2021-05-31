@@ -3,6 +3,20 @@ Rainbow Bridge Client Libraries
 
 Monorepo containing NEAR-maintained libraries for using the Rainbow Bridge from an app (or, someday, CLI)
 
+![Install and Build](https://github.com/aurora-is-near/rainbow-bridge-client/actions/workflows/build.yaml/badge.svg)
+![Lint](https://github.com/aurora-is-near/rainbow-bridge-client/actions/workflows/lint.yaml/badge.svg)
+
+
+| Packages | Version |
+| :------- | :------ |
+| <a href="https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/client">@near-eth/client</a> | <a href="https://www.npmjs.com/package/@near-eth/client"><img alt="@near-eth/client Version" src="https://img.shields.io/npm/v/@near-eth/client"></a> |
+| <a href="https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/nep141-erc20">@near-eth/nep141-erc20</a> | <a href="https://www.npmjs.com/package/@near-eth/nep141-erc20"><img alt="@near-eth/nep141-erc20 Version" src="https://img.shields.io/npm/v/@near-eth/nep141-erc20"></a> |
+| <a href="https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/near-ether">@near-eth/near-ether</a> | <a href="https://www.npmjs.com/package/@near-eth/near-ether"><img alt="@near-eth/near-ether Version" src="https://img.shields.io/npm/v/@near-eth/near-ether"></a> |
+| <a href="https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/utils">@near-eth/utils</a> | <a href="https://www.npmjs.com/package/@near-eth/utils"><img alt="@near-eth/utils Version" src="https://img.shields.io/npm/v/@near-eth/utils"></a> |
+| <a href="https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/lite-merkle-patricia-tree">lite-merkle-patricia-tree</a> | <a href="https://www.npmjs.com/package/lite-merkle-patricia-tree"><img alt="lite-merkle-patricia-tree Version" src="https://img.shields.io/npm/v/lite-merkle-patricia-tree"></a> |
+| <a href="https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/find-replacement-tx">find-replacement-tx</a> | <a href="https://www.npmjs.com/package/find-replacement-tx"><img alt="find-replacement-tx Version" src="https://img.shields.io/npm/v/find-replacement-tx"></a> |
+
+
 
 Contributing
 ============

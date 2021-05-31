@@ -1,6 +1,8 @@
 find-replacement-tx
 ===================
 
+<a href="https://www.npmjs.com/package/find-replacement-tx"><img alt="find-replacement-tx Version" src="https://img.shields.io/npm/v/find-replacement-tx"></a>
+
 Ethereum wallets have the functionality to `speed up` or `cancel` transactions. This has the effect of replacing a not yet mined transaction with another transaction of same nonce and different hash.
 
 Dapp interfaces need a way to check for these replacement transactions.

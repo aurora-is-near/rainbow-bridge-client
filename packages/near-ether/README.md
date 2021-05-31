@@ -1,6 +1,8 @@
 `@near-eth/near-ether`
 ========================
 
+<a href="https://www.npmjs.com/package/@near-eth/near-ether"><img alt="@near-eth/near-ether Version" src="https://img.shields.io/npm/v/@near-eth/near-ether"></a>
+
 A Connector Library for sending native NEAR and Ether(ETH) over the Rainbow Bridge.
 
 This is a Connector Library that integrates with [@near-eth/client]. For detailed instructions on how to use it, see the README there.

@@ -1,6 +1,8 @@
 lite-merkle-patricia-tree
 =========================
 
+<a href="https://www.npmjs.com/package/lite-merkle-patricia-tree"><img alt="lite-merkle-patricia-tree Version" src="https://img.shields.io/npm/v/lite-merkle-patricia-tree"></a>
+
 A simplified and synchronous implementation of the Ethereum modified Merkle Patricia Tree from [ethereumjs-monorepo](https://github.com/ethereumjs/ethereumjs-monorepo).
 
 This browser friendly implementation is for one-time use cases of data verification.
