@@ -52,7 +52,8 @@ const transferDraft = {
   type: TRANSFER_TYPE,
   // Cache eth tx information used for finding a replaced (speedup/cancel) tx.
   // ethCache: {
-  //   signer,                   // tx.from of last broadcasted eth tx
+  //   from,                     // tx.from of last broadcasted eth tx
+  //   to,                       // tx.to of last broadcasted eth tx (can be multisig contract)
   //   safeReorgHeight,          // Lower boundary for replacement tx search
   //   nonce                     // tx.nonce of last broadcasted eth tx
   // }

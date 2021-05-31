@@ -1,8 +1,7 @@
 import BN from 'bn.js'
-import { borshifyOutcomeProof } from './borshify-proof'
+import { borshifyOutcomeProof, nearOnEthSyncHeight } from '@near-eth/utils'
 import getRevertReason from 'eth-revert-reason'
 import Web3 from 'web3'
-import { toBuffer } from 'ethereumjs-util'
 import bs58 from 'bs58'
 import { track } from '@near-eth/client'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
@@ -14,14 +13,15 @@ import {
   getNearAccount,
   formatLargeNum
 } from '@near-eth/client/dist/utils'
-import { findReplacementTx } from '../../utils'
+import { findReplacementTx, SearchError } from 'find-replacement-tx'
+import findProof from './findProof'
 
 // ============================================================================================
 // TODO
 // ============================================================================================
 
-export const SOURCE_NETWORK = 'ethereum'
-export const DESTINATION_NETWORK = 'aurora'
+export const SOURCE_NETWORK = 'aurora'
+export const DESTINATION_NETWORK = 'ethereum'
 export const TRANSFER_TYPE = '@near-eth/aurora-ether/bridged-ether/sendToEthereum'
 
 const BURN = 'burn-bridged-ether-to-ethereum'
@@ -51,21 +51,19 @@ const transferDraft = {
   type: TRANSFER_TYPE,
   // Cache eth tx information used for finding a replaced (speedup/cancel) tx.
   // ethCache: {
-  //   signer,                   // tx.from of last broadcasted eth tx
+  //   from,                     // tx.from of last broadcasted eth tx
+  //   to,                       // tx.to of last broadcasted eth tx (can be multisig contract)
   //   safeReorgHeight,          // Lower boundary for replacement tx search
   //   nonce                     // tx.nonce of last broadcasted eth tx
   // }
 
   // Attributes specific to natural-erc20-to-nep141 transfers
   finalityBlockHeights: [],
-  finalityBlockTimestamps: [],
   nearOnEthClientBlockHeight: null, // calculated & set to a number during checkSync
-  securityWindow: 4 * 60, // in minutes. TODO: seconds instead? hours? TODO: get from connector contract? prover?
-  securityWindowProgress: 0,
   burnHashes: [],
   burnReceipts: [],
   nearBurnHashes: [], // TODO
-  nearBurnReceipts: [], // TODO
+  nearBurnReceiptIds: [], // TODO
   nearBurnReceiptBlockHeights: [], // TODO
   unlockHashes: [],
   unlockReceipts: []
@@ -74,7 +72,7 @@ const transferDraft = {
 export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
-      [BURN]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to Ethereum`,
+      [BURN]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from Aurora`,
       [AWAIT_FINALITY]: 'Confirming in Aurora',
       [SYNC]: 'Confirming in Aurora. This can take around 16 hours. Feel free to return to this window later, to complete the final step of the transfer.',
       [UNLOCK]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in Ethereum`
@@ -225,6 +223,8 @@ async function burn (transfer) {
     status: status.IN_PROGRESS,
     ethCache: {
       from: pendingBurnTx.from,
+      to: pendingBurnTx.to,
+      data: pendingBurnTx.input, // TODO check burn with data instead of event ?
       safeReorgHeight,
       nonce: pendingBurnTx.nonce
     },
@@ -252,17 +252,16 @@ async function checkBurn (transfer) {
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!burnReceipt) {
-    // don't break old transfers in case they were made before this functionality is released
-    if (!transfer.ethCache) return transfer
     try {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: process.env.ethLockerAddress // TODO
+        to: transfer.ethCache.to || process.env.ethLockerAddress // TODO burn precompile
       }
       const event = {
         name: 'Locked', // TODO
         abi: process.env.ethLockerAbiText,
+        address: process.env.ethLockerAddress, // TODO burn precompile
         validate: ({ returnValues: { token, sender, amount, accountId } }) => {
           if (!event) return false
           return (
@@ -273,7 +272,9 @@ async function checkBurn (transfer) {
           )
         }
       }
-      burnReceipt = await findReplacementTx(transfer.ethCache.safeReorgHeight, tx, event)
+      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      if (!foundTx) return transfer
+      burnReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
       return {
@@ -332,12 +333,12 @@ async function checkBurn (transfer) {
 async function checkFinality (transfer) {
   const nearAccount = await getNearAccount()
 
-  const withdrawReceiptBlockHeight = last(transfer.withdrawReceiptBlockHeights)
+  const burnReceiptBlockHeight = last(transfer.nearBurnReceiptBlockHeights)
   const latestFinalizedBlock = Number((
     await nearAccount.connection.provider.block({ finality: 'final' })
   ).header.height)
 
-  if (latestFinalizedBlock <= withdrawReceiptBlockHeight) {
+  if (latestFinalizedBlock <= burnReceiptBlockHeight) {
     return transfer
   }
 
@@ -355,7 +356,8 @@ async function checkFinality (transfer) {
  * @param {*} transfer
  */
 async function checkSync (transfer) {
-  const web3 = new Web3(getEthProvider())
+  const provider = getEthProvider()
+  const web3 = new Web3(provider)
   const ethNetwork = await web3.eth.net.getNetworkType()
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(
@@ -365,16 +367,10 @@ async function checkSync (transfer) {
     return transfer
   }
 
-  const nearOnEthClient = new web3.eth.Contract(
-    JSON.parse(process.env.ethNearOnEthClientAbiText),
-    process.env.ethClientAddress
-  )
+  const burnBlockHeight = last(transfer.nearBurnReceiptBlockHeights)
+  const nearOnEthClientBlockHeight = await nearOnEthSyncHeight(provider)
 
-  const finalityBlockHeight = last(transfer.finalityBlockHeights)
-  const { currentHeight } = await nearOnEthClient.methods.bridgeState().call()
-  const nearOnEthClientBlockHeight = Number(currentHeight)
-
-  if (nearOnEthClientBlockHeight <= finalityBlockHeight) {
+  if (nearOnEthClientBlockHeight <= burnBlockHeight) {
     return {
       ...transfer,
       nearOnEthClientBlockHeight,
@@ -391,6 +387,21 @@ async function checkSync (transfer) {
 }
 
 /**
+ * Check if a NEAR outcome receipt_id has already been used to finalize a transfer to Ethereum.
+ * @param {*} web3
+ * @param {*} proof
+ */
+async function proofAlreadyUsed (web3, proof) {
+  const usedProofsKey = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
+  // The usedProofs_ mapping is the 4th variable defined in the contract storage.
+  const usedProofsMappingPosition = '0'.repeat(63) + '3'
+  const storageIndex = web3.utils.sha3('0x' + usedProofsKey + usedProofsMappingPosition)
+  // eth_getStorageAt docs: https://eth.wiki/json-rpc/API
+  const proofIsUsed = await web3.eth.getStorageAt(process.env.ethLockerAddress, storageIndex)
+  return Number(proofIsUsed) === 1
+}
+
+/**
  * Unlock tokens stored in the contract at process.env.ethLockerAddress,
  * passing the proof that the tokens were withdrawn/burned in the corresponding
  * NEAR BridgeToken contract.
@@ -400,44 +411,34 @@ async function unlock (transfer) {
   const web3 = new Web3(getEthProvider())
 
   // Build burn proof
-  const { nearOnEthClientBlockHeight } = await checkSync(transfer)
-  const nearOnEthClient = new web3.eth.Contract(
-    JSON.parse(process.env.ethNearOnEthClientAbiText),
-    process.env.ethClientAddress
-  )
-  const clientBlockHashB58 = bs58.encode(toBuffer(
-    await nearOnEthClient.methods
-      .blockHashes(nearOnEthClientBlockHeight).call()
-  ))
-  const withdrawReceiptId = last(transfer.withdrawReceiptIds)
-  const nearAccount = await getNearAccount()
-  const proof = await nearAccount.connection.provider.sendJsonRpc(
-    'light_client_proof',
-    {
-      type: 'receipt',
-      receipt_id: withdrawReceiptId,
-      receiver_id: transfer.sender,
-      light_client_head: clientBlockHashB58
+  transfer = await checkSync(transfer)
+  const proof = await findProof(transfer)
+
+  if (await proofAlreadyUsed(web3, proof)) {
+    // TODO find the unlockTxHash
+    return {
+      ...transfer,
+      errors: [...transfer.errors, 'Unlock proof already used.'],
+      status: status.COMPLETE,
+      completedStep: UNLOCK
     }
-  )
+  }
 
   // Unlock
-  const ethUserAddress = (await web3.eth.getAccounts())[0]
+  const borshProof = borshifyOutcomeProof(proof)
 
+  const ethUserAddress = (await web3.eth.getAccounts())[0]
   const ethTokenLocker = new web3.eth.Contract(
     JSON.parse(process.env.ethLockerAbiText),
     process.env.ethLockerAddress,
     { from: ethUserAddress }
   )
-
-  const borshProof = borshifyOutcomeProof(proof)
-
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
   const safeReorgHeight = await web3.eth.getBlockNumber() - 20
   const unlockHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
-      .unlockToken(borshProof, BN(nearOnEthClientBlockHeight)).send()
+      .unlockToken(borshProof, BN(transfer.nearOnEthClientBlockHeight)).send()
       .on('transactionHash', resolve)
       .catch(reject)
   })
@@ -448,6 +449,7 @@ async function unlock (transfer) {
     status: status.IN_PROGRESS,
     ethCache: {
       from: pendingUnlockTx.from,
+      to: pendingUnlockTx.to,
       safeReorgHeight,
       nonce: pendingUnlockTx.nonce
     },
@@ -480,11 +482,12 @@ async function checkUnlock (transfer) {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: process.env.ethLockerAddress
+        to: transfer.ethCache.to || process.env.ethLockerAddress
       }
       const event = {
         name: 'Unlocked',
         abi: process.env.ethLockerAbiText,
+        address: process.env.ethLockerAddress,
         validate: ({ returnValues: { amount, recipient } }) => {
           if (!event) return false
           return (
@@ -493,14 +496,19 @@ async function checkUnlock (transfer) {
           )
         }
       }
-      unlockReceipt = await findReplacementTx(transfer.ethCache.safeReorgHeight, tx, event)
+      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      if (!foundTx) return transfer
+      unlockReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
-      return {
-        ...transfer,
-        errors: [...transfer.errors, error.message],
-        status: status.FAILED
+      if (error instanceof SearchError) {
+        return {
+          ...transfer,
+          errors: [...transfer.errors, error.message],
+          status: status.FAILED
+        }
       }
+      throw error
     }
   }
 
@@ -519,6 +527,17 @@ async function checkUnlock (transfer) {
       status: status.FAILED,
       errors: [...transfer.errors, error],
       unlockReceipts: [...transfer.unlockReceipts, unlockReceipt]
+    }
+  }
+
+  if (unlockReceipt.transactionHash !== unlockHash) {
+    // Record the replacement tx lockHash
+    return {
+      ...transfer,
+      status: status.IN_PROGRESS,
+      completedStep: UNLOCK,
+      lockHashes: [...transfer.lockHashes, unlockReceipt.transactionHash],
+      lockReceipts: [...transfer.lockReceipts, unlockReceipt]
     }
   }
 
