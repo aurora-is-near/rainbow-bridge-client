@@ -1,6 +1,8 @@
 `@near-eth/client` – the Rainbow Bridge client library 🌈🌉
 ======================================================
 
+<a href="https://www.npmjs.com/package/@near-eth/client"><img alt="@near-eth/client Version" src="https://img.shields.io/npm/v/@near-eth/client"></a>
+
 Do you want to allow your users to send assets between [Ethereum] & [NEAR] over
 the [Rainbow Bridge]?
 
