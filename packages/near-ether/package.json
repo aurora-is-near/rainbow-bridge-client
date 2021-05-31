@@ -31,8 +31,7 @@
     "near-api-js": "^0.39.0",
     "promisfy": "^1.2.0",
     "rlp": "^2.2.6",
-    "web3": "^1.3.4",
-    "web3-utils": "^1.3.4"
+    "web3": "^1.3.4"
   },
   "browserslist": [
     "since 2017-04"

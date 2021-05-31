@@ -4,8 +4,8 @@ import { track } from '@near-eth/client'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getSignerProvider, formatLargeNum } from '@near-eth/client/dist/utils'
-import { findReplacementTx } from '../../utils'
-import { lastBlockNumber } from './ethOnNearClient'
+import { findReplacementTx, SearchError } from 'find-replacement-tx'
+import { ethOnNearSyncHeight } from '@near-eth/utils'
 
 export const SOURCE_NETWORK = 'ethereum'
 export const DESTINATION_NETWORK = 'aurora'
@@ -36,7 +36,8 @@ const transferDraft = {
   type: TRANSFER_TYPE,
   // Cache eth tx information used for finding a replaced (speedup/cancel) tx.
   // ethCache: {
-  //   signer,                   // tx.from of last broadcasted eth tx
+  //   from,                     // tx.from of last broadcasted eth tx
+  //   to,                       // tx.to of last broadcasted eth tx (can be multisig contract)
   //   safeReorgHeight,          // Lower boundary for replacement tx search
   //   nonce                     // tx.nonce of last broadcasted eth tx
   // }
@@ -52,7 +53,7 @@ const transferDraft = {
 export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
-      [LOCK]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to Aurora`,
+      [LOCK]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from Ethereum`,
       [SYNC]: `Wait for ${transfer.neededConfirmations} transfer confirmations for security`,
       [MINT]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in Aurora`
     }),
@@ -194,6 +195,7 @@ async function lock (transfer) {
     status: status.IN_PROGRESS,
     ethCache: {
       from: pendingLockTx.from,
+      to: pendingLockTx.to,
       safeReorgHeight,
       nonce: pendingLockTx.nonce
     },
@@ -219,17 +221,16 @@ async function checkLock (transfer) {
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!lockReceipt) {
-    // don't break old transfers in case they were made before this functionality is released
-    if (!transfer.ethCache) return transfer
     try {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: process.env.etherCustodianAddress
+        to: transfer.ethCache.to || process.env.etherCustodianAddress
       }
       const event = {
         name: 'Deposited',
         abi: process.env.etherCustodianAbiText,
+        address: process.env.etherCustodianAddress,
         validate: ({ returnValues: { sender, recipient, amount, fee } }) => {
           if (!event) return false
           return (
@@ -240,14 +241,19 @@ async function checkLock (transfer) {
           )
         }
       }
-      lockReceipt = await findReplacementTx(transfer.ethCache.safeReorgHeight, tx, event)
+      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      if (!foundTx) return transfer
+      lockReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
-      return {
-        ...transfer,
-        errors: [...transfer.errors, error.message],
-        status: status.FAILED
+      if (error instanceof SearchError) {
+        return {
+          ...transfer,
+          errors: [...transfer.errors, error.message],
+          status: status.FAILED
+        }
       }
+      throw error
     }
   }
 
@@ -290,7 +296,7 @@ async function checkLock (transfer) {
 async function checkSync (transfer) {
   const lockReceipt = last(transfer.lockReceipts)
   const eventEmittedAt = lockReceipt.blockNumber
-  const syncedTo = await lastBlockNumber()
+  const syncedTo = await ethOnNearSyncHeight()
   const completedConfirmations = Math.max(0, syncedTo - eventEmittedAt)
 
   if (completedConfirmations < transfer.neededConfirmations) {
