@@ -4,7 +4,7 @@ import { track } from '@near-eth/client'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getSignerProvider, formatLargeNum } from '@near-eth/client/dist/utils'
-import { findReplacementTx, SearchError } from 'find-replacement-tx'
+import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
 import { ethOnNearSyncHeight } from '@near-eth/utils'
 
 export const SOURCE_NETWORK = 'ethereum'
@@ -225,7 +225,7 @@ async function checkLock (transfer) {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: transfer.ethCache.to || process.env.etherCustodianAddress
+        to: transfer.ethCache.to
       }
       const event = {
         name: 'Deposited',
@@ -246,7 +246,7 @@ async function checkLock (transfer) {
       lockReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
-      if (error instanceof SearchError) {
+      if (error instanceof SearchError || error instanceof TxValidationError) {
         return {
           ...transfer,
           errors: [...transfer.errors, error.message],

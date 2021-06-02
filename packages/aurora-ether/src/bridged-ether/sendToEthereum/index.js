@@ -13,7 +13,7 @@ import {
   getNearAccount,
   formatLargeNum
 } from '@near-eth/client/dist/utils'
-import { findReplacementTx, SearchError } from 'find-replacement-tx'
+import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
 import findProof from './findProof'
 
 // ============================================================================================
@@ -482,7 +482,7 @@ async function checkUnlock (transfer) {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: transfer.ethCache.to || process.env.ethLockerAddress
+        to: transfer.ethCache.to
       }
       const event = {
         name: 'Unlocked',
@@ -501,7 +501,7 @@ async function checkUnlock (transfer) {
       unlockReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
-      if (error instanceof SearchError) {
+      if (error instanceof SearchError || error instanceof TxValidationError) {
         return {
           ...transfer,
           errors: [...transfer.errors, error.message],
