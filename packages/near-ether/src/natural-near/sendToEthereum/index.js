@@ -13,7 +13,7 @@ import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { track } from '@near-eth/client'
 import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight } from '@near-eth/utils'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
-import { findReplacementTx, SearchError } from 'find-replacement-tx'
+import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
 import findProof from './findProof'
 
 export const SOURCE_NETWORK = 'near'
@@ -665,7 +665,7 @@ async function checkMint (transfer) {
       mintReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
-      if (error instanceof SearchError) {
+      if (error instanceof SearchError || error instanceof TxValidationError) {
         return {
           ...transfer,
           errors: [...transfer.errors, error.message],

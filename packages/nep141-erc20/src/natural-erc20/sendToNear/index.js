@@ -9,7 +9,7 @@ import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import { urlParams, ethOnNearSyncHeight } from '@near-eth/utils'
-import { findReplacementTx, SearchError } from 'find-replacement-tx'
+import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
 import getName from '../getName'
 import getAllowance from '../getAllowance'
 import { getDecimals } from '../getMetadata'
@@ -316,7 +316,7 @@ async function checkApprove (transfer) {
       approvalReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
-      if (error instanceof SearchError) {
+      if (error instanceof SearchError || error instanceof TxValidationError) {
         return {
           ...transfer,
           errors: [...transfer.errors, error.message],
@@ -450,7 +450,7 @@ async function checkLock (transfer) {
       lockReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
-      if (error instanceof SearchError) {
+      if (error instanceof SearchError || error instanceof TxValidationError) {
         return {
           ...transfer,
           errors: [...transfer.errors, error.message],

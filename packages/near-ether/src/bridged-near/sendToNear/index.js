@@ -9,7 +9,7 @@ import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import { urlParams, ethOnNearSyncHeight } from '@near-eth/utils'
-import { findReplacementTx, SearchError } from 'find-replacement-tx'
+import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
 import findProof from './findProof'
 
 export const SOURCE_NETWORK = 'ethereum'
@@ -279,7 +279,7 @@ async function checkBurn (transfer) {
       burnReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
-      if (error instanceof SearchError) {
+      if (error instanceof SearchError || error instanceof TxValidationError) {
         return {
           ...transfer,
           errors: [...transfer.errors, error.message],
