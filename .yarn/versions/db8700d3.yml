@@ -5,3 +5,6 @@ releases:
   "@near-eth/near-ether": patch
   "@near-eth/nep141-erc20": patch
   rainbow-bridge-client-monorepo: minor
+
+declined:
+  - find-replacement-tx
