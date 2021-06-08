@@ -2,7 +2,7 @@ import BN from 'bn.js'
 import { Decimal } from 'decimal.js'
 import bs58 from 'bs58'
 import getRevertReason from 'eth-revert-reason'
-import Web3 from 'web3'
+import { ethers } from 'ethers'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
 import { utils } from 'near-api-js'
 import {
@@ -12,7 +12,7 @@ import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { track } from '@near-eth/client'
 import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight } from '@near-eth/utils'
-import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
+import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider } from '@near-eth/client/dist/utils'
 import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
 import findProof from './findProof'
 
@@ -506,8 +506,7 @@ async function checkFinality (transfer) {
  */
 async function checkSync (transfer) {
   const provider = getEthProvider()
-  const web3 = new Web3(provider)
-  const ethNetwork = await web3.eth.net.getNetworkType()
+  const ethNetwork = (await provider.getNetwork()).name
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(
       'Wrong eth network for checkSync, expected: %s, got: %s',
@@ -554,13 +553,13 @@ async function checkSync (transfer) {
  * @param {*} web3
  * @param {*} proof
  */
-async function proofAlreadyUsed (web3, proof) {
+async function proofAlreadyUsed (provider, proof) {
   const usedProofsKey = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
   // The usedProofs_ mapping is the 9th variable defined in the contract storage.
   const usedProofsMappingPosition = '0'.repeat(63) + '8'
-  const storageIndex = web3.utils.sha3('0x' + usedProofsKey + usedProofsMappingPosition)
+  const storageIndex = ethers.utils.keccak256('0x' + usedProofsKey + usedProofsMappingPosition)
   // eth_getStorageAt docs: https://eth.wiki/json-rpc/API
-  const proofIsUsed = await web3.eth.getStorageAt(process.env.eNEARAddress, storageIndex)
+  const proofIsUsed = await provider.getStorageAt(process.env.eNEARAddress, storageIndex)
   return Number(proofIsUsed) === 1
 }
 
@@ -571,7 +570,7 @@ async function proofAlreadyUsed (web3, proof) {
  * @param {*} transfer
  */
 async function mint (transfer) {
-  const web3 = new Web3(getEthProvider())
+  const provider = getSignerProvider()
 
   // Build lock proof
   transfer = await checkSync(transfer)
@@ -580,23 +579,16 @@ async function mint (transfer) {
 
   const borshProof = borshifyOutcomeProof(proof)
 
-  const ethUserAddress = (await web3.eth.getAccounts())[0]
-  const eNEAR = new web3.eth.Contract(
-    JSON.parse(process.env.eNEARAbiText),
+  const eNEAR = new ethers.Contract(
     process.env.eNEARAddress,
-    { from: ethUserAddress }
+    process.env.eNEARAbiText,
+    provider.getSigner()
   )
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  const safeReorgHeight = await web3.eth.getBlockNumber() - 20
-  const mintHash = await new Promise((resolve, reject) => {
-    eNEAR.methods
-      .finaliseNearToEthTransfer(borshProof, new BN(transfer.nearOnEthClientBlockHeight)).send()
-      .on('transactionHash', resolve)
-      .catch(reject)
-  })
-  const pendingMintTx = await web3.eth.getTransaction(mintHash)
+  const safeReorgHeight = await provider.getBlockNumber() - 20
+  const pendingMintTx = await eNEAR.finaliseNearToEthTransfer(borshProof, transfer.nearOnEthClientBlockHeight)
 
   return {
     ...transfer,
@@ -607,16 +599,14 @@ async function mint (transfer) {
       safeReorgHeight,
       nonce: pendingMintTx.nonce
     },
-    mintHashes: [...transfer.mintHashes, mintHash]
+    mintHashes: [...transfer.mintHashes, pendingMintTx.hash]
   }
 }
 
 async function checkMint (transfer) {
   const provider = getEthProvider()
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
-  const ethNetwork = await web3.eth.net.getNetworkType()
+  const ethNetwork = (await provider.getNetwork()).name
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(
       'Wrong eth network for checkMint, expected: %s, got: %s',
@@ -626,7 +616,7 @@ async function checkMint (transfer) {
   }
 
   const mintHash = last(transfer.mintHashes)
-  let mintReceipt = await web3.eth.getTransactionReceipt(mintHash)
+  let mintReceipt = await provider.getTransactionReceipt(mintHash)
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!mintReceipt) {
@@ -643,14 +633,14 @@ async function checkMint (transfer) {
         validate: ({ returnValues: { sender, amount, recipient } }) => {
           return (
             // sender.toLowerCase() === transfer.sender.toLowerCase() && // Don't check sender, anyone can mint
-            amount === transfer.amount &&
+            amount.toString() === transfer.amount &&
             recipient.toLowerCase() === transfer.recipient.toLowerCase()
           )
         }
       }
       const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
       if (!foundTx) return transfer
-      mintReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
+      mintReceipt = await provider.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
       if (error instanceof SearchError || error instanceof TxValidationError) {
@@ -669,7 +659,7 @@ async function checkMint (transfer) {
   if (!mintReceipt.status) {
     let error
     try {
-      error = await getRevertReason(mintHash, ethNetwork)
+      error = await getRevertReason(mintHash, ethNetwork, 'latest', provider)
     } catch (e) {
       console.error(e)
       error = `Could not determine why transaction failed; encountered error: ${e.message}`

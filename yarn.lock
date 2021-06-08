@@ -440,6 +440,38 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ethersproject/abi@npm:5.3.0, @ethersproject/abi@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/abi@npm:5.3.0"
+  dependencies:
+    "@ethersproject/address": ^5.3.0
+    "@ethersproject/bignumber": ^5.3.0
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/constants": ^5.3.0
+    "@ethersproject/hash": ^5.3.0
+    "@ethersproject/keccak256": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    "@ethersproject/properties": ^5.3.0
+    "@ethersproject/strings": ^5.3.0
+  checksum: 02b8f5b01d16692c55aeb85b9aeb6a822f3501e7a54ed42ea9aff865632d171f7e0e067c20633e3db31dfc75d709cc558bae670d8207e2044ca85d5a7a5c79fa
+  languageName: node
+  linkType: hard
+
+"@ethersproject/abstract-provider@npm:5.3.0, @ethersproject/abstract-provider@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/abstract-provider@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bignumber": ^5.3.0
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    "@ethersproject/networks": ^5.3.0
+    "@ethersproject/properties": ^5.3.0
+    "@ethersproject/transactions": ^5.3.0
+    "@ethersproject/web": ^5.3.0
+  checksum: 8cbdcef8cb3d499f365063100f5867e041baac234752616b52de86761828eb3ec9f2e368e0c889b9405e1512a65a63b81c4a7ecd444ca54a99655f77548f85b9
+  languageName: node
+  linkType: hard
+
 "@ethersproject/abstract-provider@npm:^5.0.8":
   version: 5.0.9
   resolution: "@ethersproject/abstract-provider@npm:5.0.9"
@@ -452,6 +484,19 @@ __metadata:
     "@ethersproject/transactions": ^5.0.9
     "@ethersproject/web": ^5.0.12
   checksum: c4d2e37ff3c39d022ef0191fbb8468fe08b1748d256bb55ef545338957ac5607e1b419fecf4a7986fecf39b993e08f651efcb7af1e4d52d2c2f05bd5cbbb6e1d
+  languageName: node
+  linkType: hard
+
+"@ethersproject/abstract-signer@npm:5.3.0, @ethersproject/abstract-signer@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/abstract-signer@npm:5.3.0"
+  dependencies:
+    "@ethersproject/abstract-provider": ^5.3.0
+    "@ethersproject/bignumber": ^5.3.0
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    "@ethersproject/properties": ^5.3.0
+  checksum: abec7a943d7b6ba118ff6af9967c41fe26ab13b3b90f6d2f1d004afeca296e224739d08aa4c2b1d70b6d3c39b3b2352e44452daafd0c2b02309c3a2fe94e7c7f
   languageName: node
   linkType: hard
 
@@ -468,6 +513,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ethersproject/address@npm:5.3.0, @ethersproject/address@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/address@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bignumber": ^5.3.0
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/keccak256": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    "@ethersproject/rlp": ^5.3.0
+  checksum: 2d68f9aa49664c03a7802c1ac1d9b1983498034ba4a7a9aed596f2687e6ece9a48d37945acfe850aa5ef04decd5772dacc84cb80d51c6ac35488303aec046ef0
+  languageName: node
+  linkType: hard
+
 "@ethersproject/address@npm:^5.0.4, @ethersproject/address@npm:^5.0.9":
   version: 5.0.10
   resolution: "@ethersproject/address@npm:5.0.10"
@@ -481,12 +539,42 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ethersproject/base64@npm:5.3.0, @ethersproject/base64@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/base64@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bytes": ^5.3.0
+  checksum: 40751370101b457aeac7169a814e5dc2aa5741bb97429ed073854839ac22e16856c1069625a34b7f406d8e9315daa1ede2e486f81b600d8a0d5e2edba54bd249
+  languageName: node
+  linkType: hard
+
 "@ethersproject/base64@npm:^5.0.7":
   version: 5.0.8
   resolution: "@ethersproject/base64@npm:5.0.8"
   dependencies:
     "@ethersproject/bytes": ^5.0.9
   checksum: 8a830a02876efef14919a17addf9d5eb0788b6a5b4918eeefe4cba4dc84ca20ff716eaddede10d8d1d87e1ee7b29732c904df1f090f9710e25a4a8fac9d2ae1f
+  languageName: node
+  linkType: hard
+
+"@ethersproject/basex@npm:5.3.0, @ethersproject/basex@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/basex@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/properties": ^5.3.0
+  checksum: 5c3a1a93ec6f7cb12436dad95d3c8040295728e87e8f8079b0b3e9a8d6d7939f7083f0ff098221145d0b8243189eddbe1be05a741c8dda0fe382a9812fad19e3
+  languageName: node
+  linkType: hard
+
+"@ethersproject/bignumber@npm:5.3.0, @ethersproject/bignumber@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/bignumber@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    bn.js: ^4.11.9
+  checksum: c66ba4224712add42d1e0749b5026859018c21a94c2c945c090814ce61f6aa1e87e6985e05c28dc4d2d22d2c1eb579d09fb7856ebe02ed24b3dbccf4a7ccd1b6
   languageName: node
   linkType: hard
 
@@ -501,6 +589,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ethersproject/bytes@npm:5.3.0, @ethersproject/bytes@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/bytes@npm:5.3.0"
+  dependencies:
+    "@ethersproject/logger": ^5.3.0
+  checksum: 999c919d4ba8dcabb278aa925b06a37c9f00220ba0ac0c227afe8b5c34d85504a92f5399be27b659b495c8720e5b0f27e49523e4b07f02c904d06ead48ad8c36
+  languageName: node
+  linkType: hard
+
 "@ethersproject/bytes@npm:^5.0.4, @ethersproject/bytes@npm:^5.0.9":
   version: 5.0.10
   resolution: "@ethersproject/bytes@npm:5.0.10"
@@ -510,12 +607,55 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ethersproject/constants@npm:5.3.0, @ethersproject/constants@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/constants@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bignumber": ^5.3.0
+  checksum: b884340e8e028b80037d9fb14df1ae46216e6eaca366f70d8df93311cf27ec67359c3e6e9c42c60d5cd98d4df3023a244afaab42552679651b1559c6ade2a6d4
+  languageName: node
+  linkType: hard
+
 "@ethersproject/constants@npm:^5.0.4, @ethersproject/constants@npm:^5.0.8":
   version: 5.0.9
   resolution: "@ethersproject/constants@npm:5.0.9"
   dependencies:
     "@ethersproject/bignumber": ^5.0.13
   checksum: 7633b2ebf6a316b4183a91a7eba166a4c46eb22dbe69c9680f8865a92bebeb7481e8aa88582e2fae9388c1a000559464b192a5fdd9ac52f490d6d8096bcd80dd
+  languageName: node
+  linkType: hard
+
+"@ethersproject/contracts@npm:5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/contracts@npm:5.3.0"
+  dependencies:
+    "@ethersproject/abi": ^5.3.0
+    "@ethersproject/abstract-provider": ^5.3.0
+    "@ethersproject/abstract-signer": ^5.3.0
+    "@ethersproject/address": ^5.3.0
+    "@ethersproject/bignumber": ^5.3.0
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/constants": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    "@ethersproject/properties": ^5.3.0
+    "@ethersproject/transactions": ^5.3.0
+  checksum: 561413231e9f6ce179db95143d3f07811c1722834dc233592326301c6beb0de8b7d02e9cdd0db82603c520ef1c11b0153b206d934ce85cfdda461dfc48f54be4
+  languageName: node
+  linkType: hard
+
+"@ethersproject/hash@npm:5.3.0, @ethersproject/hash@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/hash@npm:5.3.0"
+  dependencies:
+    "@ethersproject/abstract-signer": ^5.3.0
+    "@ethersproject/address": ^5.3.0
+    "@ethersproject/bignumber": ^5.3.0
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/keccak256": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    "@ethersproject/properties": ^5.3.0
+    "@ethersproject/strings": ^5.3.0
+  checksum: a4ff16871e1633f2ecfcc08e2ec6905a99c60ba3afde5012601f993967fcb375b4fe8d5c965962fa3409d71521c27b316211b9845a17d6ff7d762dc27ebbd264
   languageName: node
   linkType: hard
 
@@ -535,6 +675,57 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ethersproject/hdnode@npm:5.3.0, @ethersproject/hdnode@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/hdnode@npm:5.3.0"
+  dependencies:
+    "@ethersproject/abstract-signer": ^5.3.0
+    "@ethersproject/basex": ^5.3.0
+    "@ethersproject/bignumber": ^5.3.0
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    "@ethersproject/pbkdf2": ^5.3.0
+    "@ethersproject/properties": ^5.3.0
+    "@ethersproject/sha2": ^5.3.0
+    "@ethersproject/signing-key": ^5.3.0
+    "@ethersproject/strings": ^5.3.0
+    "@ethersproject/transactions": ^5.3.0
+    "@ethersproject/wordlists": ^5.3.0
+  checksum: 28b95dbac4a7df7d96ab758dd0e4d251b9a65eaf95ab24f10cedcdbc7bbc04b344eaee926371461b50cedffc0911329b31ebfb869d2df4c0d7bf427cbeb63cf6
+  languageName: node
+  linkType: hard
+
+"@ethersproject/json-wallets@npm:5.3.0, @ethersproject/json-wallets@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/json-wallets@npm:5.3.0"
+  dependencies:
+    "@ethersproject/abstract-signer": ^5.3.0
+    "@ethersproject/address": ^5.3.0
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/hdnode": ^5.3.0
+    "@ethersproject/keccak256": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    "@ethersproject/pbkdf2": ^5.3.0
+    "@ethersproject/properties": ^5.3.0
+    "@ethersproject/random": ^5.3.0
+    "@ethersproject/strings": ^5.3.0
+    "@ethersproject/transactions": ^5.3.0
+    aes-js: 3.0.0
+    scrypt-js: 3.0.1
+  checksum: 8fa29fb3dc5eb5d66808e5e607d8ebe72bd78636ef444fb1dc6be2315385b4070fbab72208e1d0ee8d6c9e2de5b42fb26b4ccb963f22b961c2af6b0c9b51e3cb
+  languageName: node
+  linkType: hard
+
+"@ethersproject/keccak256@npm:5.3.0, @ethersproject/keccak256@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/keccak256@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bytes": ^5.3.0
+    js-sha3: 0.5.7
+  checksum: c00288625460b7e70b9272e598738a07ab70ad5a87ed0885ffec71fe448acfa952dabbeb4e182717b635ac6c81aa392bee3a4d44e3927f24330997a64d070861
+  languageName: node
+  linkType: hard
+
 "@ethersproject/keccak256@npm:^5.0.3, @ethersproject/keccak256@npm:^5.0.7":
   version: 5.0.8
   resolution: "@ethersproject/keccak256@npm:5.0.8"
@@ -545,10 +736,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ethersproject/logger@npm:5.3.0, @ethersproject/logger@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/logger@npm:5.3.0"
+  checksum: 14a9843a01844781c13f9b5c4bd797c721996a4e3be9bb0aa4d00dcf8506ad45a51d518d5e9112989219bd8f7d9824a01c15aa1467e36e0473a6b66b2df7bfe4
+  languageName: node
+  linkType: hard
+
 "@ethersproject/logger@npm:^5.0.5, @ethersproject/logger@npm:^5.0.8":
   version: 5.0.9
   resolution: "@ethersproject/logger@npm:5.0.9"
   checksum: 6b2e2f2d1e803ee6042fee8a9991c616f5e9bcce8a4e8c127d0448e575f984334301b21029580be7c3f46a19af1f671f7bdf5005c6a96873fec1c22c9b7f1f6e
+  languageName: node
+  linkType: hard
+
+"@ethersproject/networks@npm:5.3.0, @ethersproject/networks@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/networks@npm:5.3.0"
+  dependencies:
+    "@ethersproject/logger": ^5.3.0
+  checksum: 7712676a00fceef6921eb7b57f5fa1dd17acfafe85de3ca6332d15d60379281701ab634c81bab2d47ecdef56eeea77302ca98b8cce0c593c69579c0392b939f7
   languageName: node
   linkType: hard
 
@@ -561,12 +768,78 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ethersproject/pbkdf2@npm:5.3.0, @ethersproject/pbkdf2@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/pbkdf2@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/sha2": ^5.3.0
+  checksum: 7ef7738948183ffe02c1e6d1bd7c3561fdffb755ad6bb25f44bc2df0386cddf31dffb56733ba6faee44e91991208d37e7cb0416f975ced2e67e880767a92a516
+  languageName: node
+  linkType: hard
+
+"@ethersproject/properties@npm:5.3.0, @ethersproject/properties@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/properties@npm:5.3.0"
+  dependencies:
+    "@ethersproject/logger": ^5.3.0
+  checksum: 4ba17c0d9c6d925010eafeaf8c48202cbe42cbca13144ab28bc8a7e6834e1426c19f387fdd023d5488582a1008e905f7ddebfc828746fdacbe788abe8c2c59da
+  languageName: node
+  linkType: hard
+
 "@ethersproject/properties@npm:^5.0.3, @ethersproject/properties@npm:^5.0.7":
   version: 5.0.8
   resolution: "@ethersproject/properties@npm:5.0.8"
   dependencies:
     "@ethersproject/logger": ^5.0.8
   checksum: 19686be346b5394b88492dd13cc1084b28b8699ed579a7fee6bd1d9bb584f58b4620b1c55256bcd1f05ce1a9d98d3af5dd54533b9820a5866336e463783ffef0
+  languageName: node
+  linkType: hard
+
+"@ethersproject/providers@npm:5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/providers@npm:5.3.0"
+  dependencies:
+    "@ethersproject/abstract-provider": ^5.3.0
+    "@ethersproject/abstract-signer": ^5.3.0
+    "@ethersproject/address": ^5.3.0
+    "@ethersproject/basex": ^5.3.0
+    "@ethersproject/bignumber": ^5.3.0
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/constants": ^5.3.0
+    "@ethersproject/hash": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    "@ethersproject/networks": ^5.3.0
+    "@ethersproject/properties": ^5.3.0
+    "@ethersproject/random": ^5.3.0
+    "@ethersproject/rlp": ^5.3.0
+    "@ethersproject/sha2": ^5.3.0
+    "@ethersproject/strings": ^5.3.0
+    "@ethersproject/transactions": ^5.3.0
+    "@ethersproject/web": ^5.3.0
+    bech32: 1.1.4
+    ws: 7.4.6
+  checksum: 5def3300998b5446cbf9725759091b6d906d312cd2f6c2f43ae2668716d6bc51ca5a7df3a3a94af3ba369c5e9c924c8476bb010d1c2e924f8b105c71f36d35ac
+  languageName: node
+  linkType: hard
+
+"@ethersproject/random@npm:5.3.0, @ethersproject/random@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/random@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+  checksum: b6bd32c03d8ba6dfa5353ad798be8bd1fb2240fd9ea6ea89449a73dc5fdc259b07edcf2f9aeadfd032574e17c6d7afdc5d37de9f1b1f4f3e7449227839ffae7c
+  languageName: node
+  linkType: hard
+
+"@ethersproject/rlp@npm:5.3.0, @ethersproject/rlp@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/rlp@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+  checksum: 0a0ad511342a5eda66079aad656c5eaafc02de116220a592d609e4cb05c178705b7e1a269c8414c8237884a173421dafbe8827e36b13e1c8dac9241144b02836
   languageName: node
   linkType: hard
 
@@ -577,6 +850,31 @@ __metadata:
     "@ethersproject/bytes": ^5.0.9
     "@ethersproject/logger": ^5.0.8
   checksum: c1ad540ff29583a3b1d72cfd1d04f14304759185f57fd2c4108703096b0b461c54e31cd1429fdeec87da6a3a8dd7cf87934cad10b2832cac720ab63875f05411
+  languageName: node
+  linkType: hard
+
+"@ethersproject/sha2@npm:5.3.0, @ethersproject/sha2@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/sha2@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    hash.js: 1.1.7
+  checksum: e4d844a53edc35645ae1c593b045e6c793b18bdbac57b5af5df79ee79c12871e25e1720dbbbd9c8141fe35e086fe3abd254a966fd7d4d66d618881008ffcda51
+  languageName: node
+  linkType: hard
+
+"@ethersproject/signing-key@npm:5.3.0, @ethersproject/signing-key@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/signing-key@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    "@ethersproject/properties": ^5.3.0
+    bn.js: ^4.11.9
+    elliptic: 6.5.4
+    hash.js: 1.1.7
+  checksum: e0f6e72cf2e8401224a58b755b8ca8ff10a4561e871cb9ad42ee75b1c5fde3e550b1113b91f94959ea711e9970c5688b4f958ce529cedc1eb4367e7dc0d2409d
   languageName: node
   linkType: hard
 
@@ -592,6 +890,30 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ethersproject/solidity@npm:5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/solidity@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bignumber": ^5.3.0
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/keccak256": ^5.3.0
+    "@ethersproject/sha2": ^5.3.0
+    "@ethersproject/strings": ^5.3.0
+  checksum: e50c8f4bb53d14348b120e543a2be27204429a17496be1566ce96fa449c20b67c63e04c865734a40dcff2a37d2364c658c39c065ec076beee5b4425e65226b26
+  languageName: node
+  linkType: hard
+
+"@ethersproject/strings@npm:5.3.0, @ethersproject/strings@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/strings@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/constants": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+  checksum: 622b23bf7598987282ec44ca698f117a9c349504092f16422da52716e53c33a7de223a4a8b133da68d4d7f74f0f63035daf901c440f6a8841a47ae43be5c8a61
+  languageName: node
+  linkType: hard
+
 "@ethersproject/strings@npm:^5.0.4, @ethersproject/strings@npm:^5.0.8":
   version: 5.0.9
   resolution: "@ethersproject/strings@npm:5.0.9"
@@ -600,6 +922,23 @@ __metadata:
     "@ethersproject/constants": ^5.0.8
     "@ethersproject/logger": ^5.0.8
   checksum: 0b24463aef852c5e881374536232f0a932480875301e5317c1828691db8238de03e72a6ef85dfdd454f615e5f64e731d8a12e6ae3f3bed272951cb2f9d9a9952
+  languageName: node
+  linkType: hard
+
+"@ethersproject/transactions@npm:5.3.0, @ethersproject/transactions@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/transactions@npm:5.3.0"
+  dependencies:
+    "@ethersproject/address": ^5.3.0
+    "@ethersproject/bignumber": ^5.3.0
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/constants": ^5.3.0
+    "@ethersproject/keccak256": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    "@ethersproject/properties": ^5.3.0
+    "@ethersproject/rlp": ^5.3.0
+    "@ethersproject/signing-key": ^5.3.0
+  checksum: 9a6a44b678a1412b957203517cec589d9f7e40a02f595b9965ca6c100faf34f66c4f68f032e28eb4e3a74614157669d1a0a488b96611fedfbf97d70b3852a3b8
   languageName: node
   linkType: hard
 
@@ -620,6 +959,53 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ethersproject/units@npm:5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/units@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bignumber": ^5.3.0
+    "@ethersproject/constants": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+  checksum: 6f0c685525488ce12191105d1b2b53e327eb5e96e3ff5ed41e1e31c025bea85cc4391a5de0542ac6a701c4bdda35338cc94ca403cc3828f9c14c30768e29f847
+  languageName: node
+  linkType: hard
+
+"@ethersproject/wallet@npm:5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/wallet@npm:5.3.0"
+  dependencies:
+    "@ethersproject/abstract-provider": ^5.3.0
+    "@ethersproject/abstract-signer": ^5.3.0
+    "@ethersproject/address": ^5.3.0
+    "@ethersproject/bignumber": ^5.3.0
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/hash": ^5.3.0
+    "@ethersproject/hdnode": ^5.3.0
+    "@ethersproject/json-wallets": ^5.3.0
+    "@ethersproject/keccak256": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    "@ethersproject/properties": ^5.3.0
+    "@ethersproject/random": ^5.3.0
+    "@ethersproject/signing-key": ^5.3.0
+    "@ethersproject/transactions": ^5.3.0
+    "@ethersproject/wordlists": ^5.3.0
+  checksum: 0bb8af9f051dc9b57f7215856794d17c843726f15890127022c09822990bc98ce5504de08a9f35eed963a4eca6e3e68652248980563a9f77f08e938f5e0df173
+  languageName: node
+  linkType: hard
+
+"@ethersproject/web@npm:5.3.0, @ethersproject/web@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/web@npm:5.3.0"
+  dependencies:
+    "@ethersproject/base64": ^5.3.0
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    "@ethersproject/properties": ^5.3.0
+    "@ethersproject/strings": ^5.3.0
+  checksum: 174e40357cbf5d9be645ea9d3134399f3f6be32892178f49854e3b1a4532bcfc5f87797329e6a5b191d2dcfe0c6a95a3dad2b5f108df3130830af11e4ee8ae62
+  languageName: node
+  linkType: hard
+
 "@ethersproject/web@npm:^5.0.12":
   version: 5.0.13
   resolution: "@ethersproject/web@npm:5.0.13"
@@ -630,6 +1016,19 @@ __metadata:
     "@ethersproject/properties": ^5.0.7
     "@ethersproject/strings": ^5.0.8
   checksum: f418cee559d4cac14c1a342a4a62100c84e8ef066b3f79aa2c02d9585e9aca09e594d8050ff513902cc87215370ad454cfcd43b1bdf4f54438f6e0d33c356d92
+  languageName: node
+  linkType: hard
+
+"@ethersproject/wordlists@npm:5.3.0, @ethersproject/wordlists@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "@ethersproject/wordlists@npm:5.3.0"
+  dependencies:
+    "@ethersproject/bytes": ^5.3.0
+    "@ethersproject/hash": ^5.3.0
+    "@ethersproject/logger": ^5.3.0
+    "@ethersproject/properties": ^5.3.0
+    "@ethersproject/strings": ^5.3.0
+  checksum: b619181e866e7cd9c0894c8b1b8b5d7f54a3b8131807b6d2d1beb1d4a70a3b81ace44ab3e3f9aa07d8792bfd2a3ba09205f7282189cea87a2d9dbaf8f3a8943f
   languageName: node
   linkType: hard
 
@@ -714,16 +1113,16 @@ __metadata:
     "@yarnpkg/pnpify": ^2.4.0
     bn.js: ^5.1.3
     bs58: ^4.0.1
-    eth-object: "aurora-is-near/eth-object#383b6ea68c7050bea4cab6950c1d5a7fa553e72b"
+    eth-object: ^1.0.3
     eth-revert-reason: ^1.0.3
     ethereumjs-util: ^7.0.10
+    ethers: ^5.3.0
     find-replacement-tx: "workspace:*"
-    lite-merkle-patricia-tree: "workspace:*"
+    lite-merkle-patricia-tree: "workspace:packages/lite-merkle-patricia-tree"
     near-api-js: "https://github.com/near/near-api-js#fef7f683fca86980f3509987226fbc7f63b455cb"
     promisfy: ^1.2.0
     rlp: ^2.2.6
     typescript: 4.1.5
-    web3: ^1.3.4
   languageName: unknown
   linkType: soft
 
@@ -744,13 +1143,13 @@ __metadata:
     eth-object: "aurora-is-near/eth-object#383b6ea68c7050bea4cab6950c1d5a7fa553e72b"
     eth-revert-reason: ^1.0.3
     ethereumjs-util: ^7.0.10
+    ethers: ^5.3.0
     find-replacement-tx: "workspace:*"
     lite-merkle-patricia-tree: "workspace:*"
     near-api-js: "https://github.com/near/near-api-js#fef7f683fca86980f3509987226fbc7f63b455cb"
     promisfy: ^1.2.0
     rlp: ^2.2.6
     typescript: 4.1.5
-    web3: ^1.3.4
   languageName: unknown
   linkType: soft
 
@@ -766,9 +1165,9 @@ __metadata:
     "@types/node": ^14.14.28
     "@yarnpkg/pnpify": ^2.4.0
     bs58: ^4.0.1
+    ethers: ^5.3.0
     near-api-js: ^0.39.0
     typescript: 4.1.5
-    web3: ^1.3.4
     web3-utils: ^1.3.4
   languageName: unknown
   linkType: soft
@@ -1570,6 +1969,13 @@ __metadata:
   dependencies:
     tweetnacl: ^0.14.3
   checksum: 3f57eb99bbc02352f68ff31e446997f4d21cc9a5e5286449dc1fe0116ec5dac5a4aa538967d45714fa9320312d2be8d16126f2d357da1dd40a3d546b96e097ed
+  languageName: node
+  linkType: hard
+
+"bech32@npm:1.1.4":
+  version: 1.1.4
+  resolution: "bech32@npm:1.1.4"
+  checksum: 2a3391395cc0f1a1bef76afc5fbb10bfaf26a21094c4eee109080185b3fc1fb0e8eca7d9145dbe92b6bac300b0b5eed16b1570a4ca665b40e1def5bacea50c4b
   languageName: node
   linkType: hard
 
@@ -3227,6 +3633,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"eth-object@npm:^1.0.3":
+  version: 1.0.3
+  resolution: "eth-object@npm:1.0.3"
+  dependencies:
+    eth-util-lite: ^1.0.1
+  checksum: cc12d06a61ac074d1e0827f083b6d707bed33065c639239054c7d20780f502424c85e199f2df003b9f486b097e232ef43d1004b86e39e6db4a2a92c358fac158
+  languageName: node
+  linkType: hard
+
 "eth-revert-reason@npm:^1.0.3":
   version: 1.0.3
   resolution: "eth-revert-reason@npm:1.0.3"
@@ -3247,6 +3662,18 @@ __metadata:
     rlp: ^2.2.3
     safe-buffer: ^5.1.2
   checksum: 881528b08e9a4096e0e4d5a4bcd078371de518211956a630a2b5dc94eddb44344ba8a4f1056884cd64c2a4188c66a71383718b7317c3e9b082f8357252d39062
+  languageName: node
+  linkType: hard
+
+"eth-util-lite@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "eth-util-lite@npm:1.0.1"
+  dependencies:
+    bn.js: ^4.11.8
+    js-sha3: ^0.8.0
+    rlp: ^2.2.3
+    safe-buffer: ^5.1.2
+  checksum: 0719b376dd7e14b48336097954226ebe3e5670b0ae05c738bf3a6d56be2af5ff36569da9ef492f0d02594f8d1567580f8e413b58af2c93bd8d4b65b7564986e7
   languageName: node
   linkType: hard
 
@@ -3356,6 +3783,44 @@ __metadata:
     uuid: 2.0.1
     xmlhttprequest: 1.8.0
   checksum: b215043dbaa336e66d1c213909fc3cd670256c64a0a856c7b8771ae2e04c9a8c5e5862a00225f9574fa23aa53fa575a20e30ddf416e62f1bf490f179b67e6e6b
+  languageName: node
+  linkType: hard
+
+"ethers@npm:^5.3.0":
+  version: 5.3.0
+  resolution: "ethers@npm:5.3.0"
+  dependencies:
+    "@ethersproject/abi": 5.3.0
+    "@ethersproject/abstract-provider": 5.3.0
+    "@ethersproject/abstract-signer": 5.3.0
+    "@ethersproject/address": 5.3.0
+    "@ethersproject/base64": 5.3.0
+    "@ethersproject/basex": 5.3.0
+    "@ethersproject/bignumber": 5.3.0
+    "@ethersproject/bytes": 5.3.0
+    "@ethersproject/constants": 5.3.0
+    "@ethersproject/contracts": 5.3.0
+    "@ethersproject/hash": 5.3.0
+    "@ethersproject/hdnode": 5.3.0
+    "@ethersproject/json-wallets": 5.3.0
+    "@ethersproject/keccak256": 5.3.0
+    "@ethersproject/logger": 5.3.0
+    "@ethersproject/networks": 5.3.0
+    "@ethersproject/pbkdf2": 5.3.0
+    "@ethersproject/properties": 5.3.0
+    "@ethersproject/providers": 5.3.0
+    "@ethersproject/random": 5.3.0
+    "@ethersproject/rlp": 5.3.0
+    "@ethersproject/sha2": 5.3.0
+    "@ethersproject/signing-key": 5.3.0
+    "@ethersproject/solidity": 5.3.0
+    "@ethersproject/strings": 5.3.0
+    "@ethersproject/transactions": 5.3.0
+    "@ethersproject/units": 5.3.0
+    "@ethersproject/wallet": 5.3.0
+    "@ethersproject/web": 5.3.0
+    "@ethersproject/wordlists": 5.3.0
+  checksum: bf4571b097b1595b440a8b620aece83bbd9b4d104a89038c0316d0db28cd2fa42431d5fc56a850bc3d5cf72e5023a40b2cac8cab06b138f2295ba16d43de9cb2
   languageName: node
   linkType: hard
 
@@ -3569,10 +4034,8 @@ __metadata:
     "@types/bn.js": ^5.1.0
     "@types/node": ^14.14.28
     "@yarnpkg/pnpify": ^2.4.0
+    ethers: ^5.3.0
     typescript: 4.1.5
-    web3: ^1.3.4
-    web3-core: ^1.3.6
-    web3-eth-contract: ^1.3.6
   languageName: unknown
   linkType: soft
 
@@ -4152,7 +4615,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hash.js@npm:^1.0.0, hash.js@npm:^1.0.3, hash.js@npm:^1.1.7":
+"hash.js@npm:1.1.7, hash.js@npm:^1.0.0, hash.js@npm:^1.0.3, hash.js@npm:^1.1.7":
   version: 1.1.7
   resolution: "hash.js@npm:1.1.7"
   dependencies:
@@ -6663,7 +7126,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"scrypt-js@npm:^3.0.0, scrypt-js@npm:^3.0.1":
+"scrypt-js@npm:3.0.1, scrypt-js@npm:^3.0.0, scrypt-js@npm:^3.0.1":
   version: 3.0.1
   resolution: "scrypt-js@npm:3.0.1"
   checksum: 2ae93c4dd519c05a53c169fb92bbc2f76c38c7b2a277492e098f300caf099ccfae07de06441f9a9af4fceda1af65c9fff3a1af6b33da293586cd3ea33db7d40d
@@ -7560,13 +8023,6 @@ typescript@4.1.5:
   languageName: node
   linkType: hard
 
-"underscore@npm:1.12.1":
-  version: 1.12.1
-  resolution: "underscore@npm:1.12.1"
-  checksum: b53ae924fe3608ac7875a0eec20988611a02dc174bad40680dbb9fe994c40fc457b6d4f618f8b9af930c31549809c27f70dddccd83957a32bab27b1eea858c1b
-  languageName: node
-  linkType: hard
-
 "underscore@npm:1.9.1":
   version: 1.9.1
   resolution: "underscore@npm:1.9.1"
@@ -7771,17 +8227,6 @@ typescript@4.1.5:
   languageName: node
   linkType: hard
 
-"web3-core-helpers@npm:1.3.6":
-  version: 1.3.6
-  resolution: "web3-core-helpers@npm:1.3.6"
-  dependencies:
-    underscore: 1.12.1
-    web3-eth-iban: 1.3.6
-    web3-utils: 1.3.6
-  checksum: 2c1d30ed8ad885fc203e14db782d7e798f31f5556cfd4df62a956fce9f13b5dd77b7f96870de18fac8afca2ef157b8fc596e1cc4d4fa8e4a8938bc4cbeef73a9
-  languageName: node
-  linkType: hard
-
 "web3-core-method@npm:1.3.4":
   version: 1.3.4
   resolution: "web3-core-method@npm:1.3.4"
@@ -7796,35 +8241,12 @@ typescript@4.1.5:
   languageName: node
   linkType: hard
 
-"web3-core-method@npm:1.3.6":
-  version: 1.3.6
-  resolution: "web3-core-method@npm:1.3.6"
-  dependencies:
-    "@ethersproject/transactions": ^5.0.0-beta.135
-    underscore: 1.12.1
-    web3-core-helpers: 1.3.6
-    web3-core-promievent: 1.3.6
-    web3-core-subscriptions: 1.3.6
-    web3-utils: 1.3.6
-  checksum: 7747b1ccbe91dda43cad2e45ba6d48214a0fbda86cc2a88d2c5ef7391986a6cfe6a1cdbadab381a3c6e208b3e849606959e58555ba7cb3ab0f31c1eb1f2a4a7e
-  languageName: node
-  linkType: hard
-
 "web3-core-promievent@npm:1.3.4":
   version: 1.3.4
   resolution: "web3-core-promievent@npm:1.3.4"
   dependencies:
     eventemitter3: 4.0.4
   checksum: 28891d79c484278883d5b00eeb82430428e2330f27da4b125fdaa18c18f376432270f675a51fedc2493869d1c42da6d2edd9c53514bbf235d5b3dff86aaf48b1
-  languageName: node
-  linkType: hard
-
-"web3-core-promievent@npm:1.3.6":
-  version: 1.3.6
-  resolution: "web3-core-promievent@npm:1.3.6"
-  dependencies:
-    eventemitter3: 4.0.4
-  checksum: 1f9132f1ffc2619ba704176d41b982c4f8235dfa580a7f6446d517b0c346b7bcc8941e84e5fd3daab624bf854bb9963e5661edd3c9c0dcfa7d548497830a6648
   languageName: node
   linkType: hard
 
@@ -7842,20 +8264,6 @@ typescript@4.1.5:
   languageName: node
   linkType: hard
 
-"web3-core-requestmanager@npm:1.3.6":
-  version: 1.3.6
-  resolution: "web3-core-requestmanager@npm:1.3.6"
-  dependencies:
-    underscore: 1.12.1
-    util: ^0.12.0
-    web3-core-helpers: 1.3.6
-    web3-providers-http: 1.3.6
-    web3-providers-ipc: 1.3.6
-    web3-providers-ws: 1.3.6
-  checksum: ad78b02b553922f189a0d9d81c404133f9a631f3191eed2c4fa7d049539da805940ef18c2ced36596bdcac5f36461dd5a98866a8b054b8e236dcd9158b945092
-  languageName: node
-  linkType: hard
-
 "web3-core-subscriptions@npm:1.3.4":
   version: 1.3.4
   resolution: "web3-core-subscriptions@npm:1.3.4"
@@ -7864,17 +8272,6 @@ typescript@4.1.5:
     underscore: 1.9.1
     web3-core-helpers: 1.3.4
   checksum: ebf7458c7b300bdb144b8c2bc7015ad2e362764808d13b152f4c9f463188d2d0cfaf980673199391fd00a784a3cec491b4c1ca1aadb605f986b85ed20f375d90
-  languageName: node
-  linkType: hard
-
-"web3-core-subscriptions@npm:1.3.6":
-  version: 1.3.6
-  resolution: "web3-core-subscriptions@npm:1.3.6"
-  dependencies:
-    eventemitter3: 4.0.4
-    underscore: 1.12.1
-    web3-core-helpers: 1.3.6
-  checksum: cb1dfe056d75ad674f4d205bbf692c6ac2988d7d380db5147d5b2b8ae6493a28fb9d5e5e973f1df75df3387e124c5deeb9c65d3f0ae5d8ec75684b39f4e84bf2
   languageName: node
   linkType: hard
 
@@ -7893,21 +8290,6 @@ typescript@4.1.5:
   languageName: node
   linkType: hard
 
-"web3-core@npm:1.3.6, web3-core@npm:^1.3.6":
-  version: 1.3.6
-  resolution: "web3-core@npm:1.3.6"
-  dependencies:
-    "@types/bn.js": ^4.11.5
-    "@types/node": ^12.12.6
-    bignumber.js: ^9.0.0
-    web3-core-helpers: 1.3.6
-    web3-core-method: 1.3.6
-    web3-core-requestmanager: 1.3.6
-    web3-utils: 1.3.6
-  checksum: 1118f88abf17046fecf943d83ad0987806c39d11c41d2edc549208e8fc3e396573769b976d816d0d1a7282978f87bce9ebbfed5811a11f542b736bc6355c1fec
-  languageName: node
-  linkType: hard
-
 "web3-eth-abi@npm:1.3.4":
   version: 1.3.4
   resolution: "web3-eth-abi@npm:1.3.4"
@@ -7916,17 +8298,6 @@ typescript@4.1.5:
     underscore: 1.9.1
     web3-utils: 1.3.4
   checksum: ddda7b89e20ce65639065e60d2b92257690e2df4e9b06227bbd635b14a17936158a2c28e8ff68d8549c66ff5cc0754f3cf600b64e239334b1f68023f89edbc61
-  languageName: node
-  linkType: hard
-
-"web3-eth-abi@npm:1.3.6":
-  version: 1.3.6
-  resolution: "web3-eth-abi@npm:1.3.6"
-  dependencies:
-    "@ethersproject/abi": 5.0.7
-    underscore: 1.12.1
-    web3-utils: 1.3.6
-  checksum: 4d10b417d3826d4d4801fd2924ba42bb8b68f851c1afefac5e840e2f1243b8144dfca8e4178b13ff536a5a48b6f0a3e874021f3eb9656fa7d103b3865f18b481
   languageName: node
   linkType: hard
 
@@ -7966,23 +8337,6 @@ typescript@4.1.5:
   languageName: node
   linkType: hard
 
-"web3-eth-contract@npm:^1.3.6":
-  version: 1.3.6
-  resolution: "web3-eth-contract@npm:1.3.6"
-  dependencies:
-    "@types/bn.js": ^4.11.5
-    underscore: 1.12.1
-    web3-core: 1.3.6
-    web3-core-helpers: 1.3.6
-    web3-core-method: 1.3.6
-    web3-core-promievent: 1.3.6
-    web3-core-subscriptions: 1.3.6
-    web3-eth-abi: 1.3.6
-    web3-utils: 1.3.6
-  checksum: 686d3f5f810105bb5a90c5d97432a7169c861eaaa0e7f4e4cae931a0517ee3ca75d302b60af8b281875dfaadb3ada40fca0a8baa0ec5fbd3162f47d4a26c87e9
-  languageName: node
-  linkType: hard
-
 "web3-eth-ens@npm:1.3.4":
   version: 1.3.4
   resolution: "web3-eth-ens@npm:1.3.4"
@@ -8007,16 +8361,6 @@ typescript@4.1.5:
     bn.js: ^4.11.9
     web3-utils: 1.3.4
   checksum: 71e17e5bbdec24ac250777182d3a00098d444b089a8b85471727ed6aee863347fe1390839369256a451e581dd8f14f86a73993b0f32115a11329b233c762c6ec
-  languageName: node
-  linkType: hard
-
-"web3-eth-iban@npm:1.3.6":
-  version: 1.3.6
-  resolution: "web3-eth-iban@npm:1.3.6"
-  dependencies:
-    bn.js: ^4.11.9
-    web3-utils: 1.3.6
-  checksum: 2bcc4c5b7269445fdc111deac37aa21dbbde976b7e04223719eabc875e6dfe30d2b50b41d61fd05f7f8875c1c40b35d3ecf8db0cd93778da59ff028dbee24189
   languageName: node
   linkType: hard
 
@@ -8076,16 +8420,6 @@ typescript@4.1.5:
   languageName: node
   linkType: hard
 
-"web3-providers-http@npm:1.3.6":
-  version: 1.3.6
-  resolution: "web3-providers-http@npm:1.3.6"
-  dependencies:
-    web3-core-helpers: 1.3.6
-    xhr2-cookies: 1.1.0
-  checksum: 0babe50ab635e46f87b64235f6233104621edc01c42c4b32d47cc26106dfa5490f8c141d1a17166b962f622b06dc664127e966400574d2a0e98c20c98d2d961d
-  languageName: node
-  linkType: hard
-
 "web3-providers-ipc@npm:1.3.4":
   version: 1.3.4
   resolution: "web3-providers-ipc@npm:1.3.4"
@@ -8094,17 +8428,6 @@ typescript@4.1.5:
     underscore: 1.9.1
     web3-core-helpers: 1.3.4
   checksum: b1b5edc722de5124d386a1b6795f6cdc20559759edb90b18a11626ac57a1dee361f594d32a4d3b7160bf822c40185a5d6295b255116bd1473cb577e29f56e776
-  languageName: node
-  linkType: hard
-
-"web3-providers-ipc@npm:1.3.6":
-  version: 1.3.6
-  resolution: "web3-providers-ipc@npm:1.3.6"
-  dependencies:
-    oboe: 2.1.5
-    underscore: 1.12.1
-    web3-core-helpers: 1.3.6
-  checksum: a76d6f16c930a96e4b34603c6c29f732afe2c32ecda914ffa5de352f0067eaec84f84f619ded87fd737b9284bc4cd27eec87551365fb167664928eb44de77e40
   languageName: node
   linkType: hard
 
@@ -8117,18 +8440,6 @@ typescript@4.1.5:
     web3-core-helpers: 1.3.4
     websocket: ^1.0.32
   checksum: d3a86ba236ff4dc1b9f1ed2e00c88385c9210c8c56859e322cdb860b29c5d8d464be05fd17f90dd9fc23c579d416b7d422dbbd73eca95d7a4af44a7a3402cd37
-  languageName: node
-  linkType: hard
-
-"web3-providers-ws@npm:1.3.6":
-  version: 1.3.6
-  resolution: "web3-providers-ws@npm:1.3.6"
-  dependencies:
-    eventemitter3: 4.0.4
-    underscore: 1.12.1
-    web3-core-helpers: 1.3.6
-    websocket: ^1.0.32
-  checksum: 0d75424a5a3aa6239cd9a80ff8d38f8bb83551251744f00f42bcb0d10434387599f3bc5d9a6374732c24fbe64dd7eb5f3958c1af24d8b59921e8c4d5b87e0abb
   languageName: node
   linkType: hard
 
@@ -8157,22 +8468,6 @@ typescript@4.1.5:
     underscore: 1.9.1
     utf8: 3.0.0
   checksum: 9a581c55dd8e64079d4eb2e8461074f69bcdea0be62ffd87b9f602695e3d535f840b9ebbcff49d50dc52d1920e72953dc4b5c5455f4bda8858da83ae74fbbaa7
-  languageName: node
-  linkType: hard
-
-"web3-utils@npm:1.3.6":
-  version: 1.3.6
-  resolution: "web3-utils@npm:1.3.6"
-  dependencies:
-    bn.js: ^4.11.9
-    eth-lib: 0.2.8
-    ethereum-bloom-filters: ^1.0.6
-    ethjs-unit: 0.1.6
-    number-to-bn: 1.7.0
-    randombytes: ^2.1.0
-    underscore: 1.12.1
-    utf8: 3.0.0
-  checksum: ceef74cfc9f014d9f88aa6f76fbf5a6775e3aceefd6c105509ec87705fa57d74d2714c82cd1d66d4b95b9cee7cbe1f6f069be80f6460eb3782629f8bf6f00ede
   languageName: node
   linkType: hard
 
@@ -8269,6 +8564,21 @@ typescript@4.1.5:
   version: 1.0.2
   resolution: "wrappy@npm:1.0.2"
   checksum: 519fcda0fcdf0c16327be2de9d98646742307bc830277e8868529fcf7566f2b330a6453c233e0cdcb767d5838dd61a90984a02ecc983bcddebea5ad0833bbf98
+  languageName: node
+  linkType: hard
+
+"ws@npm:7.4.6":
+  version: 7.4.6
+  resolution: "ws@npm:7.4.6"
+  peerDependencies:
+    bufferutil: ^4.0.1
+    utf-8-validate: ^5.0.2
+  peerDependenciesMeta:
+    bufferutil:
+      optional: true
+    utf-8-validate:
+      optional: true
+  checksum: ffeb626d92f14aa3a67aa3784824c1d290131e25d225f4ca6b1b6b6d7ea754fca67694d89a5b99b144382365e1bccf1f7ec2f92df56f0d25f44939b070452f06
   languageName: node
   linkType: hard
 

@@ -1,13 +1,13 @@
 import BN from 'bn.js'
 import { Decimal } from 'decimal.js'
 import getRevertReason from 'eth-revert-reason'
-import Web3 from 'web3'
+import { ethers } from 'ethers'
 import { track } from '@near-eth/client'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
 import { utils } from 'near-api-js'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
-import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
+import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider } from '@near-eth/client/dist/utils'
 import { urlParams, ethOnNearSyncHeight } from '@near-eth/utils'
 import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
 import findProof from './findProof'
@@ -122,26 +122,23 @@ export function checkStatus (transfer) {
  */
 export async function recover (burnTxHash) {
   const provider = getEthProvider()
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
-  const receipt = await web3.eth.getTransactionReceipt(burnTxHash)
-  const eNEAR = new web3.eth.Contract(
-    JSON.parse(process.env.eNEARAbiText),
-    process.env.eNEARAddress
+  const receipt = await provider.getTransactionReceipt(burnTxHash)
+  const eNEAR = new ethers.Contract(
+    process.env.eNEARAddress,
+    process.env.eNEARAbiText,
+    provider
   )
-  const events = await eNEAR.getPastEvents('TransferToNearInitiated', {
-    fromBlock: receipt.blockNumber,
-    toBlock: receipt.blockNumber
-  })
+  const filter = eNEAR.filters.TransferToNearInitiated()
+  const events = await eNEAR.queryFilter(filter, receipt.blockNumber, receipt.blockNumber)
   const burnEvent = events.find(event => event.transactionHash === burnTxHash)
   if (!burnEvent) {
     throw new Error('Unable to process burn transaction event.')
   }
-  const erc20Address = burnEvent.returnValues.token
-  const amount = burnEvent.returnValues.amount
-  const recipient = burnEvent.returnValues.accountId
-  const sender = burnEvent.returnValues.sender
+  const erc20Address = burnEvent.args.token
+  const amount = burnEvent.args.amount.toString()
+  const recipient = burnEvent.args.accountId
+  const sender = burnEvent.args.sender
   const sourceTokenName = 'NEAR'
   const decimals = 24
   const destinationTokenName = 'NEAR'
@@ -208,25 +205,18 @@ export async function initiate ({
  * @param {*} transfer
  */
 async function burn (transfer) {
-  const web3 = new Web3(getEthProvider())
-  const ethUserAddress = (await web3.eth.getAccounts())[0]
+  const provider = getSignerProvider()
 
-  const ethTokenLocker = new web3.eth.Contract(
-    JSON.parse(process.env.eNEARAbiText),
+  const ethTokenLocker = new ethers.Contract(
     process.env.eNEARAddress,
-    { from: ethUserAddress }
+    process.env.eNEARAbiText,
+    provider.getSigner()
   )
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  const safeReorgHeight = await web3.eth.getBlockNumber() - 20
-  const burnHash = await new Promise((resolve, reject) => {
-    ethTokenLocker.methods
-      .transferToNear(transfer.amount, transfer.recipient).send()
-      .on('transactionHash', resolve)
-      .catch(reject)
-  })
-  const pendingBurnTx = await web3.eth.getTransaction(burnHash)
+  const safeReorgHeight = await provider.getBlockNumber() - 20
+  const pendingBurnTx = await ethTokenLocker.transferToNear(transfer.amount, transfer.recipient)
 
   return {
     ...transfer,
@@ -237,17 +227,15 @@ async function burn (transfer) {
       safeReorgHeight,
       nonce: pendingBurnTx.nonce
     },
-    burnHashes: [...transfer.burnHashes, burnHash]
+    burnHashes: [...transfer.burnHashes, pendingBurnTx.hash]
   }
 }
 
 async function checkBurn (transfer) {
   const provider = getEthProvider()
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
   const burnHash = last(transfer.burnHashes)
-  const ethNetwork = await web3.eth.net.getNetworkType()
+  const ethNetwork = (await provider.getNetwork()).name
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(
       'Wrong eth network for checkBurn, expected: %s, got: %s',
@@ -255,7 +243,7 @@ async function checkBurn (transfer) {
     )
     return transfer
   }
-  let burnReceipt = await web3.eth.getTransactionReceipt(burnHash)
+  let burnReceipt = await provider.getTransactionReceipt(burnHash)
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!burnReceipt) {
@@ -272,14 +260,14 @@ async function checkBurn (transfer) {
         validate: ({ returnValues: { sender, amount, accountId } }) => {
           return (
             sender.toLowerCase() === transfer.sender.toLowerCase() &&
-            amount === transfer.amount &&
+            amount.toString() === transfer.amount &&
             accountId === transfer.recipient
           )
         }
       }
       const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
       if (!foundTx) return transfer
-      burnReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
+      burnReceipt = await provider.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
       if (error instanceof SearchError || error instanceof TxValidationError) {
@@ -298,7 +286,7 @@ async function checkBurn (transfer) {
   if (!burnReceipt.status) {
     let error
     try {
-      error = await getRevertReason(burnHash, ethNetwork)
+      error = await getRevertReason(burnHash, ethNetwork, 'latest', provider)
     } catch (e) {
       console.error(e)
       error = `Could not determine why transaction failed; encountered error: ${e.message}`

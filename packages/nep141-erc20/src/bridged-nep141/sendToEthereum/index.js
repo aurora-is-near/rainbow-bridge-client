@@ -2,7 +2,7 @@ import BN from 'bn.js'
 import { Decimal } from 'decimal.js'
 import bs58 from 'bs58'
 import getRevertReason from 'eth-revert-reason'
-import Web3 from 'web3'
+import { ethers } from 'ethers'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
 import { utils } from 'near-api-js'
 import {
@@ -13,7 +13,7 @@ import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { track } from '@near-eth/client'
 import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight } from '@near-eth/utils'
 import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
-import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
+import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider } from '@near-eth/client/dist/utils'
 import getNep141Address from '../getAddress'
 import findProof from './findProof'
 import getErc20Name from '../../natural-erc20/getName'
@@ -525,8 +525,8 @@ async function checkFinality (transfer) {
  */
 async function checkSync (transfer) {
   const provider = getEthProvider()
-  const web3 = new Web3(provider)
-  const ethNetwork = await web3.eth.net.getNetworkType()
+
+  const ethNetwork = (await provider.getNetwork()).name
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(
       'Wrong eth network for checkSync, expected: %s, got: %s',
@@ -573,13 +573,13 @@ async function checkSync (transfer) {
  * @param {*} web3
  * @param {*} proof
  */
-async function proofAlreadyUsed (web3, proof) {
+async function proofAlreadyUsed (provider, proof) {
   const usedProofsKey = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
   // The usedProofs_ mapping is the 4th variable defined in the contract storage.
   const usedProofsMappingPosition = '0'.repeat(63) + '3'
-  const storageIndex = web3.utils.sha3('0x' + usedProofsKey + usedProofsMappingPosition)
+  const storageIndex = ethers.utils.keccak256('0x' + usedProofsKey + usedProofsMappingPosition)
   // eth_getStorageAt docs: https://eth.wiki/json-rpc/API
-  const proofIsUsed = await web3.eth.getStorageAt(process.env.ethLockerAddress, storageIndex)
+  const proofIsUsed = await provider.getStorageAt(process.env.ethLockerAddress, storageIndex)
   return Number(proofIsUsed) === 1
 }
 
@@ -590,7 +590,7 @@ async function proofAlreadyUsed (web3, proof) {
  * @param {*} transfer
  */
 async function unlock (transfer) {
-  const web3 = new Web3(getEthProvider())
+  const provider = getSignerProvider()
 
   // Build burn proof
   transfer = await checkSync(transfer)
@@ -599,22 +599,15 @@ async function unlock (transfer) {
 
   const borshProof = borshifyOutcomeProof(proof)
 
-  const ethUserAddress = (await web3.eth.getAccounts())[0]
-  const ethTokenLocker = new web3.eth.Contract(
-    JSON.parse(process.env.ethLockerAbiText),
+  const ethTokenLocker = new ethers.Contract(
     process.env.ethLockerAddress,
-    { from: ethUserAddress }
+    process.env.ethLockerAbiText,
+    provider.getSigner()
   )
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  const safeReorgHeight = await web3.eth.getBlockNumber() - 20
-  const unlockHash = await new Promise((resolve, reject) => {
-    ethTokenLocker.methods
-      .unlockToken(borshProof, new BN(transfer.nearOnEthClientBlockHeight)).send()
-      .on('transactionHash', resolve)
-      .catch(reject)
-  })
-  const pendingUnlockTx = await web3.eth.getTransaction(unlockHash)
+  const safeReorgHeight = await provider.getBlockNumber() - 20
+  const pendingUnlockTx = await ethTokenLocker.unlockToken(borshProof, transfer.nearOnEthClientBlockHeight)
 
   return {
     ...transfer,
@@ -625,16 +618,14 @@ async function unlock (transfer) {
       safeReorgHeight,
       nonce: pendingUnlockTx.nonce
     },
-    unlockHashes: [...transfer.unlockHashes, unlockHash]
+    unlockHashes: [...transfer.unlockHashes, pendingUnlockTx.hash]
   }
 }
 
 async function checkUnlock (transfer) {
   const provider = getEthProvider()
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
-  const ethNetwork = await web3.eth.net.getNetworkType()
+  const ethNetwork = (await provider.getNetwork()).name
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(
       'Wrong eth network for checkUnlock, expected: %s, got: %s',
@@ -644,7 +635,7 @@ async function checkUnlock (transfer) {
   }
 
   const unlockHash = last(transfer.unlockHashes)
-  let unlockReceipt = await web3.eth.getTransactionReceipt(unlockHash)
+  let unlockReceipt = await provider.getTransactionReceipt(unlockHash)
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!unlockReceipt) {
@@ -662,14 +653,14 @@ async function checkUnlock (transfer) {
         address: process.env.ethLockerAddress,
         validate: ({ returnValues: { amount, recipient } }) => {
           return (
-            amount === transfer.amount &&
+            amount.toString() === transfer.amount &&
             recipient.toLowerCase() === transfer.recipient.toLowerCase()
           )
         }
       }
       const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
       if (!foundTx) return transfer
-      unlockReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
+      unlockReceipt = await provider.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
       if (error instanceof SearchError || error instanceof TxValidationError) {
@@ -688,7 +679,7 @@ async function checkUnlock (transfer) {
   if (!unlockReceipt.status) {
     let error
     try {
-      error = await getRevertReason(unlockHash, ethNetwork)
+      error = await getRevertReason(unlockHash, ethNetwork, 'latest', provider)
     } catch (e) {
       console.error(e)
       error = `Could not determine why transaction failed; encountered error: ${e.message}`
