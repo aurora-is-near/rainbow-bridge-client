@@ -4,7 +4,7 @@ import { Trie } from 'lite-merkle-patricia-tree'
 import { Header, Proof, Receipt, Log } from 'eth-object'
 import { rlp } from 'ethereumjs-util'
 import { serialize as serializeBorsh } from 'near-api-js/lib/utils/serialize'
-import Web3 from 'web3'
+import { ethers } from 'ethers'
 import { getEthProvider } from '@near-eth/client/dist/utils'
 
 class BorshProof {
@@ -33,16 +33,15 @@ const proofBorshSchema = new Map([
 export default async function findProof (lockTxHash, options) {
   options = options || {}
   const provider = options.ethProvider || getEthProvider()
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
-  const ethTokenLocker = new web3.eth.Contract(
-    options.ethLockerAbi || JSON.parse(process.env.ethLockerAbiText),
-    options.ethLockerAddress || process.env.ethLockerAddress
+  const ethTokenLocker = new ethers.Contract(
+    options.ethLockerAddress || process.env.ethLockerAddress,
+    options.ethLockerAbi || process.env.ethLockerAbiText,
+    provider
   )
 
-  const receipt = await web3.eth.getTransactionReceipt(lockTxHash)
-  if (receipt.status !== true) {
+  const receipt = await provider.getTransactionReceipt(lockTxHash)
+  if (receipt.status !== 1) {
     // When connecting via walletConnect, a random bug can happen where the receipt.status
     // is false event though we know it should be true.
     // https://github.com/near/rainbow-bridge-client/issues/12
@@ -51,18 +50,24 @@ export default async function findProof (lockTxHash, options) {
        If retrying doesn't solve this error, connecting a Metamask account may solve the issue`
     )
   }
-  const block = await web3.eth.getBlock(receipt.blockNumber)
-  const tree = await buildTree(web3, block)
+
+  // const block = await provider.getBlock(receipt.blockNumber)
+  // getBlock() doesn't return all the block fields
+  // https://github.com/ethers-io/ethers.js/issues/667
+  const block = await provider.send(
+    'eth_getBlockByNumber',
+    [ethers.utils.hexValue(receipt.blockNumber), true]
+  )
+  const tree = await buildTree(provider, block)
   const proof = await extractProof(
+    provider,
     block,
     tree,
     receipt.transactionIndex
   )
 
-  const events = await ethTokenLocker.getPastEvents('Locked', {
-    fromBlock: receipt.blockNumber,
-    toBlock: receipt.blockNumber
-  })
+  const filter = ethTokenLocker.filters.Locked()
+  const events = await ethTokenLocker.queryFilter(filter, receipt.blockNumber, receipt.blockNumber)
   const lockedEvent = events.find(event => event.transactionHash === lockTxHash)
   // `log.logIndex` does not necessarily match the log's order in the array of logs
   const logIndexInArray = receipt.logs.findIndex(
@@ -82,9 +87,9 @@ export default async function findProof (lockTxHash, options) {
   return serializeBorsh(proofBorshSchema, formattedProof)
 }
 
-async function buildTree (web3, block) {
+async function buildTree (provider, block) {
   const blockReceipts = await Promise.all(
-    block.transactions.map(t => web3.eth.getTransactionReceipt(t))
+    block.transactions.map(t => provider.getTransactionReceipt(t.hash))
   )
 
   /*
@@ -117,11 +122,7 @@ async function buildTree (web3, block) {
   return trie
 }
 
-async function extractProof (block, tree, transactionIndex) {
-  const provider = getEthProvider()
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
-
+async function extractProof (provider, block, tree, transactionIndex) {
   const stack = tree.findPath(rlp.encode(transactionIndex)).stack.map(
     node => { return { raw: node.raw() } }
   )
@@ -134,9 +135,8 @@ async function extractProof (block, tree, transactionIndex) {
   )(rlp.encode(transactionIndex))
   */
 
-  const blockData = await web3.eth.getBlock(block.number)
   // Correctly compose and encode the header.
-  const header = Header.fromWeb3(blockData)
+  const header = Header.fromWeb3(block)
   return {
     header_rlp: header.serialize(),
     receiptProof: Proof.fromStack(stack),

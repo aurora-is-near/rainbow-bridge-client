@@ -1,20 +1,21 @@
-import Web3 from 'web3'
+import { ethers } from 'ethers'
 import bs58 from 'bs58'
 import { toBuffer } from 'ethereumjs-util'
 import { getEthProvider, getNearAccount } from '@near-eth/client/dist/utils'
 
-export default async function findProof (transfer) {
-  const web3 = new Web3(getEthProvider())
-  const nearAccount = await getNearAccount()
+export default async function findProof (transfer, options) {
+  options = options || {}
+  const provider = options.ethProvider || getEthProvider()
+  const nearAccount = options.nearAccount || await getNearAccount()
 
-  const nearOnEthClient = new web3.eth.Contract(
-    JSON.parse(process.env.ethNearOnEthClientAbiText),
-    process.env.ethClientAddress
+  const nearOnEthClient = new ethers.Contract(
+    options.ethClientAddress || process.env.ethClientAddress,
+    options.ethNearOnEthClientAbi || process.env.ethNearOnEthClientAbiText,
+    provider
   )
 
   const clientBlockHashB58 = bs58.encode(toBuffer(
-    await nearOnEthClient.methods
-      .blockHashes(transfer.nearOnEthClientBlockHeight).call()
+    await nearOnEthClient.blockHashes(transfer.nearOnEthClientBlockHeight)
   ))
   const lockReceiptId = last(transfer.lockReceiptIds)
   return await nearAccount.connection.provider.sendJsonRpc(
