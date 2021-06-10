@@ -113,11 +113,58 @@ export function checkStatus (transfer) {
 
 /**
  * Recover transfer from a lock tx hash
- * Track a new transfer at the completedStep = LOCK so that it can be minted
  * @param {*} lockTxHash
  */
 export async function recover (lockTxHash) {
-  // TODO
+  const provider = getEthProvider()
+  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
+  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
+
+  const receipt = await web3.eth.getTransactionReceipt(lockTxHash)
+  const ethTokenLocker = new web3.eth.Contract(
+    JSON.parse(process.env.etherCustodianAbiText),
+    process.env.etherCustodianAddress
+  )
+  const events = await ethTokenLocker.getPastEvents('Deposited', {
+    fromBlock: receipt.blockNumber,
+    toBlock: receipt.blockNumber
+  })
+  const lockedEvent = events.find(event => event.transactionHash === lockTxHash)
+  if (!lockedEvent) {
+    throw new Error('Unable to process lock transaction event.')
+  }
+  const sender = lockedEvent.returnValues.sender
+  const protocolMessage = lockedEvent.returnValues.recipient
+  const [auroraEvmAccount, auroraRecipient] = protocolMessage.split(':')
+  if (auroraEvmAccount !== process.env.auroraEvmAccount) {
+    throw new Error('Failed to parse auroraEvmAccount in protocol message')
+  }
+  if (!/^([A-Fa-f0-9]{40})$/.test(auroraRecipient)) {
+    throw new Error('Failed to parse recipient in protocol message')
+  }
+  const amount = lockedEvent.returnValues.amount
+  const sourceTokenName = 'ETH'
+  const decimals = 18
+  const destinationTokenName = 'a' + sourceTokenName
+
+  // TODO check is_proof_used() to see the transfer status on NEAR
+
+  const transfer = {
+    ...transferDraft,
+
+    amount,
+    completedStep: LOCK,
+    destinationTokenName,
+    recipient: '0x' + auroraRecipient,
+    sender,
+    sourceToken: null,
+    sourceTokenName,
+    decimals,
+    status: status.IN_PROGRESS,
+    lockHashes: [lockTxHash],
+    lockReceipts: [receipt]
+  }
+  return transfer
 }
 
 export async function initiate ({ amount, token }) {
