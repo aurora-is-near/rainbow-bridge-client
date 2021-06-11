@@ -210,23 +210,6 @@ export async function recover (withdrawTxHash, sender = 'todo') {
 
   // Check transfer status
   transfer = await checkSync(transfer)
-  if (transfer.status === status.IN_PROGRESS) {
-    return transfer
-  }
-
-  // Transfer ready to finalize: check if already finalized
-  const proof = await findProof(transfer)
-
-  const web3 = new Web3(getEthProvider())
-  if (await proofAlreadyUsed(web3, proof)) {
-    // TODO find the unlockTxHash (requires ERC20Locker upgrade)
-    return {
-      ...transfer,
-      errors: [...transfer.errors, 'Unlock proof already used.'],
-      status: status.COMPLETE,
-      completedStep: UNLOCK
-    }
-  }
   return transfer
 }
 
@@ -553,8 +536,21 @@ async function checkSync (transfer) {
 
   const withdrawBlockHeight = last(transfer.withdrawReceiptBlockHeights)
   const nearOnEthClientBlockHeight = await nearOnEthSyncHeight(provider)
+  let proof
 
-  if (nearOnEthClientBlockHeight <= withdrawBlockHeight) {
+  if (nearOnEthClientBlockHeight > withdrawBlockHeight) {
+    proof = await findProof({ ...transfer, nearOnEthClientBlockHeight })
+    if (await proofAlreadyUsed(web3, proof)) {
+      // TODO find the unlockTxHash
+      return {
+        ...transfer,
+        completedStep: UNLOCK,
+        nearOnEthClientBlockHeight,
+        status: status.COMPLETE,
+        errors: [...transfer.errors, 'Unlock proof already used.']
+      }
+    }
+  } else {
     return {
       ...transfer,
       nearOnEthClientBlockHeight,
@@ -566,7 +562,8 @@ async function checkSync (transfer) {
     ...transfer,
     completedStep: SYNC,
     nearOnEthClientBlockHeight,
-    status: status.ACTION_NEEDED
+    status: status.ACTION_NEEDED,
+    proof // used when checkSync() is called by unlock()
   }
 }
 
@@ -596,17 +593,8 @@ async function unlock (transfer) {
 
   // Build burn proof
   transfer = await checkSync(transfer)
-  const proof = await findProof(transfer)
-
-  if (await proofAlreadyUsed(web3, proof)) {
-    // TODO find the unlockTxHash (requires ERC20Locker upgrade)
-    return {
-      ...transfer,
-      errors: [...transfer.errors, 'Unlock proof already used.'],
-      status: status.COMPLETE,
-      completedStep: UNLOCK
-    }
-  }
+  if (transfer.status !== status.ACTION_NEEDED) return transfer
+  const proof = transfer.proof
 
   const borshProof = borshifyOutcomeProof(proof)
 
