@@ -3,9 +3,10 @@ import Web3 from 'web3'
 import { track } from '@near-eth/client'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
-import { getEthProvider, getSignerProvider, formatLargeNum } from '@near-eth/client/dist/utils'
+import { getEthProvider, getSignerProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
 import { ethOnNearSyncHeight } from '@near-eth/utils'
+import findProof from './findProof'
 
 export const SOURCE_NETWORK = 'ethereum'
 export const DESTINATION_NETWORK = 'aurora'
@@ -147,9 +148,7 @@ export async function recover (lockTxHash) {
   const decimals = 18
   const destinationTokenName = 'a' + sourceTokenName
 
-  // TODO check is_proof_used() to see the transfer status on NEAR
-
-  const transfer = {
+  let transfer = {
     ...transferDraft,
 
     amount,
@@ -164,6 +163,8 @@ export async function recover (lockTxHash) {
     lockHashes: [lockTxHash],
     lockReceipts: [receipt]
   }
+  // Check transfer status
+  transfer = await checkSync(transfer)
   return transfer
 }
 
@@ -345,8 +346,41 @@ async function checkSync (transfer) {
   const eventEmittedAt = lockReceipt.blockNumber
   const syncedTo = await ethOnNearSyncHeight()
   const completedConfirmations = Math.max(0, syncedTo - eventEmittedAt)
+  let proof
 
-  if (completedConfirmations < transfer.neededConfirmations) {
+  if (completedConfirmations > transfer.neededConfirmations) {
+    // Check if relayer already minted
+    proof = await findProof(lockReceipt.transactionHash)
+    const nearAccount = await getNearAccount()
+    console.log(proof, nearAccount)
+    const proofAlreadyUsed = await nearAccount.viewFunction(
+      process.env.auroraEvmAccount,
+      'is_used_proof',
+      Buffer.from(proof),
+      { parse: res => Boolean(res[0]) }
+    )
+    if (proofAlreadyUsed) {
+      // TODO: find the event relayer tx hash
+      return {
+        ...transfer,
+        completedStep: MINT,
+        completedConfirmations,
+        status: status.COMPLETE,
+        errors: [...transfer.errors, 'Transfer already finalized.']
+        // mintHashes: [...transfer.mintHashes, txHash]
+      }
+    }
+  }
+  return {
+    ...transfer,
+    completedConfirmations,
+    status: status.IN_PROGRESS
+  }
+
+  /*
+  // TODO: uncomment this when manual transfer finalization becomes available on aurora.dev
+  if (completedConfirmations < transfer.neededConfirmations + Number(process.env.nearEventRelayerMargin)) {
+    // Leave some time for the relayer to finalize
     return {
       ...transfer,
       completedConfirmations,
@@ -358,7 +392,9 @@ async function checkSync (transfer) {
     ...transfer,
     completedConfirmations,
     completedStep: SYNC,
-    status: status.ACTION_NEEDED
+    status: status.ACTION_NEEDED,
+    proof // used when checkSync() is called by mint()
   }
+  */
 }
 const last = arr => arr[arr.length - 1]
