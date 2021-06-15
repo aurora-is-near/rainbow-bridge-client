@@ -1,19 +1,24 @@
-import Web3 from 'web3'
+import { ethers } from 'ethers'
 import { getEthProvider } from '@near-eth/client/dist/utils'
 
 const erc20Names = {}
 export default async function getName (address) {
   if (erc20Names[address]) return erc20Names[address]
 
-  const web3 = new Web3(getEthProvider())
+  const provider = getEthProvider()
 
-  const contract = new web3.eth.Contract(
-    JSON.parse(process.env.ethErc20AbiText),
-    address
+  const contract = new ethers.Contract(
+    address,
+    process.env.ethErc20AbiText,
+    provider
   )
 
-  erc20Names[address] = await contract.methods.symbol().call()
-    .catch(() => address.slice(0, 5) + '…')
+  try {
+    erc20Names[address] = await contract.symbol()
+  } catch {
+    console.log(`Failed to read token symbol for: ${address}`)
+    erc20Names[address] = address.slice(0, 5) + '…'
+  }
 
   return erc20Names[address]
 }
