@@ -1,14 +1,15 @@
 import { Trie } from 'lite-merkle-patricia-tree'
 // import Tree from 'merkle-patricia-tree'
 // import { promisfy } from 'promisfy'
+// @ts-expect-error
 import { Header, Proof, Receipt, Log } from 'eth-object'
 import { rlp } from 'ethereumjs-util'
 import { serialize as serializeBorsh } from 'near-api-js/lib/utils/serialize'
 import { ethers } from 'ethers'
-import { getEthProvider } from '@near-eth/client/dist/utils'
 
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 class BorshProof {
-  constructor (proof) {
+  constructor (proof: any) {
     Object.assign(this, proof)
   }
 }
@@ -30,18 +31,17 @@ const proofBorshSchema = new Map([
 // Compute proof that Locked event was fired in Ethereum. This proof can then
 // be passed to the FungibleTokenFactory contract, which verifies the proof
 // against a Prover contract.
-export default async function findProof (lockTxHash, options) {
-  options = options || {}
-  const provider = options.ethProvider || getEthProvider()
+export async function findEthProof (
+  eventName: string,
+  txHash: string,
+  address: string,
+  abi: any,
+  provider: ethers.providers.JsonRpcProvider
+): Promise<Uint8Array> {
+  const contract = new ethers.Contract(address, abi, provider)
 
-  const ethTokenLocker = new ethers.Contract(
-    options.ethLockerAddress || process.env.ethLockerAddress,
-    options.ethLockerAbi || process.env.ethLockerAbiText,
-    provider
-  )
-
-  const receipt = await provider.getTransactionReceipt(lockTxHash)
-  if (receipt.status !== 1) {
+  const receipt = await provider.getTransactionReceipt(txHash)
+  if (!receipt.status) {
     // When connecting via walletConnect, a random bug can happen where the receipt.status
     // is false event though we know it should be true.
     // https://github.com/near/rainbow-bridge-client/issues/12
@@ -50,7 +50,6 @@ export default async function findProof (lockTxHash, options) {
        If retrying doesn't solve this error, connecting a Metamask account may solve the issue`
     )
   }
-
   // const block = await provider.getBlock(receipt.blockNumber)
   // getBlock() doesn't return all the block fields
   // https://github.com/ethers-io/ethers.js/issues/667
@@ -60,18 +59,17 @@ export default async function findProof (lockTxHash, options) {
   )
   const tree = await buildTree(provider, block)
   const proof = await extractProof(
-    provider,
     block,
     tree,
     receipt.transactionIndex
   )
 
-  const filter = ethTokenLocker.filters.Locked()
-  const events = await ethTokenLocker.queryFilter(filter, receipt.blockNumber, receipt.blockNumber)
-  const lockedEvent = events.find(event => event.transactionHash === lockTxHash)
+  const filter = contract.filters[eventName]!()
+  const events = await contract.queryFilter(filter, receipt.blockNumber, receipt.blockNumber)
+  const event = events.find(event => event.transactionHash === txHash)!
   // `log.logIndex` does not necessarily match the log's order in the array of logs
   const logIndexInArray = receipt.logs.findIndex(
-    l => l.logIndex === lockedEvent.logIndex
+    l => l.logIndex === event.logIndex
   )
   const log = receipt.logs[logIndexInArray]
 
@@ -87,9 +85,12 @@ export default async function findProof (lockTxHash, options) {
   return serializeBorsh(proofBorshSchema, formattedProof)
 }
 
-async function buildTree (provider, block) {
+async function buildTree (
+  provider: ethers.providers.Provider,
+  block: { transactions: ethers.providers.TransactionResponse[], receiptsRoot: string}
+): Promise<Trie> {
   const blockReceipts = await Promise.all(
-    block.transactions.map(t => provider.getTransactionReceipt(t.hash))
+    block.transactions.map(async t => await provider.getTransactionReceipt(t.hash))
   )
 
   /*
@@ -122,7 +123,11 @@ async function buildTree (provider, block) {
   return trie
 }
 
-async function extractProof (provider, block, tree, transactionIndex) {
+async function extractProof (
+  block: any,
+  tree: Trie,
+  transactionIndex: number
+): Promise<{header_rlp: Buffer, receiptProof: Proof, txIndex: number}> {
   const stack = tree.findPath(rlp.encode(transactionIndex)).stack.map(
     node => { return { raw: node.raw() } }
   )

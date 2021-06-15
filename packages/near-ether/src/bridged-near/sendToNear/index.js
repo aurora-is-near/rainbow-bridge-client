@@ -8,9 +8,8 @@ import { utils } from 'near-api-js'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider } from '@near-eth/client/dist/utils'
-import { urlParams, ethOnNearSyncHeight } from '@near-eth/utils'
+import { urlParams, ethOnNearSyncHeight, findEthProof } from '@near-eth/utils'
 import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
-import findProof from './findProof'
 
 export const SOURCE_NETWORK = 'ethereum'
 export const DESTINATION_NETWORK = 'near'
@@ -327,7 +326,13 @@ async function checkSync (transfer) {
 
   if (completedConfirmations > transfer.neededConfirmations) {
     // Check if relayer already minted
-    proof = await findProof(burnReceipt.transactionHash)
+    proof = await findEthProof(
+      'TransferToNearInitiated',
+      burnReceipt.transactionHash,
+      process.env.eNEARAddress,
+      process.env.eNEARAbiText,
+      getEthProvider()
+    )
     const nearAccount = await getNearAccount()
     const proofAlreadyUsed = await nearAccount.viewFunction(
       process.env.nativeNEARLockerAddress,
