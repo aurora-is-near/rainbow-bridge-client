@@ -28,7 +28,12 @@ export async function getDecimals (address) {
     provider
   )
 
-  erc20Decimals[address] = Number(await contract.decimals())
+  try {
+    erc20Decimals[address] = Number(await contract.decimals())
+  } catch {
+    console.log(`Failed to read token decimals for: ${address}`)
+    erc20Decimals[address] = 0
+  }
 
   return erc20Decimals[address]
 }

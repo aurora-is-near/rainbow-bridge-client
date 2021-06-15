@@ -1528,11 +1528,17 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@yarnpkg/pnpify", "virtual:d6e270ced375feae8aa67e695e8f6605fb9bdb5436bd33ea71c586d53ece0ac57c48d636803398a59ac1d977701119730da4426f2c7cb4803b7ff452c934acf5#npm:2.4.0"],
             ["bn.js", "npm:5.2.0"],
             ["bs58", "npm:4.0.1"],
+<<<<<<< HEAD
             ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=383b6ea68c7050bea4cab6950c1d5a7fa553e72b"],
+=======
+<<<<<<< HEAD
+            ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=3c9df3b736be3d9b74235d346f70d000414d9092"],
+=======
+>>>>>>> ab37cfb (build: Web3->Ethers `sendToAurora`.)
+>>>>>>> 403bc89 (build: Web3->Ethers `sendToAurora`.)
             ["eth-revert-reason", "npm:1.0.3"],
             ["ethereumjs-util", "npm:7.0.10"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
-            ["lite-merkle-patricia-tree", "workspace:packages/lite-merkle-patricia-tree"],
             ["near-api-js", "https://github.com/near/near-api-js.git#commit=fef7f683fca86980f3509987226fbc7f63b455cb"],
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
@@ -1557,12 +1563,19 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@yarnpkg/pnpify", "virtual:d6e270ced375feae8aa67e695e8f6605fb9bdb5436bd33ea71c586d53ece0ac57c48d636803398a59ac1d977701119730da4426f2c7cb4803b7ff452c934acf5#npm:2.4.0"],
             ["bn.js", "npm:5.2.0"],
             ["bs58", "npm:4.0.1"],
+<<<<<<< HEAD
             ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=383b6ea68c7050bea4cab6950c1d5a7fa553e72b"],
+=======
+<<<<<<< HEAD
+            ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=3c9df3b736be3d9b74235d346f70d000414d9092"],
+>>>>>>> 403bc89 (build: Web3->Ethers `sendToAurora`.)
             ["eth-revert-reason", "npm:1.0.3"],
             ["ethereumjs-util", "npm:7.0.10"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
             ["lite-merkle-patricia-tree", "workspace:packages/lite-merkle-patricia-tree"],
             ["near-api-js", "https://github.com/near/near-api-js.git#commit=fef7f683fca86980f3509987226fbc7f63b455cb"],
+=======
+>>>>>>> ab37cfb (build: Web3->Ethers `sendToAurora`.)
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],

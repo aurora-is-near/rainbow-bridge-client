@@ -1,12 +1,11 @@
 import getRevertReason from 'eth-revert-reason'
-import Web3 from 'web3'
+import { ethers } from 'ethers'
 import { track } from '@near-eth/client'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getSignerProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
 import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
-import { ethOnNearSyncHeight } from '@near-eth/utils'
-import findProof from './findProof'
+import { ethOnNearSyncHeight, findEthProof } from '@near-eth/utils'
 
 export const SOURCE_NETWORK = 'ethereum'
 export const DESTINATION_NETWORK = 'aurora'
@@ -118,24 +117,21 @@ export function checkStatus (transfer) {
  */
 export async function recover (lockTxHash) {
   const provider = getEthProvider()
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
-  const receipt = await web3.eth.getTransactionReceipt(lockTxHash)
-  const ethTokenLocker = new web3.eth.Contract(
-    JSON.parse(process.env.etherCustodianAbiText),
-    process.env.etherCustodianAddress
+  const receipt = await provider.getTransactionReceipt(lockTxHash)
+  const ethTokenLocker = new ethers.Contract(
+    process.env.etherCustodianAddress,
+    process.env.etherCustodianAbiText,
+    provider
   )
-  const events = await ethTokenLocker.getPastEvents('Deposited', {
-    fromBlock: receipt.blockNumber,
-    toBlock: receipt.blockNumber
-  })
+  const filter = ethTokenLocker.filters.Deposited()
+  const events = await ethTokenLocker.queryFilter(filter, receipt.blockNumber, receipt.blockNumber)
   const lockedEvent = events.find(event => event.transactionHash === lockTxHash)
   if (!lockedEvent) {
     throw new Error('Unable to process lock transaction event.')
   }
-  const sender = lockedEvent.returnValues.sender
-  const protocolMessage = lockedEvent.returnValues.recipient
+  const sender = lockedEvent.args.sender
+  const protocolMessage = lockedEvent.args.recipient
   const [auroraEvmAccount, auroraRecipient] = protocolMessage.split(':')
   if (auroraEvmAccount !== process.env.auroraEvmAccount) {
     throw new Error('Failed to parse auroraEvmAccount in protocol message')
@@ -143,7 +139,7 @@ export async function recover (lockTxHash) {
   if (!/^([A-Fa-f0-9]{40})$/.test(auroraRecipient)) {
     throw new Error('Failed to parse recipient in protocol message')
   }
-  const amount = lockedEvent.returnValues.amount
+  const amount = lockedEvent.args.amount.toString()
   const sourceTokenName = 'ETH'
   const decimals = 18
   const destinationTokenName = 'a' + sourceTokenName
@@ -177,8 +173,8 @@ export async function initiate ({ amount, token }) {
   const destinationTokenName = 'a' + sourceTokenName
 
   // TODO enable different recipient and consider multisig case where sender is not the signer
-  const web3 = new Web3(getSignerProvider())
-  const sender = web3.currentProvider.selectedAddress
+  const provider = getSignerProvider()
+  const sender = (await provider.listAccounts())[0].toLowerCase()
   const recipient = sender
 
   // various attributes stored as arrays, to keep history of retries
@@ -208,37 +204,29 @@ export async function initiate ({ amount, token }) {
  * @param {*} transfer
  */
 async function lock (transfer) {
-  const web3 = new Web3(getSignerProvider())
+  const provider = getSignerProvider()
 
-  const ethNetwork = await web3.eth.net.getNetworkType()
+  const ethNetwork = (await provider.getNetwork()).name
   if (ethNetwork !== process.env.ethNetworkId) {
     // Webapp should prevent the user from confirming if the wrong network is selected
     throw new Error(
-      'Wrong eth network for checkLock, expected: %s, got: %s',
+      'Wrong eth network for lock, expected: %s, got: %s',
       process.env.ethNetworkId, ethNetwork
     )
   }
 
-  const ethTokenLocker = new web3.eth.Contract(
-    JSON.parse(process.env.etherCustodianAbiText),
+  const ethTokenLocker = new ethers.Contract(
     process.env.etherCustodianAddress,
-    { from: transfer.sender }
+    process.env.etherCustodianAbiText,
+    provider.getSigner()
   )
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  const safeReorgHeight = await web3.eth.getBlockNumber() - 20
-  const lockHash = await new Promise((resolve, reject) => {
-    ethTokenLocker.methods
-      .depositToEVM(
-        transfer.recipient.slice(2).toLowerCase(),
-        '0' // TODO: currently 0 at launch
-      )
-      .send({ value: transfer.amount })
-      .on('transactionHash', resolve)
-      .catch(reject)
-  })
-  const pendingLockTx = await web3.eth.getTransaction(lockHash)
+  const safeReorgHeight = await provider.getBlockNumber() - 20
+  const pendingLockTx = await ethTokenLocker.depositToEVM(
+    transfer.recipient.slice(2).toLowerCase(), 0, { value: transfer.amount }
+  )
 
   return {
     ...transfer,
@@ -250,17 +238,15 @@ async function lock (transfer) {
       data: pendingLockTx.input,
       safeReorgHeight
     },
-    lockHashes: [...transfer.lockHashes, lockHash]
+    lockHashes: [...transfer.lockHashes, pendingLockTx.hash]
   }
 }
 
 async function checkLock (transfer) {
   const provider = getEthProvider()
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
   const lockHash = last(transfer.lockHashes)
-  const ethNetwork = await web3.eth.net.getNetworkType()
+  const ethNetwork = (await provider.getNetwork()).name
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(
       'Wrong eth network for checkLock, expected: %s, got: %s',
@@ -268,7 +254,7 @@ async function checkLock (transfer) {
     )
     return transfer
   }
-  let lockReceipt = await web3.eth.getTransactionReceipt(lockHash)
+  let lockReceipt = await provider.getTransactionReceipt(lockHash)
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!lockReceipt) {
@@ -281,7 +267,7 @@ async function checkLock (transfer) {
       }
       const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx)
       if (!foundTx) return transfer
-      lockReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
+      lockReceipt = await provider.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
       if (error instanceof SearchError || error instanceof TxValidationError) {
@@ -300,7 +286,7 @@ async function checkLock (transfer) {
   if (!lockReceipt.status) {
     let error
     try {
-      error = await getRevertReason(lockHash, ethNetwork)
+      error = await getRevertReason(lockHash, ethNetwork, 'latest', provider)
     } catch (e) {
       console.error(e)
       error = `Could not determine why transaction failed; encountered error: ${e.message}`
@@ -337,7 +323,13 @@ async function checkSync (transfer) {
 
   if (completedConfirmations > transfer.neededConfirmations) {
     // Check if relayer already minted
-    proof = await findProof(lockReceipt.transactionHash)
+    proof = await findEthProof(
+      'Deposited',
+      lockReceipt.transactionHash,
+      process.env.etherCustodianAddress,
+      process.env.etherCustodianAbiText,
+      getEthProvider()
+    )
     const nearAccount = await getNearAccount()
     const proofAlreadyUsed = await nearAccount.viewFunction(
       process.env.auroraEvmAccount,
