@@ -3,9 +3,12 @@ import { Trie } from 'lite-merkle-patricia-tree'
 // import { promisfy } from 'promisfy'
 // @ts-expect-error
 import { Header, Proof, Receipt, Log } from 'eth-object'
-import { rlp } from 'ethereumjs-util'
+import { rlp, toBuffer } from 'ethereumjs-util'
 import { serialize as serializeBorsh } from 'near-api-js/lib/utils/serialize'
+import { IdType } from 'near-api-js/lib/providers/provider'
+import { ConnectedWalletAccount } from 'near-api-js'
 import { ethers } from 'ethers'
+import bs58 from 'bs58'
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 class BorshProof {
@@ -147,4 +150,32 @@ async function extractProof (
     receiptProof: Proof.fromStack(stack),
     txIndex: transactionIndex
   }
+}
+
+export async function findNearProof (
+  nearReceiptId: string,
+  nearReceiverId: string,
+  nearBlockHeight: number,
+  nearAccount: ConnectedWalletAccount,
+  provider: ethers.providers.JsonRpcProvider,
+  options?: { ethClientAddress: string, ethNearOnEthClientAbi: any }
+): Promise<any> {
+  options = options ?? { ethClientAddress: process.env.ethClientAddress!, ethNearOnEthClientAbi: process.env.ethNearOnEthClientAbiText! }
+  const nearOnEthClient = new ethers.Contract(
+    options.ethClientAddress,
+    options.ethNearOnEthClientAbi,
+    provider
+  )
+  const clientBlockHashB58 = bs58.encode(toBuffer(
+    await nearOnEthClient.blockHashes(nearBlockHeight)
+  ))
+  const proof = await nearAccount.connection.provider.lightClientProof(
+    {
+      type: IdType.Receipt,
+      receipt_id: nearReceiptId,
+      receiver_id: nearReceiverId,
+      light_client_head: clientBlockHashB58
+    }
+  )
+  return proof
 }

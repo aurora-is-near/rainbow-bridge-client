@@ -11,10 +11,9 @@ import {
 import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { track } from '@near-eth/client'
-import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight } from '@near-eth/utils'
+import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof } from '@near-eth/utils'
 import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider } from '@near-eth/client/dist/utils'
 import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
-import findProof from './findProof'
 
 export const SOURCE_NETWORK = 'near'
 export const DESTINATION_NETWORK = 'ethereum'
@@ -520,15 +519,21 @@ async function checkSync (transfer) {
   let proof
 
   if (nearOnEthClientBlockHeight > lockReceiptBlockHeight) {
-    proof = await findProof({ ...transfer, nearOnEthClientBlockHeight })
-    if (await proofAlreadyUsed(web3, proof)) {
+    proof = await findNearProof(
+      last(transfer.lockReceiptIds),
+      transfer.sender,
+      transfer.nearOnEthClientBlockHeight,
+      await getNearAccount(),
+      provider
+    )
+    if (await proofAlreadyUsed(provider, proof)) {
       // TODO find the unlockTxHash
       return {
         ...transfer,
         completedStep: MINT,
         nearOnEthClientBlockHeight,
         status: status.COMPLETE,
-        errors: [...transfer.errors, 'Unlock proof already used.']
+        errors: [...transfer.errors, 'Mint proof already used.']
       }
     }
   } else {

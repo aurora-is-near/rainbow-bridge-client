@@ -11,11 +11,10 @@ import {
 import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { track } from '@near-eth/client'
-import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight } from '@near-eth/utils'
+import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof } from '@near-eth/utils'
 import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
 import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider } from '@near-eth/client/dist/utils'
 import getNep141Address from '../getAddress'
-import findProof from './findProof'
 import getErc20Name from '../../natural-erc20/getName'
 import { getDecimals } from '../../natural-erc20/getMetadata'
 
@@ -540,8 +539,14 @@ async function checkSync (transfer) {
   let proof
 
   if (nearOnEthClientBlockHeight > withdrawBlockHeight) {
-    proof = await findProof({ ...transfer, nearOnEthClientBlockHeight })
-    if (await proofAlreadyUsed(web3, proof)) {
+    proof = await findNearProof(
+      last(transfer.withdrawReceiptIds),
+      transfer.sender,
+      nearOnEthClientBlockHeight,
+      await getNearAccount(),
+      provider
+    )
+    if (await proofAlreadyUsed(provider, proof)) {
       // TODO find the unlockTxHash
       return {
         ...transfer,
