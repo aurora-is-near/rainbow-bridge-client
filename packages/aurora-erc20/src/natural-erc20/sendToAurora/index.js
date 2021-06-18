@@ -36,6 +36,7 @@ const transferDraft = {
   // sender,
   // sourceToken: erc20Address,
   // sourceTokenName,
+  // symbol,
   // decimals,
   status: status.ACTION_NEEDED,
   type: TRANSFER_TYPE,
@@ -154,6 +155,7 @@ export async function recover (lockTxHash) {
   const sourceTokenName = await getName(erc20Address)
   const decimals = await getDecimals(erc20Address)
   const destinationTokenName = 'a' + sourceTokenName
+  const symbol = sourceTokenName
 
   let transfer = {
     ...transferDraft,
@@ -165,6 +167,7 @@ export async function recover (lockTxHash) {
     sender,
     sourceToken: erc20Address,
     sourceTokenName,
+    symbol,
     decimals,
     status: status.IN_PROGRESS,
     lockHashes: [lockTxHash],
@@ -197,6 +200,7 @@ export async function initiate ({ amount, token }) {
     sender,
     sourceToken: token.ethAddress,
     sourceTokenName,
+    symbol: token.symbol,
     decimals
   }
 
@@ -236,6 +240,7 @@ export async function approve ({ amount, token }) {
     sender,
     sourceToken: token.ethAddress,
     sourceTokenName,
+    symbol: token.symbol,
     decimals
   }
 

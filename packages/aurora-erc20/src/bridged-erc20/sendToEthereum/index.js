@@ -42,6 +42,7 @@ const transferDraft = {
   // sender,
   // sourceToken: erc20Address,
   // sourceTokenName,
+  // symbol,
   // decimals,
   status: status.ACTION_NEEDED,
   type: TRANSFER_TYPE,
@@ -161,6 +162,7 @@ export async function initiate ({ amount, token }) {
     sender,
     sourceToken: token.auroraAddress,
     sourceTokenName,
+    symbol: token.symbol,
     decimals
   }
 

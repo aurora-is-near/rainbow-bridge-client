@@ -147,10 +147,12 @@ export async function recover (lockTxHash) {
   const sourceTokenName = 'ETH'
   const decimals = 18
   const destinationTokenName = 'a' + sourceTokenName
+  const symbol = 'ETH'
 
   let transfer = {
     ...transferDraft,
 
+    id: new Date().toISOString(),
     amount,
     completedStep: LOCK,
     destinationTokenName,
@@ -158,6 +160,7 @@ export async function recover (lockTxHash) {
     sender,
     sourceToken: null,
     sourceTokenName,
+    symbol,
     decimals,
     status: status.IN_PROGRESS,
     lockHashes: [lockTxHash],
@@ -169,9 +172,7 @@ export async function recover (lockTxHash) {
 }
 
 export async function initiate ({ amount, token }) {
-  // TODO: move to core 'decorate'; get both from contracts
   const sourceTokenName = token.symbol
-  // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = token.decimals
   const destinationTokenName = 'a' + sourceTokenName
 
@@ -190,6 +191,7 @@ export async function initiate ({ amount, token }) {
     sender,
     sourceToken: token.ethAddress, // null
     sourceTokenName,
+    symbol: token.symbol,
     decimals
   }
 
