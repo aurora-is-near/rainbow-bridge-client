@@ -3,6 +3,10 @@ import { borshifyOutcomeProof, nearOnEthSyncHeight } from '@near-eth/utils'
 import getRevertReason from 'eth-revert-reason'
 import Web3 from 'web3'
 import bs58 from 'bs58'
+import { utils } from 'near-api-js'
+import {
+  deserialize as deserializeBorsh
+} from 'near-api-js/lib/utils/serialize'
 import { track } from '@near-eth/client'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
@@ -15,10 +19,6 @@ import {
 } from '@near-eth/client/dist/utils'
 import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
 import findProof from './findProof'
-
-// ============================================================================================
-// TODO
-// ============================================================================================
 
 export const SOURCE_NETWORK = 'aurora'
 export const DESTINATION_NETWORK = 'ethereum'
@@ -36,6 +36,8 @@ const steps = [
   UNLOCK
 ]
 
+class TransferError extends Error {}
+
 const transferDraft = {
   // Attributes common to all transfer types
   // amount,
@@ -46,6 +48,7 @@ const transferDraft = {
   // sender,
   // sourceToken: erc20Address,
   // sourceTokenName,
+  // symbol,
   // decimals,
   status: status.ACTION_NEEDED,
   type: TRANSFER_TYPE,
@@ -62,9 +65,9 @@ const transferDraft = {
   nearOnEthClientBlockHeight: null, // calculated & set to a number during checkSync
   burnHashes: [],
   burnReceipts: [],
-  nearBurnHashes: [], // TODO
-  nearBurnReceiptIds: [], // TODO
-  nearBurnReceiptBlockHeights: [], // TODO
+  nearBurnHashes: [],
+  nearBurnReceiptIds: [],
+  nearBurnReceiptBlockHeights: [],
   unlockHashes: [],
   unlockReceipts: []
 }
@@ -135,20 +138,133 @@ export function checkStatus (transfer) {
 }
 
 /**
- * Recover transfer from a burn tx hash
- * Track a new transfer at the completedStep = BURN so that it can be minted
- * @param {*} burnTxHash
+ * Parse the burn receipt id and block height needed to complete
+ * the step BURN
+ * @param {*} nearBurnTx
+ * @param {string} sender
  */
-export async function recover (burnTxHash) {
-  // TODO
+async function parseBurnReceipt (nearBurnTx, sender) {
+  const nearAccount = await getNearAccount()
+  const receiptIds = nearBurnTx.transaction_outcome.outcome.receipt_ids
+
+  if (receiptIds.length !== 1) {
+    throw new TransferError(
+      `Burn expects only one receipt, got ${receiptIds.length}.
+      Full withdrawal transaction: ${JSON.stringify(nearBurnTx)}`
+    )
+  }
+
+  // Get receipt information for recording and building burn proof
+  const txReceiptId = receiptIds[0]
+  const successReceiptOutcome = nearBurnTx.receipts_outcome
+    .find(r => r.id === txReceiptId).outcome
+  const burnReceiptId = successReceiptOutcome.receipt_ids[0]
+
+  const txReceiptBlockHash = nearBurnTx.receipts_outcome
+    .find(r => r.id === burnReceiptId).block_hash
+
+  const receiptBlock = await nearAccount.connection.provider.block({
+    blockId: txReceiptBlockHash
+  })
+  const receiptBlockHeight = Number(receiptBlock.header.height)
+  return { id: burnReceiptId, blockHeight: receiptBlockHeight }
+}
+
+/**
+ * Recover transfer from a burn tx hash
+ * @param {*} auroraBurnTxHash
+ */
+export async function recover (auroraBurnTxHash) {
+  const web3 = new Web3(getAuroraProvider())
+  const auroraBurnReceipt = await web3.eth.getTransactionReceipt(auroraBurnTxHash)
+  const nearBurnTxHash = bs58.encode(Buffer.from(auroraBurnReceipt.nearTransactionHash.slice(2), 'hex'))
+
+  const decodedTxHash = utils.serialize.base_decode(nearBurnTxHash)
+  const nearAccount = await getNearAccount()
+  const burnTx = await nearAccount.connection.provider.txStatus(
+    decodedTxHash, process.env.auroraRelayerAccount
+  )
+
+  if (burnTx.status.Unknown) {
+    // Transaction or receipt not processed yet
+    throw new Error(`Withdraw transaction pending: ${nearBurnTxHash}`)
+  }
+
+  // Check status of tx broadcasted by relayer
+  if (burnTx.status.Failure) {
+    throw new Error(`Withdraw transaction failed: ${nearBurnTxHash}`)
+  }
+
+  class BurnEvent {
+    constructor (args) {
+      Object.assign(this, args)
+    }
+  }
+  const SCHEMA = new Map([
+    [BurnEvent, {
+      kind: 'struct',
+      fields: [
+        ['amount', 'u128'],
+        ['recipient_id', [20]],
+        ['eth_custodian_address', [20]]
+      ]
+    }]
+  ])
+  const withdrawResult = burnTx.receipts_outcome[1].outcome.status.SuccessValue
+  const burnEvent = deserializeBorsh(
+    SCHEMA, BurnEvent, Buffer.from(withdrawResult, 'base64')
+  )
+
+  const amount = burnEvent.amount.toString()
+  const recipient = '0x' + Buffer.from(burnEvent.recipient_id).toString('hex')
+  const ethCustodianAddress = Buffer.from(burnEvent.eth_custodian_address).toString('hex')
+
+  if (ethCustodianAddress !== process.env.etherCustodianAddress.slice(2).toLowerCase()) {
+    throw new Error(
+      `Unexpected ether custodian: got${ethCustodianAddress},
+      expected ${process.env.etherCustodianAddress}`
+    )
+  }
+
+  const destinationTokenName = 'ETH'
+  const decimals = 18
+  const sourceTokenName = 'a' + destinationTokenName
+  const symbol = 'ETH'
+  const sourceToken = null
+
+  const nearBurnReceipt = await parseBurnReceipt(burnTx, process.env.auroraRelayerAccount)
+
+  // various attributes stored as arrays, to keep history of retries
+  let transfer = {
+    ...transferDraft,
+
+    id: new Date().toISOString(),
+    amount,
+    completedStep: BURN,
+    destinationTokenName,
+    recipient,
+    sender: auroraBurnReceipt.from, // TODO get sender from receipt event (to handle multisig)
+    sourceToken,
+    sourceTokenName,
+    symbol,
+    decimals,
+
+    burnHashes: [auroraBurnReceipt.transactionHash],
+    nearBurnHashes: [nearBurnTxHash],
+    burnReceipts: [auroraBurnReceipt],
+    nearBurnReceiptIds: [nearBurnReceipt.id],
+    nearBurnReceiptBlockHeights: [nearBurnReceipt.blockHeight]
+  }
+
+  // Check transfer status
+  transfer = await checkSync(transfer)
+  return transfer
 }
 
 export async function initiate ({ amount, token }) {
-  // TODO: move to core 'decorate'; get both from contracts
   const sourceTokenName = 'a' + token.symbol
-  // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = token.decimals
-  const destinationTokenName = sourceTokenName
+  const destinationTokenName = token.symbol
 
   // TODO enable different recipient and consider multisig case where sender is not the signer
   const web3 = new Web3(getSignerProvider())
@@ -165,6 +281,7 @@ export async function initiate ({ amount, token }) {
     sender,
     sourceToken: token.auroraAddress, // null
     sourceTokenName,
+    symbol: token.symbol,
     decimals
   }
 
@@ -190,33 +307,15 @@ async function burn (transfer) {
     )
   }
 
-  /*
-  const precompileAddress = '0x000000000000000000000000ee5dfa0eefcc8eab'
-  const tx = await web3.eth.sendTransaction({
-    from: transfer.sender, to: precompileAddress, value: transfer.amount,
-    data: recipient encoded,
-    gas: 31000
-  })
-  console.log(tx)
-  // https://github.com/aurora-is-near/aurora-engine/blob/36e9a91e31d735cba629c3f44cc4a57e5f7388da/src/precompiles/native.rs#L49
-  */
-
-  const ethTokenLocker = new web3.eth.Contract(
-    JSON.parse(process.env.ethLockerAbiText), // TODO burn precompile address and abi
-    process.env.ethLockerAddress,
-    { from: transfer.sender }
-  )
-
-  // If this tx is dropped and replaced, lower the search boundary
-  // in case there was a reorg.
   const safeReorgHeight = await web3.eth.getBlockNumber() - 20
-  const burnHash = await new Promise((resolve, reject) => {
-    ethTokenLocker.methods
-      .lockToken(transfer.sourceToken, transfer.amount, transfer.recipient).send() // TODO burn precompile
-      .on('transactionHash', resolve)
-      .catch(reject)
+  const tx = await web3.eth.sendTransaction({
+    from: transfer.sender,
+    to: '0xb0bd02f6a392af548bdf1cfaee5dfa0eefcc8eab', // exit to ethereum precompile address
+    value: transfer.amount,
+    data: '0x00' + transfer.recipient.slice(2),
+    gas: 121000
   })
-  const pendingBurnTx = await web3.eth.getTransaction(burnHash)
+  const pendingBurnTx = await web3.eth.getTransaction(tx.transactionHash)
 
   return {
     ...transfer,
@@ -228,28 +327,30 @@ async function burn (transfer) {
       safeReorgHeight,
       nonce: pendingBurnTx.nonce
     },
-    burnHashes: [...transfer.burnHashes, burnHash]
+    burnHashes: [...transfer.burnHashes, tx.transactionHash],
+    nearBurnHashes: [...transfer.nearBurnHashes, bs58.encode(Buffer.from(tx.nearTransactionHash.slice(2), 'hex'))]
   }
 }
 
 async function checkBurn (transfer) {
-  // TODO check BURN with Aurora tx or NEAR tx ?
-  // TODO record NEAR BURN tx so that it can be used to build the proof
   const provider = getAuroraProvider()
   // If available connect to rpcUrl to avoid issues with WalletConnectProvider
   const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
   const burnHash = last(transfer.burnHashes)
-  const ethNetwork = await web3.eth.net.getNetworkType()
-  if (ethNetwork !== process.env.auroraNetworkId) {
-    console.log(
-      'Wrong eth network for checkBurn, expected: %s, got: %s',
-      process.env.auroraNetworkId, ethNetwork
-    )
-    return transfer
-  }
-  let burnReceipt = await web3.eth.getTransactionReceipt(burnHash)
+  const nearBurnHash = last(transfer.nearBurnHashes)
 
+  const ethChainId = await web3.eth.net.getId()
+  if (ethChainId !== Number(process.env.auroraChainId)) {
+    // Webapp should prevent the user from confirming if the wrong network is selected
+    throw new Error(
+      `Wrong eth network for burn, expected: ${process.env.auroraChainId}, got: ${ethChainId}`
+    )
+  }
+  const burnReceipt = await web3.eth.getTransactionReceipt(burnHash)
+
+  /*
+  // TODO can a tx be speedup on aurora ?
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!burnReceipt) {
     try {
@@ -284,17 +385,12 @@ async function checkBurn (transfer) {
       }
     }
   }
+  */
 
   if (!burnReceipt) return transfer
 
   if (!burnReceipt.status) {
-    let error
-    try {
-      error = await getRevertReason(burnHash, ethNetwork)
-    } catch (e) {
-      console.error(e)
-      error = `Could not determine why transaction failed; encountered error: ${e.message}`
-    }
+    const error = 'Aurora transaction failed.'
     return {
       ...transfer,
       status: status.FAILED,
@@ -302,7 +398,9 @@ async function checkBurn (transfer) {
       burnReceipts: [...transfer.burnReceipts, burnReceipt]
     }
   }
+  /*
   if (burnReceipt.transactionHash !== burnHash) {
+    // TODO can a tx be speedup on aurora ?
     // Record the replacement tx lockHash
     return {
       ...transfer,
@@ -312,19 +410,58 @@ async function checkBurn (transfer) {
       burnReceipts: [...transfer.burnReceipts, burnReceipt]
     }
   }
+  */
 
-  // TODO parse burn receipt block height like in nep141 checkWithdraw
+  // Parse NEAR tx burn receipt
+  const decodedTxHash = utils.serialize.base_decode(nearBurnHash)
+  const nearAccount = await getNearAccount()
+  const nearBurnTx = await nearAccount.connection.provider.txStatus(
+    decodedTxHash, process.env.auroraRelayerAccount
+  )
+
+  if (nearBurnTx.status.Unknown) {
+    // Transaction or receipt not processed yet
+    return transfer
+  }
+
+  // Check status of tx broadcasted by wallet
+  if (nearBurnTx.status.Failure) {
+    const error = 'NEAR relay.aurora transaction failed.'
+    return {
+      ...transfer,
+      errors: [...transfer.errors, error],
+      status: status.FAILED
+    }
+  }
+
+  let nearBurnReceipt
+  try {
+    nearBurnReceipt = await parseBurnReceipt(nearBurnTx, process.env.auroraRelayerAccount)
+  } catch (e) {
+    if (e instanceof TransferError) {
+      return {
+        ...transfer,
+        errors: [...transfer.errors, e.message],
+        status: status.FAILED
+      }
+    }
+    // Any other error like provider connection error should throw
+    // so that the transfer stays in progress and checkWithdraw will be called again.
+    throw e
+  }
 
   return {
     ...transfer,
     status: status.IN_PROGRESS,
     completedStep: BURN,
-    burnReceipts: [...transfer.burnReceipts, burnReceipt]
+    burnReceipts: [...transfer.burnReceipts, burnReceipt],
+    nearBurnReceiptIds: [...transfer.nearBurnReceiptIds, nearBurnReceipt.id],
+    nearBurnReceiptBlockHeights: [...transfer.nearBurnReceiptBlockHeights, nearBurnReceipt.blockHeight]
   }
 }
 
 /**
- * Wait for a final block with a strictly greater height than withdrawTx
+ * Wait for a final block with a strictly greater height than nearBurnTx
  * receipt. This block (or one of its ancestors) should hold the outcome.
  * Although this may not support sharding.
  * TODO: support sharding
@@ -369,8 +506,21 @@ async function checkSync (transfer) {
 
   const burnBlockHeight = last(transfer.nearBurnReceiptBlockHeights)
   const nearOnEthClientBlockHeight = await nearOnEthSyncHeight(provider)
+  let proof
 
-  if (nearOnEthClientBlockHeight <= burnBlockHeight) {
+  if (nearOnEthClientBlockHeight > burnBlockHeight) {
+    proof = await findProof({ ...transfer, nearOnEthClientBlockHeight })
+    if (await proofAlreadyUsed(web3, proof)) {
+      // TODO find the unlockTxHash
+      return {
+        ...transfer,
+        completedStep: UNLOCK,
+        nearOnEthClientBlockHeight,
+        status: status.COMPLETE,
+        errors: [...transfer.errors, 'Unlock proof already used.']
+      }
+    }
+  } else {
     return {
       ...transfer,
       nearOnEthClientBlockHeight,
@@ -382,7 +532,8 @@ async function checkSync (transfer) {
     ...transfer,
     completedStep: SYNC,
     nearOnEthClientBlockHeight,
-    status: status.ACTION_NEEDED
+    status: status.ACTION_NEEDED,
+    proof // used when checkSync() is called by unlock()
   }
 }
 
@@ -397,7 +548,7 @@ async function proofAlreadyUsed (web3, proof) {
   const usedProofsMappingPosition = '0'.repeat(63) + '3'
   const storageIndex = web3.utils.sha3('0x' + usedProofsKey + usedProofsMappingPosition)
   // eth_getStorageAt docs: https://eth.wiki/json-rpc/API
-  const proofIsUsed = await web3.eth.getStorageAt(process.env.ethLockerAddress, storageIndex)
+  const proofIsUsed = await web3.eth.getStorageAt(process.env.etherCustodianAddress, storageIndex)
   return Number(proofIsUsed) === 1
 }
 
@@ -408,29 +559,21 @@ async function proofAlreadyUsed (web3, proof) {
  * @param {*} transfer
  */
 async function unlock (transfer) {
-  const web3 = new Web3(getEthProvider())
+  const web3 = new Web3(getSignerProvider())
 
   // Build burn proof
   transfer = await checkSync(transfer)
-  const proof = await findProof(transfer)
-
-  if (await proofAlreadyUsed(web3, proof)) {
-    // TODO find the unlockTxHash
-    return {
-      ...transfer,
-      errors: [...transfer.errors, 'Unlock proof already used.'],
-      status: status.COMPLETE,
-      completedStep: UNLOCK
-    }
-  }
+  if (transfer.status !== status.ACTION_NEEDED) return transfer
+  const proof = transfer.proof
+  console.log('proof', proof)
 
   // Unlock
   const borshProof = borshifyOutcomeProof(proof)
 
   const ethUserAddress = (await web3.eth.getAccounts())[0]
   const ethTokenLocker = new web3.eth.Contract(
-    JSON.parse(process.env.ethLockerAbiText),
-    process.env.ethLockerAddress,
+    JSON.parse(process.env.etherCustodianAbiText),
+    process.env.etherCustodianAddress,
     { from: ethUserAddress }
   )
   // If this tx is dropped and replaced, lower the search boundary
@@ -438,7 +581,7 @@ async function unlock (transfer) {
   const safeReorgHeight = await web3.eth.getBlockNumber() - 20
   const unlockHash = await new Promise((resolve, reject) => {
     ethTokenLocker.methods
-      .unlockToken(borshProof, BN(transfer.nearOnEthClientBlockHeight)).send()
+      .withdraw(borshProof, new BN(transfer.nearOnEthClientBlockHeight)).send()
       .on('transactionHash', resolve)
       .catch(reject)
   })
