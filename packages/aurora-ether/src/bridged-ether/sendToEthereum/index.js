@@ -308,11 +308,12 @@ async function burn (transfer) {
   }
 
   const safeReorgHeight = await web3.eth.getBlockNumber() - 20
+  const exitToEthereumData = '0x00' + transfer.recipient.slice(2)
   const tx = await web3.eth.sendTransaction({
     from: transfer.sender,
-    to: '0xb0bd02f6a392af548bdf1cfaee5dfa0eefcc8eab', // exit to ethereum precompile address
+    to: process.env.exitToEthereumPrecompile,
     value: transfer.amount,
-    data: '0x00' + transfer.recipient.slice(2),
+    data: exitToEthereumData,
     gas: 121000
   })
   const pendingBurnTx = await web3.eth.getTransaction(tx.transactionHash)
@@ -323,12 +324,12 @@ async function burn (transfer) {
     ethCache: {
       from: pendingBurnTx.from,
       to: pendingBurnTx.to,
-      data: pendingBurnTx.input, // TODO check burn with data instead of event ?
-      safeReorgHeight,
-      nonce: pendingBurnTx.nonce
+      data: exitToEthereumData,
+      nonce: pendingBurnTx.nonce,
+      value: pendingBurnTx.value,
+      safeReorgHeight
     },
-    burnHashes: [...transfer.burnHashes, tx.transactionHash],
-    nearBurnHashes: [...transfer.nearBurnHashes, bs58.encode(Buffer.from(tx.nearTransactionHash.slice(2), 'hex'))]
+    burnHashes: [...transfer.burnHashes, tx.transactionHash]
   }
 }
 
@@ -338,42 +339,28 @@ async function checkBurn (transfer) {
   const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
   const burnHash = last(transfer.burnHashes)
-  const nearBurnHash = last(transfer.nearBurnHashes)
 
   const ethChainId = await web3.eth.net.getId()
   if (ethChainId !== Number(process.env.auroraChainId)) {
-    // Webapp should prevent the user from confirming if the wrong network is selected
-    throw new Error(
-      `Wrong eth network for burn, expected: ${process.env.auroraChainId}, got: ${ethChainId}`
+    console.log(
+      `Wrong eth network for checkBurn, expected: ${process.env.auroraChainId}, got: ${ethChainId}`
     )
+    return transfer
   }
-  const burnReceipt = await web3.eth.getTransactionReceipt(burnHash)
+  let burnReceipt = await web3.eth.getTransactionReceipt(burnHash)
 
-  /*
-  // TODO can a tx be speedup on aurora ?
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!burnReceipt) {
+    return transfer // TODO remove when speed up available on Aurora
     try {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: transfer.ethCache.to || process.env.ethLockerAddress // TODO burn precompile
+        to: transfer.ethCache.to,
+        data: transfer.ethCache.data,
+        value: transfer.ethCache.value
       }
-      const event = {
-        name: 'Locked', // TODO
-        abi: process.env.ethLockerAbiText,
-        address: process.env.ethLockerAddress, // TODO burn precompile
-        validate: ({ returnValues: { token, sender, amount, accountId } }) => {
-          if (!event) return false
-          return (
-            token.toLowerCase() === transfer.sourceToken.toLowerCase() &&
-            sender.toLowerCase() === transfer.sender.toLowerCase() &&
-            amount === transfer.amount &&
-            accountId === transfer.recipient // TODO
-          )
-        }
-      }
-      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx)
       if (!foundTx) return transfer
       burnReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
@@ -385,7 +372,6 @@ async function checkBurn (transfer) {
       }
     }
   }
-  */
 
   if (!burnReceipt) return transfer
 
@@ -398,22 +384,19 @@ async function checkBurn (transfer) {
       burnReceipts: [...transfer.burnReceipts, burnReceipt]
     }
   }
-  /*
   if (burnReceipt.transactionHash !== burnHash) {
-    // TODO can a tx be speedup on aurora ?
-    // Record the replacement tx lockHash
-    return {
+    // Record the replacement tx burnHash
+    transfer = {
       ...transfer,
-      status: status.IN_PROGRESS,
-      completedStep: BURN,
       burnHashes: [...transfer.burnHashes, burnReceipt.transactionHash],
       burnReceipts: [...transfer.burnReceipts, burnReceipt]
     }
   }
-  */
 
   // Parse NEAR tx burn receipt
-  const decodedTxHash = utils.serialize.base_decode(nearBurnHash)
+  const decodedTxHash = Buffer.from(burnReceipt.nearTransactionHash.slice(2), 'hex')
+  const nearBurnHash = bs58.encode(decodedTxHash)
+
   const nearAccount = await getNearAccount()
   const nearBurnTx = await nearAccount.connection.provider.txStatus(
     decodedTxHash, process.env.auroraRelayerAccount
@@ -455,6 +438,7 @@ async function checkBurn (transfer) {
     status: status.IN_PROGRESS,
     completedStep: BURN,
     burnReceipts: [...transfer.burnReceipts, burnReceipt],
+    nearBurnHashes: [...transfer.nearBurnHashes, nearBurnHash],
     nearBurnReceiptIds: [...transfer.nearBurnReceiptIds, nearBurnReceipt.id],
     nearBurnReceiptBlockHeights: [...transfer.nearBurnReceiptBlockHeights, nearBurnReceipt.blockHeight]
   }
@@ -553,7 +537,7 @@ async function proofAlreadyUsed (web3, proof) {
 }
 
 /**
- * Unlock tokens stored in the contract at process.env.ethLockerAddress,
+ * Unlock tokens stored in the contract at process.env.etherCustodianAddress,
  * passing the proof that the tokens were withdrawn/burned in the corresponding
  * NEAR BridgeToken contract.
  * @param {*} transfer
@@ -593,8 +577,9 @@ async function unlock (transfer) {
     ethCache: {
       from: pendingUnlockTx.from,
       to: pendingUnlockTx.to,
-      safeReorgHeight,
-      nonce: pendingUnlockTx.nonce
+      nonce: pendingUnlockTx.nonce,
+      data: pendingUnlockTx.input,
+      safeReorgHeight
     },
     unlockHashes: [...transfer.unlockHashes, unlockHash]
   }
@@ -625,21 +610,10 @@ async function checkUnlock (transfer) {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: transfer.ethCache.to
+        to: transfer.ethCache.to,
+        data: transfer.ethCache.data
       }
-      const event = {
-        name: 'Unlocked',
-        abi: process.env.ethLockerAbiText,
-        address: process.env.ethLockerAddress,
-        validate: ({ returnValues: { amount, recipient } }) => {
-          if (!event) return false
-          return (
-            amount === transfer.amount &&
-            recipient.toLowerCase() === transfer.recipient.toLowerCase()
-          )
-        }
-      }
-      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx)
       if (!foundTx) return transfer
       unlockReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
@@ -674,13 +648,10 @@ async function checkUnlock (transfer) {
   }
 
   if (unlockReceipt.transactionHash !== unlockHash) {
-    // Record the replacement tx lockHash
-    return {
+    // Record the replacement tx unlockHash
+    transfer = {
       ...transfer,
-      status: status.IN_PROGRESS,
-      completedStep: UNLOCK,
-      lockHashes: [...transfer.lockHashes, unlockReceipt.transactionHash],
-      lockReceipts: [...transfer.lockReceipts, unlockReceipt]
+      unlockHashes: [...transfer.unlockHashes, unlockReceipt.transactionHash]
     }
   }
 

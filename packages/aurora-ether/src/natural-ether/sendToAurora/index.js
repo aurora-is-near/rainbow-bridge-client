@@ -246,8 +246,9 @@ async function lock (transfer) {
     ethCache: {
       from: pendingLockTx.from,
       to: pendingLockTx.to,
-      safeReorgHeight,
-      nonce: pendingLockTx.nonce
+      nonce: pendingLockTx.nonce,
+      data: pendingLockTx.input,
+      safeReorgHeight
     },
     lockHashes: [...transfer.lockHashes, lockHash]
   }
@@ -275,23 +276,10 @@ async function checkLock (transfer) {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
-        to: transfer.ethCache.to
+        to: transfer.ethCache.to,
+        data: transfer.ethCache.data
       }
-      const event = {
-        name: 'Deposited',
-        abi: process.env.etherCustodianAbiText,
-        address: process.env.etherCustodianAddress,
-        validate: ({ returnValues: { sender, recipient, amount, fee } }) => {
-          if (!event) return false
-          return (
-            sender.toLowerCase() === transfer.sender.toLowerCase() &&
-            recipient.toLowerCase() === (process.env.auroraEvmAccount + ':' + transfer.recipient.slice(2).toLowerCase()) &&
-            amount === transfer.amount &&
-            fee === '0' // TODO
-          )
-        }
-      }
-      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
+      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx)
       if (!foundTx) return transfer
       lockReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
@@ -326,12 +314,9 @@ async function checkLock (transfer) {
   }
   if (lockReceipt.transactionHash !== lockHash) {
     // Record the replacement tx lockHash
-    return {
+    transfer = {
       ...transfer,
-      status: status.IN_PROGRESS,
-      completedStep: LOCK,
-      lockHashes: [...transfer.lockHashes, lockReceipt.transactionHash],
-      lockReceipts: [...transfer.lockReceipts, lockReceipt]
+      lockHashes: [...transfer.lockHashes, lockReceipt.transactionHash]
     }
   }
 
