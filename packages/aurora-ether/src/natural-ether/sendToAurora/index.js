@@ -339,7 +339,6 @@ async function checkSync (transfer) {
     // Check if relayer already minted
     proof = await findProof(lockReceipt.transactionHash)
     const nearAccount = await getNearAccount()
-    console.log(proof, nearAccount)
     const proofAlreadyUsed = await nearAccount.viewFunction(
       process.env.auroraEvmAccount,
       'is_used_proof',
