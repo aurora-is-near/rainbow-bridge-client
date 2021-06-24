@@ -141,9 +141,8 @@ export function checkStatus (transfer) {
  * Parse the burn receipt id and block height needed to complete
  * the step BURN
  * @param {*} nearBurnTx
- * @param {string} sender
  */
-async function parseBurnReceipt (nearBurnTx, sender) {
+async function parseBurnReceipt (nearBurnTx) {
   const nearAccount = await getNearAccount()
   const receiptIds = nearBurnTx.transaction_outcome.outcome.receipt_ids
 
@@ -174,7 +173,7 @@ async function parseBurnReceipt (nearBurnTx, sender) {
  * Recover transfer from a burn tx hash
  * @param {*} auroraBurnTxHash
  */
-export async function recover (auroraBurnTxHash) {
+export async function recover (auroraBurnTxHash, sender = process.env.auroraRelayerAccount) {
   const web3 = new Web3(getAuroraProvider())
   const auroraBurnReceipt = await web3.eth.getTransactionReceipt(auroraBurnTxHash)
   const nearBurnTxHash = bs58.encode(Buffer.from(auroraBurnReceipt.nearTransactionHash.slice(2), 'hex'))
@@ -182,7 +181,7 @@ export async function recover (auroraBurnTxHash) {
   const decodedTxHash = utils.serialize.base_decode(nearBurnTxHash)
   const nearAccount = await getNearAccount()
   const burnTx = await nearAccount.connection.provider.txStatus(
-    decodedTxHash, process.env.auroraRelayerAccount
+    decodedTxHash, sender
   )
 
   if (burnTx.status.Unknown) {
@@ -232,7 +231,7 @@ export async function recover (auroraBurnTxHash) {
   const symbol = 'ETH'
   const sourceToken = null
 
-  const nearBurnReceipt = await parseBurnReceipt(burnTx, process.env.auroraRelayerAccount)
+  const nearBurnReceipt = await parseBurnReceipt(burnTx)
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
@@ -365,10 +364,12 @@ async function checkBurn (transfer) {
       burnReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
-      return {
-        ...transfer,
-        errors: [...transfer.errors, error.message],
-        status: status.FAILED
+      if (error instanceof SearchError || error instanceof TxValidationError) {
+        return {
+          ...transfer,
+          errors: [...transfer.errors, error.message],
+          status: status.FAILED
+        }
       }
     }
   }
@@ -419,7 +420,7 @@ async function checkBurn (transfer) {
 
   let nearBurnReceipt
   try {
-    nearBurnReceipt = await parseBurnReceipt(nearBurnTx, process.env.auroraRelayerAccount)
+    nearBurnReceipt = await parseBurnReceipt(nearBurnTx)
   } catch (e) {
     if (e instanceof TransferError) {
       return {
@@ -549,7 +550,6 @@ async function unlock (transfer) {
   transfer = await checkSync(transfer)
   if (transfer.status !== status.ACTION_NEEDED) return transfer
   const proof = transfer.proof
-  console.log('proof', proof)
 
   // Unlock
   const borshProof = borshifyOutcomeProof(proof)

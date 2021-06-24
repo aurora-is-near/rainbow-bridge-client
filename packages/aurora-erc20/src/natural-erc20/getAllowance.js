@@ -8,7 +8,6 @@ import { getEthProvider } from '@near-eth/client/dist/utils'
  * @param {*} param.spender
  */
 export default async function getAllowance ({ erc20Address, owner, spender }) {
-  console.log(erc20Address, owner, spender)
   if (!owner || !spender) return null
 
   const web3 = new Web3(getEthProvider())
