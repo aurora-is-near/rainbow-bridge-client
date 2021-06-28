@@ -58,6 +58,7 @@ const transferDraft = {
   //   to,                       // tx.to of last broadcasted eth tx (can be multisig contract)
   //   safeReorgHeight,          // Lower boundary for replacement tx search
   //   nonce                     // tx.nonce of last broadcasted eth tx
+  //   data                     // tx.input of last broadcasted eth tx
   // }
 
   // Attributes specific to natural-erc20-to-nep141 transfers
@@ -351,12 +352,14 @@ async function checkBurn (transfer) {
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!burnReceipt) {
     return transfer // TODO remove when speed up available on Aurora
+    // eslint-disable-next-line no-unreachable
     try {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
         to: transfer.ethCache.to,
-        data: transfer.ethCache.data,
+        // TODO check data is valid when Aurora rpc is complete and contains tx.input (currently "0x")
+        // data: transfer.ethCache.data,
         value: transfer.ethCache.value
       }
       const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx)

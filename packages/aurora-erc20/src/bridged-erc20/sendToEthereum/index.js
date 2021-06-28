@@ -59,6 +59,7 @@ const transferDraft = {
   //   to,                       // tx.to of last broadcasted eth tx (can be multisig contract)
   //   safeReorgHeight,          // Lower boundary for replacement tx search
   //   nonce                     // tx.nonce of last broadcasted eth tx
+  //   data                     // tx.input of last broadcasted eth tx
   // }
 
   // Attributes specific to natural-erc20-to-nep141 transfers
@@ -66,9 +67,9 @@ const transferDraft = {
   nearOnEthClientBlockHeight: null, // calculated & set to a number during checkSync
   burnHashes: [],
   burnReceipts: [],
-  nearBurnHashes: [], // TODO
-  nearBurnReceiptIds: [], // TODO
-  nearBurnReceiptBlockHeights: [], // TODO
+  nearBurnHashes: [],
+  nearBurnReceiptIds: [],
+  nearBurnReceiptBlockHeights: [],
   unlockHashes: [],
   unlockReceipts: []
 }
@@ -237,7 +238,7 @@ export async function recover (auroraBurnTxHash, sender = process.env.auroraRela
   const erc20Address = '0x' + Buffer.from(burnEvent.token).toString('hex')
   const destinationTokenName = await getErc20Name(erc20Address)
   const decimals = await getDecimals(erc20Address)
-  const sourceTokenName = destinationTokenName
+  const sourceTokenName = 'a' + destinationTokenName
   const symbol = destinationTokenName
 
   // various attributes stored as arrays, to keep history of retries
@@ -267,9 +268,7 @@ export async function recover (auroraBurnTxHash, sender = process.env.auroraRela
 }
 
 export async function initiate ({ amount, token }) {
-  // TODO: move to core 'decorate'; get both from contracts
   const sourceTokenName = 'a' + token.symbol
-  // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = token.decimals
   const destinationTokenName = token.symbol
 
@@ -346,8 +345,6 @@ async function burn (transfer) {
 }
 
 async function checkBurn (transfer) {
-  // TODO check BURN with Aurora tx or NEAR tx ?
-  // TODO record NEAR BURN tx so that it can be used to build the proof
   const provider = getAuroraProvider()
   // If available connect to rpcUrl to avoid issues with WalletConnectProvider
   const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
@@ -365,11 +362,13 @@ async function checkBurn (transfer) {
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!burnReceipt) {
-    return transfer
+    return transfer // TODO remove when speed up available on Aurora
+    // eslint-disable-next-line no-unreachable
     try {
       const tx = {
         nonce: transfer.ethCache.nonce,
         from: transfer.ethCache.from,
+        // TODO check data is valid when Aurora rpc is complete and contains tx.input (currently "0x")
         data: transfer.ethCache.data,
         to: transfer.ethCache.to
       }
@@ -379,7 +378,6 @@ async function checkBurn (transfer) {
         abi: process.env.auroraErc20AbiText,
         address: transfer.sourceToken,
         validate: ({ returnValues: { from, to, value } }) => {
-          if (!event) return false
           return (
             from.toLowerCase() === transfer.sender.toLowerCase() &&
             to === 0 && // TODO address(0)
@@ -644,20 +642,6 @@ async function checkUnlock (transfer) {
         to: transfer.ethCache.to,
         data: transfer.ethCache.data
       }
-      /*
-      const event = {
-        name: 'Unlocked',
-        abi: process.env.ethLockerAbiText,
-        address: process.env.ethLockerAddress,
-        validate: ({ returnValues: { amount, recipient } }) => {
-          if (!event) return false
-          return (
-            amount === transfer.amount &&
-            recipient.toLowerCase() === transfer.recipient.toLowerCase()
-          )
-        }
-      }
-      */
       const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx)
       if (!foundTx) return transfer
       unlockReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)

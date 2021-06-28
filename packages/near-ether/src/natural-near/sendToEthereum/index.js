@@ -641,7 +641,6 @@ async function checkMint (transfer) {
         abi: process.env.eNEARAbiText,
         address: process.env.eNEARAddress,
         validate: ({ returnValues: { sender, amount, recipient } }) => {
-          if (!event) return false
           return (
             // sender.toLowerCase() === transfer.sender.toLowerCase() && // Don't check sender, anyone can mint
             amount === transfer.amount &&
