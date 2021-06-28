@@ -440,7 +440,6 @@ async function checkLock (transfer) {
         abi: process.env.ethLockerAbiText,
         address: process.env.ethLockerAddress,
         validate: ({ returnValues: { token, sender, amount, accountId } }) => {
-          if (!event) return false
           return (
             token.toLowerCase() === transfer.sourceToken.toLowerCase() &&
             sender.toLowerCase() === transfer.sender.toLowerCase() &&

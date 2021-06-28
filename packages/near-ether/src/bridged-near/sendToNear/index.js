@@ -270,7 +270,6 @@ async function checkBurn (transfer) {
         abi: process.env.eNEARAbiText,
         address: process.env.eNEARAddress,
         validate: ({ returnValues: { sender, amount, accountId } }) => {
-          if (!event) return false
           return (
             sender.toLowerCase() === transfer.sender.toLowerCase() &&
             amount === transfer.amount &&

@@ -179,9 +179,7 @@ export async function recover (lockTxHash) {
 }
 
 export async function initiate ({ amount, token }) {
-  // TODO: move to core 'decorate'; get both from contracts
   const sourceTokenName = token.symbol
-  // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = token.decimals
   const destinationTokenName = 'a' + sourceTokenName
 
@@ -211,7 +209,6 @@ export async function initiate ({ amount, token }) {
 
 export async function approve ({ amount, token }) {
   const sourceTokenName = token.symbol
-  // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = token.decimals
   const destinationTokenName = 'a' + sourceTokenName
 
@@ -448,7 +445,6 @@ async function checkLock (transfer) {
         abi: process.env.ethLockerAbiText,
         address: process.env.ethLockerAddress,
         validate: ({ returnValues: { token, sender, amount, accountId } }) => {
-          if (!event) return false
           return (
             token.toLowerCase() === transfer.sourceToken.toLowerCase() &&
             sender.toLowerCase() === transfer.sender.toLowerCase() &&

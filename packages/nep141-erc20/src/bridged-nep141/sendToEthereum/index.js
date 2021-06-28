@@ -661,7 +661,6 @@ async function checkUnlock (transfer) {
         abi: process.env.ethLockerAbiText,
         address: process.env.ethLockerAddress,
         validate: ({ returnValues: { amount, recipient } }) => {
-          if (!event) return false
           return (
             amount === transfer.amount &&
             recipient.toLowerCase() === transfer.recipient.toLowerCase()
