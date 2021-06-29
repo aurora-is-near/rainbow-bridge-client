@@ -1,7 +1,6 @@
-import BN from 'bn.js'
-import { borshifyOutcomeProof, nearOnEthSyncHeight } from '@near-eth/utils'
+import { borshifyOutcomeProof, nearOnEthSyncHeight, findNearProof } from '@near-eth/utils'
 import getRevertReason from 'eth-revert-reason'
-import Web3 from 'web3'
+import { ethers } from 'ethers'
 import bs58 from 'bs58'
 import { utils } from 'near-api-js'
 import {
@@ -18,7 +17,6 @@ import {
   formatLargeNum
 } from '@near-eth/client/dist/utils'
 import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
-import findProof from './findProof'
 
 export const SOURCE_NETWORK = 'aurora'
 export const DESTINATION_NETWORK = 'ethereum'
@@ -175,8 +173,10 @@ async function parseBurnReceipt (nearBurnTx) {
  * @param {*} auroraBurnTxHash
  */
 export async function recover (auroraBurnTxHash, sender = process.env.auroraRelayerAccount) {
-  const web3 = new Web3(getAuroraProvider())
-  const auroraBurnReceipt = await web3.eth.getTransactionReceipt(auroraBurnTxHash)
+  const provider = getAuroraProvider()
+
+  // Ethers formats the receipts and removes nearTransactionHash
+  const auroraBurnReceipt = await provider.send('eth_getTransactionReceipt', [auroraBurnTxHash])
   const nearBurnTxHash = bs58.encode(Buffer.from(auroraBurnReceipt.nearTransactionHash.slice(2), 'hex'))
 
   const decodedTxHash = utils.serialize.base_decode(nearBurnTxHash)
@@ -267,8 +267,8 @@ export async function initiate ({ amount, token }) {
   const destinationTokenName = token.symbol
 
   // TODO enable different recipient and consider multisig case where sender is not the signer
-  const web3 = new Web3(getSignerProvider())
-  const sender = web3.currentProvider.selectedAddress
+  const provider = getSignerProvider()
+  const sender = (await provider.listAccounts())[0].toLowerCase()
   const recipient = sender
 
   // various attributes stored as arrays, to keep history of retries
@@ -297,9 +297,9 @@ export async function initiate ({ amount, token }) {
  * @param {*} transfer
  */
 async function burn (transfer) {
-  const web3 = new Web3(getSignerProvider())
+  const provider = getSignerProvider()
 
-  const ethChainId = await web3.eth.net.getId()
+  const ethChainId = (await provider.getNetwork()).chainId
   if (ethChainId !== Number(process.env.auroraChainId)) {
     // Webapp should prevent the user from confirming if the wrong network is selected
     throw new Error(
@@ -307,16 +307,16 @@ async function burn (transfer) {
     )
   }
 
-  const safeReorgHeight = await web3.eth.getBlockNumber() - 20
+  const safeReorgHeight = await provider.getBlockNumber() - 20
   const exitToEthereumData = '0x00' + transfer.recipient.slice(2)
-  const tx = await web3.eth.sendTransaction({
+  const txHash = await provider.send('eth_sendTransaction', [{
     from: transfer.sender,
     to: process.env.exitToEthereumPrecompile,
-    value: transfer.amount,
+    value: ethers.BigNumber.from(transfer.amount).toHexString(),
     data: exitToEthereumData,
-    gas: 121000
-  })
-  const pendingBurnTx = await web3.eth.getTransaction(tx.transactionHash)
+    gas: ethers.BigNumber.from(121000).toHexString()
+  }])
+  const pendingBurnTx = await provider.getTransaction(txHash)
 
   return {
     ...transfer,
@@ -324,30 +324,29 @@ async function burn (transfer) {
     ethCache: {
       from: pendingBurnTx.from,
       to: pendingBurnTx.to,
-      data: exitToEthereumData,
+      data: pendingBurnTx.data,
       nonce: pendingBurnTx.nonce,
       value: pendingBurnTx.value,
       safeReorgHeight
     },
-    burnHashes: [...transfer.burnHashes, tx.transactionHash]
+    burnHashes: [...transfer.burnHashes, txHash]
   }
 }
 
 async function checkBurn (transfer) {
   const provider = getAuroraProvider()
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
   const burnHash = last(transfer.burnHashes)
 
-  const ethChainId = await web3.eth.net.getId()
+  const ethChainId = (await provider.getNetwork()).chainId
   if (ethChainId !== Number(process.env.auroraChainId)) {
     console.log(
       `Wrong eth network for checkBurn, expected: ${process.env.auroraChainId}, got: ${ethChainId}`
     )
     return transfer
   }
-  let burnReceipt = await web3.eth.getTransactionReceipt(burnHash)
+  // Ethers formats the receipts and removes nearTransactionHash
+  let burnReceipt = await provider.send('eth_getTransactionReceipt', [burnHash])
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!burnReceipt) {
@@ -364,7 +363,8 @@ async function checkBurn (transfer) {
       }
       const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx)
       if (!foundTx) return transfer
-      burnReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
+      // Ethers formats the receipts and removes nearTransactionHash
+      burnReceipt = await provider.send('eth_getTransactionReceipt', [foundTx.hash])
     } catch (error) {
       console.error(error)
       if (error instanceof SearchError || error instanceof TxValidationError) {
@@ -379,7 +379,7 @@ async function checkBurn (transfer) {
 
   if (!burnReceipt) return transfer
 
-  if (!burnReceipt.status) {
+  if (burnReceipt.status !== '0x1') {
     const error = 'Aurora transaction failed.'
     return {
       ...transfer,
@@ -482,8 +482,7 @@ async function checkFinality (transfer) {
  */
 async function checkSync (transfer) {
   const provider = getEthProvider()
-  const web3 = new Web3(provider)
-  const ethNetwork = await web3.eth.net.getNetworkType()
+  const ethNetwork = (await provider.getNetwork()).name
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(
       'Wrong eth network for checkSync, expected: %s, got: %s',
@@ -497,8 +496,14 @@ async function checkSync (transfer) {
   let proof
 
   if (nearOnEthClientBlockHeight > burnBlockHeight) {
-    proof = await findProof({ ...transfer, nearOnEthClientBlockHeight })
-    if (await proofAlreadyUsed(web3, proof)) {
+    proof = await findNearProof(
+      last(transfer.nearBurnReceiptIds),
+      transfer.sender,
+      nearOnEthClientBlockHeight,
+      await getNearAccount(),
+      provider
+    )
+    if (await proofAlreadyUsed(provider, proof)) {
       // TODO find the unlockTxHash
       return {
         ...transfer,
@@ -527,16 +532,16 @@ async function checkSync (transfer) {
 
 /**
  * Check if a NEAR outcome receipt_id has already been used to finalize a transfer to Ethereum.
- * @param {*} web3
+ * @param {*} provider
  * @param {*} proof
  */
-async function proofAlreadyUsed (web3, proof) {
+async function proofAlreadyUsed (provider, proof) {
   const usedProofsKey = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
   // The usedProofs_ mapping is the 4th variable defined in the contract storage.
   const usedProofsMappingPosition = '0'.repeat(63) + '3'
-  const storageIndex = web3.utils.sha3('0x' + usedProofsKey + usedProofsMappingPosition)
+  const storageIndex = ethers.utils.keccak256('0x' + usedProofsKey + usedProofsMappingPosition)
   // eth_getStorageAt docs: https://eth.wiki/json-rpc/API
-  const proofIsUsed = await web3.eth.getStorageAt(process.env.etherCustodianAddress, storageIndex)
+  const proofIsUsed = await provider.getStorageAt(process.env.etherCustodianAddress, storageIndex)
   return Number(proofIsUsed) === 1
 }
 
@@ -547,7 +552,7 @@ async function proofAlreadyUsed (web3, proof) {
  * @param {*} transfer
  */
 async function unlock (transfer) {
-  const web3 = new Web3(getSignerProvider())
+  const provider = getSignerProvider()
 
   // Build burn proof
   transfer = await checkSync(transfer)
@@ -557,22 +562,15 @@ async function unlock (transfer) {
   // Unlock
   const borshProof = borshifyOutcomeProof(proof)
 
-  const ethUserAddress = (await web3.eth.getAccounts())[0]
-  const ethTokenLocker = new web3.eth.Contract(
-    JSON.parse(process.env.etherCustodianAbiText),
+  const ethTokenLocker = new ethers.Contract(
     process.env.etherCustodianAddress,
-    { from: ethUserAddress }
+    process.env.etherCustodianAbiText,
+    provider.getSigner()
   )
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  const safeReorgHeight = await web3.eth.getBlockNumber() - 20
-  const unlockHash = await new Promise((resolve, reject) => {
-    ethTokenLocker.methods
-      .withdraw(borshProof, new BN(transfer.nearOnEthClientBlockHeight)).send()
-      .on('transactionHash', resolve)
-      .catch(reject)
-  })
-  const pendingUnlockTx = await web3.eth.getTransaction(unlockHash)
+  const safeReorgHeight = await provider.getBlockNumber() - 20
+  const pendingUnlockTx = await ethTokenLocker.withdraw(borshProof, transfer.nearOnEthClientBlockHeight)
 
   return {
     ...transfer,
@@ -581,19 +579,17 @@ async function unlock (transfer) {
       from: pendingUnlockTx.from,
       to: pendingUnlockTx.to,
       nonce: pendingUnlockTx.nonce,
-      data: pendingUnlockTx.input,
+      data: pendingUnlockTx.data,
       safeReorgHeight
     },
-    unlockHashes: [...transfer.unlockHashes, unlockHash]
+    unlockHashes: [...transfer.unlockHashes, pendingUnlockTx.hash]
   }
 }
 
 async function checkUnlock (transfer) {
   const provider = getEthProvider()
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
-  const ethNetwork = await web3.eth.net.getNetworkType()
+  const ethNetwork = (await provider.getNetwork()).name
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(
       'Wrong eth network for checkUnlock, expected: %s, got: %s',
@@ -603,7 +599,7 @@ async function checkUnlock (transfer) {
   }
 
   const unlockHash = last(transfer.unlockHashes)
-  let unlockReceipt = await web3.eth.getTransactionReceipt(unlockHash)
+  let unlockReceipt = await provider.getTransactionReceipt(unlockHash)
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!unlockReceipt) {
@@ -618,7 +614,7 @@ async function checkUnlock (transfer) {
       }
       const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx)
       if (!foundTx) return transfer
-      unlockReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
+      unlockReceipt = await provider.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
       if (error instanceof SearchError || error instanceof TxValidationError) {
@@ -637,7 +633,7 @@ async function checkUnlock (transfer) {
   if (!unlockReceipt.status) {
     let error
     try {
-      error = await getRevertReason(unlockHash, ethNetwork)
+      error = await getRevertReason(unlockHash, ethNetwork, 'latest', provider)
     } catch (e) {
       console.error(e)
       error = `Could not determine why transaction failed; encountered error: ${e.message}`

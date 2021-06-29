@@ -74,7 +74,7 @@ export function setNearConnection (connection: WalletConnection): WalletConnecti
  * other connector libraries that interoperate with @near-eth/client. If you
  * are an app developer, you can ignore this function.
  *
- * @returns an Ethereum Provider for use with ethers.js or web3js
+ * @returns an Ethereum Provider for use with ethers.js
  */
 export function getEthProvider (): any {
   return ethProvider
