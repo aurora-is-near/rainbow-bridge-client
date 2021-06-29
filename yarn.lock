@@ -1460,7 +1460,6 @@ __metadata:
     promisfy: ^1.2.0
     rlp: ^2.2.6
     typescript: 4.1.5
-    web3: ^1.3.4
   languageName: unknown
   linkType: soft
 
@@ -1493,7 +1492,6 @@ __metadata:
     promisfy: ^1.2.0
     rlp: ^2.2.6
     typescript: 4.1.5
-    web3: ^1.3.4
   languageName: unknown
   linkType: soft
 
@@ -1576,7 +1574,7 @@ __metadata:
     ethereumjs-util: ^7.0.10
     ethers: ^5.3.0
     lite-merkle-patricia-tree: "workspace:*"
-    near-api-js: ^0.39.0
+    near-api-js: "https://github.com/near/near-api-js#fef7f683fca86980f3509987226fbc7f63b455cb"
     typescript: 4.1.5
     web3-utils: ^1.3.4
   languageName: unknown
@@ -2464,18 +2462,6 @@ __metadata:
     raw-body: 2.4.0
     type-is: ~1.6.17
   checksum: 18c2a81df5eabc7e3541bc9ace394b88e6fbd390989b5e764ff34c3f9dbd097e19986c31baa9b855ec5c2cff2b79157449afb0cdfb97bb99c11d6239b2c47a34
-  languageName: node
-  linkType: hard
-
-"borsh@npm:^0.3.1":
-  version: 0.3.1
-  resolution: "borsh@npm:0.3.1"
-  dependencies:
-    "@types/bn.js": ^4.11.5
-    bn.js: ^5.0.0
-    bs58: ^4.0.0
-    text-encoding-utf-8: ^1.0.2
-  checksum: 9905a9099137c7cb4346cb27c58a5def33c7df87fdccb945a0137051ebe44d72a9a317f1907c8fcccabf174b9cd4e717c371ca59f31dca1276f852bb036a70d3
   languageName: node
   linkType: hard
 
@@ -6325,26 +6311,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"near-api-js@npm:^0.39.0":
-  version: 0.39.0
-  resolution: "near-api-js@npm:0.39.0"
-  dependencies:
-    "@types/bn.js": ^5.1.0
-    bn.js: ^5.0.0
-    borsh: ^0.3.1
-    bs58: ^4.0.0
-    depd: ^2.0.0
-    error-polyfill: ^0.1.2
-    http-errors: ^1.7.2
-    js-sha256: ^0.9.0
-    mustache: ^4.0.0
-    node-fetch: ^2.6.1
-    text-encoding-utf-8: ^1.0.2
-    tweetnacl: ^1.0.1
-  checksum: 8d8fd19342fd7ece08f2cf2e1c7c76c0832db84e218554ab95e6423c6b3ef468a130b973bb739e7f495762685ec700ebec86a902ad86c11a62fecdbd7076e077
-  languageName: node
-  linkType: hard
-
 "negotiator@npm:0.6.2":
   version: 0.6.2
   resolution: "negotiator@npm:0.6.2"
@@ -8909,7 +8875,7 @@ typescript@4.1.5:
   languageName: node
   linkType: hard
 
-"web3@npm:^1.2.9, web3@npm:^1.3.4":
+"web3@npm:^1.2.9":
   version: 1.3.4
   resolution: "web3@npm:1.3.4"
   dependencies:

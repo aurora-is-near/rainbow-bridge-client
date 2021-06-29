@@ -1542,8 +1542,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["near-api-js", "https://github.com/near/near-api-js.git#commit=fef7f683fca86980f3509987226fbc7f63b455cb"],
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
-            ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
-            ["web3", "npm:1.3.4"]
+            ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
           ],
           "linkType": "SOFT",
         }]
@@ -1578,8 +1577,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
 >>>>>>> ab37cfb (build: Web3->Ethers `sendToAurora`.)
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
-            ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
-            ["web3", "npm:1.3.4"]
+            ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
           ],
           "linkType": "SOFT",
         }]
@@ -1670,7 +1668,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.0.10"],
             ["ethers", "npm:5.3.0"],
             ["lite-merkle-patricia-tree", "workspace:packages/lite-merkle-patricia-tree"],
-            ["near-api-js", "npm:0.39.0"],
+            ["near-api-js", "https://github.com/near/near-api-js.git#commit=fef7f683fca86980f3509987226fbc7f63b455cb"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
             ["web3-utils", "npm:1.3.4"]
           ],
@@ -2758,17 +2756,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["borsh", [
-        ["npm:0.3.1", {
-          "packageLocation": "./.yarn/cache/borsh-npm-0.3.1-34d594311e-9905a90991.zip/node_modules/borsh/",
-          "packageDependencies": [
-            ["borsh", "npm:0.3.1"],
-            ["@types/bn.js", "npm:4.11.6"],
-            ["bn.js", "npm:5.2.0"],
-            ["bs58", "npm:4.0.1"],
-            ["text-encoding-utf-8", "npm:1.0.2"]
-          ],
-          "linkType": "HARD",
-        }],
         ["npm:0.4.0", {
           "packageLocation": "./.yarn/cache/borsh-npm-0.4.0-00838136e4-17a0acd88f.zip/node_modules/borsh/",
           "packageDependencies": [
@@ -7099,25 +7086,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["near-api-js", "https://github.com/near/near-api-js.git#commit=fef7f683fca86980f3509987226fbc7f63b455cb"],
             ["bn.js", "npm:5.2.0"],
             ["borsh", "npm:0.4.0"],
-            ["bs58", "npm:4.0.1"],
-            ["depd", "npm:2.0.0"],
-            ["error-polyfill", "npm:0.1.2"],
-            ["http-errors", "npm:1.8.0"],
-            ["js-sha256", "npm:0.9.0"],
-            ["mustache", "npm:4.1.0"],
-            ["node-fetch", "npm:2.6.1"],
-            ["text-encoding-utf-8", "npm:1.0.2"],
-            ["tweetnacl", "npm:1.0.3"]
-          ],
-          "linkType": "HARD",
-        }],
-        ["npm:0.39.0", {
-          "packageLocation": "./.yarn/cache/near-api-js-npm-0.39.0-c175b5913f-8d8fd19342.zip/node_modules/near-api-js/",
-          "packageDependencies": [
-            ["near-api-js", "npm:0.39.0"],
-            ["@types/bn.js", "npm:5.1.0"],
-            ["bn.js", "npm:5.2.0"],
-            ["borsh", "npm:0.3.1"],
             ["bs58", "npm:4.0.1"],
             ["depd", "npm:2.0.0"],
             ["error-polyfill", "npm:0.1.2"],

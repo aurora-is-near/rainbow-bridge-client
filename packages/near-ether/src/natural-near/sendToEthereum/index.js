@@ -555,7 +555,7 @@ async function checkSync (transfer) {
 
 /**
  * Check if a NEAR outcome receipt_id has already been used to finalize a transfer to Ethereum.
- * @param {*} web3
+ * @param {*} provider
  * @param {*} proof
  */
 async function proofAlreadyUsed (provider, proof) {
