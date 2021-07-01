@@ -38,6 +38,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/nep141-erc20"
+    "url": "https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/aurora-erc20"
   }
 }
