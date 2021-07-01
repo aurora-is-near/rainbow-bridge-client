@@ -2,17 +2,21 @@ import Web3 from 'web3'
 import getName from './getName'
 import { getEthProvider } from '@near-eth/client/dist/utils'
 
-export async function getBalance (address, user) {
-  if (!user) return null
+const erc20Symbols = {}
+export async function getSymbol (address) {
+  if (erc20Symbols[address]) return erc20Symbols[address]
 
   const web3 = new Web3(getEthProvider())
 
-  const erc20Contract = new web3.eth.Contract(
+  const contract = new web3.eth.Contract(
     JSON.parse(process.env.ethErc20AbiText),
     address
   )
 
-  return await erc20Contract.methods.balanceOf(user).call()
+  erc20Symbols[address] = await contract.methods.symbol().call()
+    .catch(() => address.slice(0, 5) + '…')
+
+  return erc20Symbols[address]
 }
 
 const erc20Decimals = {}
@@ -59,16 +63,18 @@ async function getIcon (address) {
  * @param address ERC20 token contract address
  * @returns {Promise<{ address: string, decimals: number, icon: string|null, name: string }>}
  */
-export default async function getErc20Data (address) {
-  const [decimals, icon, name] = await Promise.all([
+export default async function getMetadata (address) {
+  const [decimals, icon, name, symbol] = await Promise.all([
     getDecimals(address),
     getIcon(address),
-    getName(address)
+    getName(address),
+    getSymbol(address)
   ])
   return {
     address,
     decimals,
     icon,
-    name
+    name,
+    symbol
   }
 }

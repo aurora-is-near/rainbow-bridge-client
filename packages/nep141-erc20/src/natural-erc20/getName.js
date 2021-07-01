@@ -12,7 +12,7 @@ export default async function getName (address) {
     address
   )
 
-  erc20Names[address] = await contract.methods.symbol().call()
+  erc20Names[address] = await contract.methods.name().call()
     .catch(() => address.slice(0, 5) + '…')
 
   return erc20Names[address]

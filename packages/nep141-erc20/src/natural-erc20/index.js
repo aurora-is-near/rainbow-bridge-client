@@ -1,4 +1,4 @@
-export { getBalance } from './getMetadata'
+export { getBalance } from './getBalance'
 export { default as getMetadata } from './getMetadata'
 export { default as getAllowance } from './getAllowance'
 export { default as getName } from './getName'
