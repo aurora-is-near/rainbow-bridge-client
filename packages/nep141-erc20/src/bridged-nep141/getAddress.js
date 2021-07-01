@@ -3,7 +3,7 @@
  * corresponding BridgeToken contract.
  *
  * @param erc20Address Contract address of an ERC20 token on Ethereum
- * @returns string Contract address of NEP141 BridgeToken on Ethereum
+ * @returns string Contract address of NEP141 BridgeToken on Near
  */
 export default function getNep141Address (erc20Address) {
   return erc20Address.replace('0x', '').toLowerCase() +
