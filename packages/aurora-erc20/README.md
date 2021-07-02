@@ -1,5 +1,6 @@
 `@near-eth/aurora-erc20`
 ========================
+<a href="https://www.npmjs.com/package/@near-eth/aurora-erc20"><img alt="@near-eth/aurora-erc20 Version" src="https://img.shields.io/npm/v/@near-eth/aurora-erc20"></a>
 
 A Connector Library for sending Fungible Tokens over the Rainbow Bridge to and from Aurora Network.
 
