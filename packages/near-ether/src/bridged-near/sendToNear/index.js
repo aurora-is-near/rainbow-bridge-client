@@ -58,7 +58,7 @@ export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
       [BURN]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from Ethereum`,
-      [SYNC]: `Wait for ${transfer.neededConfirmations} transfer confirmations for security`,
+      [SYNC]: `Wait for ${transfer.neededConfirmations + Number(process.env.nearEventRelayerMargin)} transfer confirmations for security`,
       [UNLOCK]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in NEAR`
     }),
     statusMessage: transfer => {
@@ -71,7 +71,7 @@ export const i18n = {
       }
       switch (transfer.completedStep) {
         case null: return 'Transfering to NEAR'
-        case BURN: return `Confirming transfer ${transfer.completedConfirmations + 1} of ${transfer.neededConfirmations}`
+        case BURN: return `Confirming transfer ${transfer.completedConfirmations + 1} of ${transfer.neededConfirmations + Number(process.env.nearEventRelayerMargin)}`
         case SYNC: return 'Depositing in NEAR'
         case UNLOCK: return 'Transfer complete'
         default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
@@ -145,7 +145,7 @@ export async function recover (burnTxHash) {
   const decimals = 24
   const destinationTokenName = 'NEAR'
 
-  const transfer = {
+  let transfer = {
     ...transferDraft,
 
     amount,
@@ -160,6 +160,9 @@ export async function recover (burnTxHash) {
 
     burnReceipts: [receipt]
   }
+
+  // Check transfer status
+  transfer = await checkSync(transfer)
   return transfer
 }
 
@@ -332,8 +335,32 @@ async function checkSync (transfer) {
   const eventEmittedAt = burnReceipt.blockNumber
   const syncedTo = await ethOnNearSyncHeight()
   const completedConfirmations = Math.max(0, syncedTo - eventEmittedAt)
+  let proof
 
-  if (completedConfirmations < transfer.neededConfirmations) {
+  if (completedConfirmations > transfer.neededConfirmations) {
+    // Check if relayer already minted
+    proof = await findProof(burnReceipt.transactionHash)
+    const nearAccount = await getNearAccount()
+    const proofAlreadyUsed = await nearAccount.viewFunction(
+      process.env.nativeNEARLockerAddress,
+      'is_used_proof',
+      Buffer.from(proof)
+    )
+    if (proofAlreadyUsed) {
+      // TODO: find the event relayer tx hash
+      return {
+        ...transfer,
+        completedStep: UNLOCK,
+        completedConfirmations,
+        status: status.COMPLETE,
+        errors: [...transfer.errors, 'Transfer already finalized.']
+        // mintHashes: [...transfer.mintHashes, txHash]
+      }
+    }
+  }
+
+  if (completedConfirmations < transfer.neededConfirmations + Number(process.env.nearEventRelayerMargin)) {
+    // Leave some time for the relayer to finalize
     return {
       ...transfer,
       completedConfirmations,
@@ -345,7 +372,8 @@ async function checkSync (transfer) {
     ...transfer,
     completedConfirmations,
     completedStep: SYNC,
-    status: status.ACTION_NEEDED
+    status: status.ACTION_NEEDED,
+    proof // used when checkSync() is called by mint()
   }
 }
 
@@ -356,19 +384,11 @@ async function checkSync (transfer) {
  */
 async function unlock (transfer) {
   const nearAccount = await getNearAccount()
-  const burnReceipt = last(transfer.burnReceipts)
-  let proof
 
-  try {
-    proof = await findProof(burnReceipt.transactionHash)
-  } catch (error) {
-    console.error(error)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [...transfer.errors, error.message]
-    }
-  }
+  // Check if the transfer is finalized and get the proof if not
+  transfer = await checkSync(transfer)
+  if (transfer.status !== status.ACTION_NEEDED) return transfer
+  const proof = transfer.proof
 
   // Set url params before this unlock() returns, otherwise there is a chance that checkUnlock() is called before
   // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected

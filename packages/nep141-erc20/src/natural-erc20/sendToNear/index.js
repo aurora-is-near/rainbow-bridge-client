@@ -66,7 +66,7 @@ export const i18n = {
     steps: transfer => stepsFor(transfer, steps, {
       [APPROVE]: `Approve transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from Ethereum`,
       [LOCK]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to NEAR`,
-      [SYNC]: `Wait for ${transfer.neededConfirmations} transfer confirmations for security`,
+      [SYNC]: `Wait for ${transfer.neededConfirmations + Number(process.env.nearEventRelayerMargin)} transfer confirmations for security`,
       [MINT]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in NEAR`
     }),
     statusMessage: transfer => {
