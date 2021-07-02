@@ -203,23 +203,6 @@ export async function recover (lockTxHash, sender = 'todo') {
 
   // Check transfer status
   transfer = await checkSync(transfer)
-  if (transfer.status === status.IN_PROGRESS) {
-    return transfer
-  }
-  // Transfer ready to finalize: check if already finalized
-  const proof = await findProof(transfer)
-
-  const web3 = new Web3(getEthProvider())
-  if (await proofAlreadyUsed(web3, proof)) {
-    // TODO find the mintTxHash (requires eNEAR upgrade)
-    return {
-      ...transfer,
-      errors: [...transfer.errors, 'Mint proof already used.'],
-      status: status.COMPLETE,
-      completedStep: MINT
-    }
-  }
-
   return transfer
 }
 
@@ -534,8 +517,21 @@ async function checkSync (transfer) {
 
   const lockReceiptBlockHeight = last(transfer.lockReceiptBlockHeights)
   const nearOnEthClientBlockHeight = await nearOnEthSyncHeight(provider)
+  let proof
 
-  if (nearOnEthClientBlockHeight <= lockReceiptBlockHeight) {
+  if (nearOnEthClientBlockHeight > lockReceiptBlockHeight) {
+    proof = await findProof({ ...transfer, nearOnEthClientBlockHeight })
+    if (await proofAlreadyUsed(web3, proof)) {
+      // TODO find the unlockTxHash
+      return {
+        ...transfer,
+        completedStep: MINT,
+        nearOnEthClientBlockHeight,
+        status: status.COMPLETE,
+        errors: [...transfer.errors, 'Unlock proof already used.']
+      }
+    }
+  } else {
     return {
       ...transfer,
       nearOnEthClientBlockHeight,
@@ -547,7 +543,8 @@ async function checkSync (transfer) {
     ...transfer,
     completedStep: SYNC,
     nearOnEthClientBlockHeight,
-    status: status.ACTION_NEEDED
+    status: status.ACTION_NEEDED,
+    proof // used when checkSync() is called by unlock()
   }
 }
 
@@ -577,17 +574,8 @@ async function mint (transfer) {
 
   // Build lock proof
   transfer = await checkSync(transfer)
-  const proof = await findProof(transfer)
-
-  if (await proofAlreadyUsed(web3, proof)) {
-    // TODO find the unlockTxHash (requires ERC20Locker upgrade)
-    return {
-      ...transfer,
-      errors: [...transfer.errors, 'Mint proof already used.'],
-      status: status.COMPLETE,
-      completedStep: MINT
-    }
-  }
+  if (transfer.status !== status.ACTION_NEEDED) return transfer
+  const proof = transfer.proof
 
   const borshProof = borshifyOutcomeProof(proof)
 
