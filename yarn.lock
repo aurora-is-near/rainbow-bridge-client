@@ -1446,6 +1446,7 @@ __metadata:
     bn.js: ^5.1.3
     bs58: ^4.0.1
 <<<<<<< HEAD
+<<<<<<< HEAD
     eth-object: "aurora-is-near/eth-object#383b6ea68c7050bea4cab6950c1d5a7fa553e72b"
 =======
 <<<<<<< HEAD
@@ -1453,6 +1454,8 @@ __metadata:
 =======
 >>>>>>> ab37cfb (build: Web3->Ethers `sendToAurora`.)
 >>>>>>> 403bc89 (build: Web3->Ethers `sendToAurora`.)
+=======
+>>>>>>> 64f138f (build: Update eth-object EIP-1559.)
     eth-revert-reason: ^1.0.3
     ethereumjs-util: ^7.0.10
     find-replacement-tx: "workspace:*"
@@ -1478,6 +1481,7 @@ __metadata:
     bn.js: ^5.1.3
     bs58: ^4.0.1
 <<<<<<< HEAD
+<<<<<<< HEAD
     eth-object: "aurora-is-near/eth-object#383b6ea68c7050bea4cab6950c1d5a7fa553e72b"
 =======
 <<<<<<< HEAD
@@ -1485,6 +1489,8 @@ __metadata:
 =======
 >>>>>>> ab37cfb (build: Web3->Ethers `sendToAurora`.)
 >>>>>>> 403bc89 (build: Web3->Ethers `sendToAurora`.)
+=======
+>>>>>>> 64f138f (build: Update eth-object EIP-1559.)
     eth-revert-reason: ^1.0.3
     ethereumjs-util: ^7.0.10
     find-replacement-tx: "workspace:*"
@@ -1570,7 +1576,7 @@ __metadata:
     "@types/node": ^14.14.28
     "@yarnpkg/pnpify": ^2.4.0
     bs58: ^4.0.1
-    eth-object: "aurora-is-near/eth-object#8f75a8c9fa53647b34852e2e2fb115e11e3c4ea1"
+    eth-object: "aurora-is-near/eth-object#3c9df3b736be3d9b74235d346f70d000414d9092"
     ethereumjs-util: ^7.0.10
     ethers: ^5.3.0
     lite-merkle-patricia-tree: "workspace:*"
@@ -4026,17 +4032,6 @@ __metadata:
     ethereumjs-util: ^7.0.3
     web3: ^1.2.9
   checksum: ff2908d2f9eed953441c9477878b04651f09def12f819418dc912be86918825f6443c58e4a0c9db9da1e355a0325e661472a2873cb9baf064fc2aeb57dfc40f6
-  languageName: node
-  linkType: hard
-
-"eth-object@aurora-is-near/eth-object#fb57468391112502792ba5fd8c586f5d2467a89f":
-  version: 1.0.3
-  resolution: "eth-object@https://github.com/aurora-is-near/eth-object.git#commit=fb57468391112502792ba5fd8c586f5d2467a89f"
-  dependencies:
-    eth-util-lite: "near/eth-util-lite#master"
-    ethereumjs-util: ^7.0.3
-    web3: ^1.2.9
-  checksum: 8efbf3c90ea3ac57e5335440c1b6f5d47acdfeec2140f4c7e889adb79a21f96e6ace0785009b8f964a14fd33094c212371049cf94347709919c2063c7eafd64d
   languageName: node
   linkType: hard
 
