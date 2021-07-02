@@ -354,7 +354,7 @@ async function checkSync (transfer) {
         completedConfirmations,
         status: status.COMPLETE,
         errors: [...transfer.errors, 'Transfer already finalized.']
-        // mintHashes: [...transfer.mintHashes, txHash]
+        // unlockHashes: [...transfer.unlockHashes, txHash]
       }
     }
   }
