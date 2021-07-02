@@ -1,4 +1,0 @@
-releases:
-  "@near-eth/near-ether": minor
-  "@near-eth/nep141-erc20": patch
-  rainbow-bridge-client-monorepo: minor

@@ -1,3 +1,25 @@
+# [1.5.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v1.4.0...v1.5.0) (2021-07-02)
+
+
+### Bug Fixes
+
+* Doc in getAddress ([311510f](https://github.com/aurora-is-near/rainbow-bridge-client/commit/311510fc524f2e241a91937b81bb8c882ea2a94b))
+* Update find-replacement-tx error handling. ([24bf5f2](https://github.com/aurora-is-near/rainbow-bridge-client/commit/24bf5f29f25bfdfc9d21fbbc13214358b7f7e368))
+
+
+### Features
+
+* Add aurora-erc20 sendToEthereum and recover. ([ab27ade](https://github.com/aurora-is-near/rainbow-bridge-client/commit/ab27ade0f6fa3759df270221f346cc5d415b5b29))
+* Add aurora-ether sendToEthereum and recover. ([1ff8fa0](https://github.com/aurora-is-near/rainbow-bridge-client/commit/1ff8fa0a7897d66ea9810862117ca10f533aeaea))
+* Check event relayer finalization (aurora). ([9da3fc0](https://github.com/aurora-is-near/rainbow-bridge-client/commit/9da3fc0ddc6724c0952710a0fe82de98034aeb22))
+* Export checkApprove. ([d9a5f91](https://github.com/aurora-is-near/rainbow-bridge-client/commit/d9a5f91b3be4b57dce9b4881445ff75b964de41d))
+* Handle finalization by event relayer (erc20). ([f1039b4](https://github.com/aurora-is-near/rainbow-bridge-client/commit/f1039b490da07915b94b84056b22c00ff3aef01b))
+* Recover Eth -> Aurora transfers. ([21c5c23](https://github.com/aurora-is-near/rainbow-bridge-client/commit/21c5c23c748ccb1fd1af1badcb98593e974bd1e8))
+* **frtx:** Add validation with data and value. ([2c05f44](https://github.com/aurora-is-near/rainbow-bridge-client/commit/2c05f44265350ce7e14a8e6b2fa5ca8dcae63e5c))
+* Handle finalization by event relayer (NEAR). ([c45e5d9](https://github.com/aurora-is-near/rainbow-bridge-client/commit/c45e5d947587427bebde78ac26cfd6f0ff8357df))
+
+
+
 # [1.4.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v1.3.1...v1.4.0) (2021-05-27)
 
 
