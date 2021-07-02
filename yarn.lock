@@ -647,7 +647,7 @@ __metadata:
     "@yarnpkg/pnpify": ^2.4.0
     bn.js: ^5.1.3
     bs58: ^4.0.1
-    eth-object: "aurora-is-near/eth-object#8f75a8c9fa53647b34852e2e2fb115e11e3c4ea1"
+    eth-object: "aurora-is-near/eth-object#3c9df3b736be3d9b74235d346f70d000414d9092"
     eth-revert-reason: ^1.0.3
     ethereumjs-util: ^7.0.10
     find-replacement-tx: "workspace:*"
@@ -674,7 +674,7 @@ __metadata:
     "@yarnpkg/pnpify": ^2.4.0
     bn.js: ^5.1.3
     bs58: ^4.0.1
-    eth-object: "aurora-is-near/eth-object#8f75a8c9fa53647b34852e2e2fb115e11e3c4ea1"
+    eth-object: "aurora-is-near/eth-object#3c9df3b736be3d9b74235d346f70d000414d9092"
     eth-revert-reason: ^1.0.3
     ethereumjs-util: ^7.0.10
     find-replacement-tx: "workspace:*"
@@ -3224,17 +3224,6 @@ __metadata:
     ethereumjs-util: ^7.0.3
     web3: ^1.2.9
   checksum: 6f2ca22f185116d798b06417eed44551c9f2274bf13b76ca3e05d874ffe23942bdbefe595e81b39a537e1d2991c7f2e0cdff3fc06b320ab26cea015eb2bc1cd0
-  languageName: node
-  linkType: hard
-
-"eth-object@aurora-is-near/eth-object#8f75a8c9fa53647b34852e2e2fb115e11e3c4ea1":
-  version: 1.0.3
-  resolution: "eth-object@https://github.com/aurora-is-near/eth-object.git#commit=8f75a8c9fa53647b34852e2e2fb115e11e3c4ea1"
-  dependencies:
-    eth-util-lite: "near/eth-util-lite#master"
-    ethereumjs-util: ^7.0.3
-    web3: ^1.2.9
-  checksum: 762a1de20c821c30e2efbd36495f95ba973565f2a662cdc66f083a9315c83d172a9d7e3f316487491bec4a0aaa15995a9f59b2a3d148b49bb9c1be632ff15cc5
   languageName: node
   linkType: hard
 

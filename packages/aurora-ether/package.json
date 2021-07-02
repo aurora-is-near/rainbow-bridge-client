@@ -23,7 +23,7 @@
     "@near-eth/utils": "workspace:*",
     "bn.js": "^5.1.3",
     "bs58": "^4.0.1",
-    "eth-object": "aurora-is-near/eth-object#8f75a8c9fa53647b34852e2e2fb115e11e3c4ea1",
+    "eth-object": "aurora-is-near/eth-object#3c9df3b736be3d9b74235d346f70d000414d9092",
     "eth-revert-reason": "^1.0.3",
     "ethereumjs-util": "^7.0.10",
     "find-replacement-tx": "workspace:*",
