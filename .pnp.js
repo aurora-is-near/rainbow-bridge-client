@@ -764,7 +764,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@yarnpkg/pnpify", "virtual:b169caab91376c9920d84f10c6906a51fae16a06caf940bd48d492471ff9295afe466f685176ed7711cab35cf2afad8f26e7132f2c775db0e312b41bca505f2f#npm:2.4.0"],
             ["bn.js", "npm:5.2.0"],
             ["bs58", "npm:4.0.1"],
-            ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=8f75a8c9fa53647b34852e2e2fb115e11e3c4ea1"],
+            ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=3c9df3b736be3d9b74235d346f70d000414d9092"],
             ["eth-revert-reason", "npm:1.0.3"],
             ["ethereumjs-util", "npm:7.0.10"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
@@ -793,7 +793,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@yarnpkg/pnpify", "virtual:b169caab91376c9920d84f10c6906a51fae16a06caf940bd48d492471ff9295afe466f685176ed7711cab35cf2afad8f26e7132f2c775db0e312b41bca505f2f#npm:2.4.0"],
             ["bn.js", "npm:5.2.0"],
             ["bs58", "npm:4.0.1"],
-            ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=8f75a8c9fa53647b34852e2e2fb115e11e3c4ea1"],
+            ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=3c9df3b736be3d9b74235d346f70d000414d9092"],
             ["eth-revert-reason", "npm:1.0.3"],
             ["ethereumjs-util", "npm:7.0.10"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
@@ -3806,16 +3806,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageLocation": "./.yarn/cache/eth-object-https-bfc7a7e805-6f2ca22f18.zip/node_modules/eth-object/",
           "packageDependencies": [
             ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=3c9df3b736be3d9b74235d346f70d000414d9092"],
-            ["eth-util-lite", "https://github.com/near/eth-util-lite.git#commit=ae0210cbe127b4d43ba01fd7cd4898d1a3f6c96a"],
-            ["ethereumjs-util", "npm:7.0.8"],
-            ["web3", "npm:1.3.4"]
-          ],
-          "linkType": "HARD",
-        }],
-        ["https://github.com/aurora-is-near/eth-object.git#commit=8f75a8c9fa53647b34852e2e2fb115e11e3c4ea1", {
-          "packageLocation": "./.yarn/cache/eth-object-https-f349f79115-762a1de20c.zip/node_modules/eth-object/",
-          "packageDependencies": [
-            ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=8f75a8c9fa53647b34852e2e2fb115e11e3c4ea1"],
             ["eth-util-lite", "https://github.com/near/eth-util-lite.git#commit=ae0210cbe127b4d43ba01fd7cd4898d1a3f6c96a"],
             ["ethereumjs-util", "npm:7.0.8"],
             ["web3", "npm:1.3.4"]
