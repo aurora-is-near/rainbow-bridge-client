@@ -76,11 +76,14 @@ export async function findEthProof (
   )
   const log = receipt.logs[logIndexInArray]
 
+  // @ts-expect-error
+  receipt.cumulativeGasUsed = receipt.cumulativeGasUsed.toNumber()
+
   const formattedProof = new BorshProof({
     log_index: logIndexInArray,
-    log_entry_data: Array.from(Log.fromWeb3(log).serialize()),
+    log_entry_data: Array.from(Log.fromObject(log).serialize()),
     receipt_index: proof.txIndex,
-    receipt_data: Array.from(Receipt.fromWeb3(receipt).serialize()),
+    receipt_data: Array.from(Receipt.fromObject(receipt).serialize()),
     header_data: Array.from(proof.header_rlp),
     proof: Array.from(proof.receiptProof).map(rlp.encode).map(b => Array.from(b))
   })
@@ -93,7 +96,7 @@ async function buildTree (
   block: { transactions: ethers.providers.TransactionResponse[], receiptsRoot: string}
 ): Promise<Trie> {
   const blockReceipts = await Promise.all(
-    block.transactions.map(async t => await provider.getTransactionReceipt(t.hash))
+    block.transactions.map(async (t) => await provider.getTransactionReceipt(t.hash))
   )
 
   /*
@@ -116,7 +119,9 @@ async function buildTree (
   const trie = new Trie()
   blockReceipts.forEach(receipt => {
     const path = rlp.encode(receipt.transactionIndex)
-    const serializedReceipt = Receipt.fromWeb3(receipt).serialize()
+    // @ts-expect-error
+    receipt.cumulativeGasUsed = receipt.cumulativeGasUsed.toNumber()
+    const serializedReceipt = Receipt.fromObject(receipt).serialize()
     trie.put(path, serializedReceipt)
   })
   if (trie.root.toString('hex') !== block.receiptsRoot.slice(2)) {
@@ -144,7 +149,7 @@ async function extractProof (
   */
 
   // Correctly compose and encode the header.
-  const header = Header.fromWeb3(block)
+  const header = Header.fromRpc(block)
   return {
     header_rlp: header.serialize(),
     receiptProof: Proof.fromStack(stack),
