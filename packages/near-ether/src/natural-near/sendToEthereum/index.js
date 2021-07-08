@@ -522,7 +522,7 @@ async function checkSync (transfer) {
     proof = await findNearProof(
       last(transfer.lockReceiptIds),
       transfer.sender,
-      transfer.nearOnEthClientBlockHeight,
+      nearOnEthClientBlockHeight,
       await getNearAccount(),
       provider
     )
