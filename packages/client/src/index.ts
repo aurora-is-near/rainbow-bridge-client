@@ -5,7 +5,8 @@ import {
   Transfer,
   DecoratedTransfer,
   Step,
-  UnsavedTransfer
+  UnsavedTransfer,
+  CustomTransferTypes
 } from './types'
 
 export { onChange } from './storage'
@@ -15,12 +16,25 @@ export {
 } from './utils'
 export * as utils from './utils'
 
+let customTransferTypes: CustomTransferTypes = {}
+
+export function setTransferTypes (newTransferTypes: CustomTransferTypes): CustomTransferTypes {
+  customTransferTypes = newTransferTypes
+  return customTransferTypes
+}
+
+function getCustomTransferType (transfer: Transfer): ConnectorLib | undefined {
+  return customTransferTypes[transfer.type]
+}
+
 /**
  * Get the connector library for the given transfer's type
  * @param transfer Transfer object
  */
 function getTransferType (transfer: Transfer): ConnectorLib {
   // TODO: find a way to `require(transfer.type)`
+  const customTransferType = getCustomTransferType(transfer)
+  if (customTransferType) return customTransferType
   try {
     switch (transfer.type) {
       case '@near-eth/nep141-erc20/natural-erc20/sendToNear':
