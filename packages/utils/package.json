@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "bs58": "^4.0.1",
-    "eth-object": "aurora-is-near/eth-object#3c9df3b736be3d9b74235d346f70d000414d9092",
+    "eth-object": "aurora-is-near/eth-object#383b6ea68c7050bea4cab6950c1d5a7fa553e72b",
     "ethereumjs-util": "^7.0.10",
     "ethers": "^5.4.0",
     "lite-merkle-patricia-tree": "workspace:*",
