@@ -1,3 +1,12 @@
+## [1.5.1](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v1.5.0...v1.5.1) (2021-07-08)
+
+
+### Bug Fixes
+
+* Update `eth-object` for pre-eip1559 compatibility. ([8c8f5b1](https://github.com/aurora-is-near/rainbow-bridge-client/commit/8c8f5b1c3038ea94af9d6eef820712199f97e8b2))
+
+
+
 # [1.5.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v1.4.0...v1.5.0) (2021-07-02)
 
 
