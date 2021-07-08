@@ -31,6 +31,10 @@ function getTransferType (transfer: Transfer): ConnectorLib {
         return require('@near-eth/near-ether/dist/natural-near/sendToEthereum')
       case '@near-eth/near-ether/bridged-near/sendToNear':
         return require('@near-eth/near-ether/dist/bridged-near/sendToNear')
+      case '@near-eth/near-ether/natural-ether/sendToNear':
+        return require('@near-eth/near-ether/dist/natural-ether/sendToNear')
+      case '@near-eth/near-ether/bridged-ether/sendToEthereum':
+        return require('@near-eth/near-ether/dist/bridged-ether/sendToEthereum')
       case '@near-eth/aurora-erc20/natural-erc20/sendToAurora':
         return require('@near-eth/aurora-erc20/dist/natural-erc20/sendToAurora')
       case '@near-eth/aurora-erc20/bridged-erc20/sendToEthereum':
