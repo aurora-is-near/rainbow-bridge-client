@@ -268,7 +268,7 @@ export async function initiate ({ amount, token }) {
 
   // TODO enable different recipient and consider multisig case where sender is not the signer
   const provider = getSignerProvider()
-  const sender = (await provider.listAccounts())[0].toLowerCase()
+  const sender = (await provider.getSigner().getAddress()).toLowerCase()
   const recipient = sender
 
   // various attributes stored as arrays, to keep history of retries
@@ -481,6 +481,16 @@ async function checkFinality (transfer) {
  * @param {*} transfer
  */
 async function checkSync (transfer) {
+  if (!transfer.checkSyncInterval) {
+    // checkSync every 60s: reasonable value to detect transfer is ready to be finalized
+    transfer = {
+      ...transfer,
+      checkSyncInterval: Number(process.env.sendToEthereumSyncInterval)
+    }
+  }
+  if (transfer.nextCheckSyncTimestamp && new Date() < new Date(transfer.nextCheckSyncTimestamp)) {
+    return transfer
+  }
   const provider = getEthProvider()
   const ethNetwork = (await provider.getNetwork()).name
   if (ethNetwork !== process.env.ethNetworkId) {
@@ -516,6 +526,7 @@ async function checkSync (transfer) {
   } else {
     return {
       ...transfer,
+      nextCheckSyncTimestamp: new Date(Date.now() + transfer.checkSyncInterval),
       nearOnEthClientBlockHeight,
       status: status.IN_PROGRESS
     }
