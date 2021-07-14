@@ -181,7 +181,7 @@ export async function initiate ({ amount, token }) {
 
   // TODO enable different recipient and consider multisig case where sender is not the signer
   const provider = getSignerProvider()
-  const sender = (await provider.listAccounts())[0].toLowerCase()
+  const sender = (await provider.getSigner().getAddress()).toLowerCase()
   const recipient = sender
 
   // various attributes stored as arrays, to keep history of retries
@@ -220,7 +220,7 @@ export async function approve ({ amount, token }) {
   }
 
   // TODO enable different recipient and consider multisig case where sender is not the signer
-  const sender = (await provider.listAccounts())[0].toLowerCase()
+  const sender = (await provider.getSigner().getAddress()).toLowerCase()
   const recipient = sender
 
   // various attributes stored as arrays, to keep history of retries
@@ -484,11 +484,22 @@ async function checkLock (transfer) {
 }
 
 async function checkSync (transfer) {
+  if (!transfer.checkSyncInterval) {
+    // checkSync every 20s: reasonable value to show the confirmation counter x/30
+    transfer = {
+      ...transfer,
+      checkSyncInterval: Number(process.env.sendToNearSyncInterval)
+    }
+  }
+  if (transfer.nextCheckSyncTimestamp && new Date() < new Date(transfer.nextCheckSyncTimestamp)) {
+    return transfer
+  }
   const lockReceipt = last(transfer.lockReceipts)
   const eventEmittedAt = lockReceipt.blockNumber
   const syncedTo = await ethOnNearSyncHeight()
   const completedConfirmations = Math.max(0, syncedTo - eventEmittedAt)
   let proof
+  let newCheckSyncInterval = transfer.checkSyncInterval
 
   if (completedConfirmations > transfer.neededConfirmations) {
     // Check if relayer already minted
@@ -516,9 +527,13 @@ async function checkSync (transfer) {
         // mintHashes: [...transfer.mintHashes, txHash]
       }
     }
+    // Increase the interval for the next findEthProof call.
+    newCheckSyncInterval = transfer.checkSyncInterval * 2 > Number(process.env.maxFindEthProofInterval) ? transfer.checkSyncInterval : transfer.checkSyncInterval * 2
   }
   return {
     ...transfer,
+    nextCheckSyncTimestamp: new Date(Date.now() + newCheckSyncInterval),
+    checkSyncInterval: newCheckSyncInterval,
     completedConfirmations,
     status: status.IN_PROGRESS
   }

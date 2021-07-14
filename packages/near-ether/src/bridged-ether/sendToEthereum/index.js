@@ -537,6 +537,16 @@ async function checkFinality (transfer) {
  * @param {*} transfer
  */
 async function checkSync (transfer) {
+  if (!transfer.checkSyncInterval) {
+    // checkSync every 60s: reasonable value to detect transfer is ready to be finalized
+    transfer = {
+      ...transfer,
+      checkSyncInterval: Number(process.env.sendToEthereumSyncInterval)
+    }
+  }
+  if (transfer.nextCheckSyncTimestamp && new Date() < new Date(transfer.nextCheckSyncTimestamp)) {
+    return transfer
+  }
   const provider = getEthProvider()
 
   const ethNetwork = (await provider.getNetwork()).name
@@ -573,6 +583,7 @@ async function checkSync (transfer) {
   } else {
     return {
       ...transfer,
+      nextCheckSyncTimestamp: new Date(Date.now() + transfer.checkSyncInterval),
       nearOnEthClientBlockHeight,
       status: status.IN_PROGRESS
     }

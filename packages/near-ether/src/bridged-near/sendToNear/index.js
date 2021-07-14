@@ -318,6 +318,16 @@ async function checkBurn (transfer) {
 }
 
 async function checkSync (transfer) {
+  if (!transfer.checkSyncInterval) {
+    // checkSync every 20s: reasonable value to show the confirmation counter x/30
+    transfer = {
+      ...transfer,
+      checkSyncInterval: Number(process.env.sendToNearSyncInterval)
+    }
+  }
+  if (transfer.nextCheckSyncTimestamp && new Date() < new Date(transfer.nextCheckSyncTimestamp)) {
+    return transfer
+  }
   const burnReceipt = last(transfer.burnReceipts)
   const eventEmittedAt = burnReceipt.blockNumber
   const syncedTo = await ethOnNearSyncHeight()
@@ -356,6 +366,7 @@ async function checkSync (transfer) {
     // Leave some time for the relayer to finalize
     return {
       ...transfer,
+      nextCheckSyncTimestamp: new Date(Date.now() + transfer.checkSyncInterval),
       completedConfirmations,
       status: status.IN_PROGRESS
     }
