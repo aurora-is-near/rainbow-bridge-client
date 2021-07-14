@@ -156,6 +156,7 @@ export async function recover (lockTxHash) {
   let transfer = {
     ...transferDraft,
 
+    id: new Date().toISOString(),
     amount,
     completedStep: LOCK,
     destinationTokenName,
