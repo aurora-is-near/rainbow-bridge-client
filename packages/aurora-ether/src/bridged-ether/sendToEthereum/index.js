@@ -1,5 +1,4 @@
 import { borshifyOutcomeProof, nearOnEthSyncHeight, findNearProof } from '@near-eth/utils'
-import getRevertReason from 'eth-revert-reason'
 import { ethers } from 'ethers'
 import bs58 from 'bs58'
 import { utils } from 'near-api-js'
@@ -380,7 +379,7 @@ async function checkBurn (transfer) {
   if (!burnReceipt) return transfer
 
   if (burnReceipt.status !== '0x1') {
-    const error = 'Aurora transaction failed.'
+    const error = `Aurora transaction failed: ${burnReceipt.transactionHash}`
     return {
       ...transfer,
       status: status.FAILED,
@@ -492,11 +491,11 @@ async function checkSync (transfer) {
     return transfer
   }
   const provider = getEthProvider()
-  const ethNetwork = (await provider.getNetwork()).name
-  if (ethNetwork !== process.env.ethNetworkId) {
+  const ethChainId = (await provider.getNetwork()).chainId
+  if (ethChainId !== Number(process.env.ethChainId)) {
     console.log(
       'Wrong eth network for checkSync, expected: %s, got: %s',
-      process.env.ethNetworkId, ethNetwork
+      process.env.ethChainId, ethChainId
     )
     return transfer
   }
@@ -600,11 +599,11 @@ async function unlock (transfer) {
 async function checkUnlock (transfer) {
   const provider = getEthProvider()
 
-  const ethNetwork = (await provider.getNetwork()).name
-  if (ethNetwork !== process.env.ethNetworkId) {
+  const ethChainId = (await provider.getNetwork()).chainId
+  if (ethChainId !== Number(process.env.ethChainId)) {
     console.log(
       'Wrong eth network for checkUnlock, expected: %s, got: %s',
-      process.env.ethNetworkId, ethNetwork
+      process.env.ethChainId, ethChainId
     )
     return transfer
   }
@@ -642,13 +641,7 @@ async function checkUnlock (transfer) {
   if (!unlockReceipt) return transfer
 
   if (!unlockReceipt.status) {
-    let error
-    try {
-      error = await getRevertReason(unlockHash, ethNetwork, 'latest', provider)
-    } catch (e) {
-      console.error(e)
-      error = `Could not determine why transaction failed; encountered error: ${e.message}`
-    }
+    const error = `Transaction failed: ${unlockReceipt.transactionHash}`
     return {
       ...transfer,
       status: status.FAILED,

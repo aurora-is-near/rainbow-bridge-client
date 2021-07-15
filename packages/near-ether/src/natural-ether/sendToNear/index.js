@@ -1,6 +1,5 @@
 import BN from 'bn.js'
 import { Decimal } from 'decimal.js'
-import getRevertReason from 'eth-revert-reason'
 import { ethers } from 'ethers'
 import { track } from '@near-eth/client'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
@@ -199,12 +198,11 @@ export async function initiate ({
 async function lock (transfer) {
   const provider = getSignerProvider()
 
-  const ethNetwork = (await provider.getNetwork()).name
-  if (ethNetwork !== process.env.ethNetworkId) {
+  const ethChainId = (await provider.getNetwork()).chainId
+  if (ethChainId !== Number(process.env.ethChainId)) {
     // Webapp should prevent the user from confirming if the wrong network is selected
     throw new Error(
-      'Wrong eth network for lock, expected: %s, got: %s',
-      process.env.ethNetworkId, ethNetwork
+      `Wrong eth network for lock, expected: ${process.env.ethChainId}, got: ${ethChainId}`
     )
   }
 
@@ -239,11 +237,11 @@ async function checkLock (transfer) {
   const provider = getEthProvider()
 
   const lockHash = last(transfer.lockHashes)
-  const ethNetwork = (await provider.getNetwork()).name
-  if (ethNetwork !== process.env.ethNetworkId) {
+  const ethChainId = (await provider.getNetwork()).chainId
+  if (ethChainId !== Number(process.env.ethChainId)) {
     console.log(
       'Wrong eth network for checkLock, expected: %s, got: %s',
-      process.env.ethNetworkId, ethNetwork
+      process.env.ethChainId, ethChainId
     )
     return transfer
   }
@@ -277,13 +275,7 @@ async function checkLock (transfer) {
   if (!lockReceipt) return transfer
 
   if (!lockReceipt.status) {
-    let error
-    try {
-      error = await getRevertReason(lockHash, ethNetwork, 'latest', provider)
-    } catch (e) {
-      console.error(e)
-      error = `Could not determine why transaction failed; encountered error: ${e.message}`
-    }
+    const error = `Transaction failed: ${lockReceipt.transactionHash}`
     return {
       ...transfer,
       status: status.FAILED,

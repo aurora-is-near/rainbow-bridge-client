@@ -1,7 +1,6 @@
 import BN from 'bn.js'
 import { Decimal } from 'decimal.js'
 import bs58 from 'bs58'
-import getRevertReason from 'eth-revert-reason'
 import { ethers } from 'ethers'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
 import { utils } from 'near-api-js'
@@ -535,11 +534,11 @@ async function checkSync (transfer) {
   }
   const provider = getEthProvider()
 
-  const ethNetwork = (await provider.getNetwork()).name
-  if (ethNetwork !== process.env.ethNetworkId) {
+  const ethChainId = (await provider.getNetwork()).chainId
+  if (ethChainId !== Number(process.env.ethChainId)) {
     console.log(
       'Wrong eth network for checkSync, expected: %s, got: %s',
-      process.env.ethNetworkId, ethNetwork
+      process.env.ethChainId, ethChainId
     )
     return transfer
   }
@@ -641,11 +640,11 @@ async function unlock (transfer) {
 async function checkUnlock (transfer) {
   const provider = getEthProvider()
 
-  const ethNetwork = (await provider.getNetwork()).name
-  if (ethNetwork !== process.env.ethNetworkId) {
+  const ethChainId = (await provider.getNetwork()).chainId
+  if (ethChainId !== Number(process.env.ethChainId)) {
     console.log(
       'Wrong eth network for checkUnlock, expected: %s, got: %s',
-      process.env.ethNetworkId, ethNetwork
+      process.env.ethChainId, ethChainId
     )
     return transfer
   }
@@ -693,13 +692,7 @@ async function checkUnlock (transfer) {
   if (!unlockReceipt) return transfer
 
   if (!unlockReceipt.status) {
-    let error
-    try {
-      error = await getRevertReason(unlockHash, ethNetwork, 'latest', provider)
-    } catch (e) {
-      console.error(e)
-      error = `Could not determine why transaction failed; encountered error: ${e.message}`
-    }
+    const error = `Transaction failed: ${unlockReceipt.transactionHash}`
     return {
       ...transfer,
       status: status.FAILED,

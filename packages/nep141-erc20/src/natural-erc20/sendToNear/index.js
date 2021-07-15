@@ -1,6 +1,5 @@
 import BN from 'bn.js'
 import { Decimal } from 'decimal.js'
-import getRevertReason from 'eth-revert-reason'
 import { ethers } from 'ethers'
 import { track, get } from '@near-eth/client'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
@@ -241,6 +240,14 @@ export async function initiate ({
 async function approve (transfer) {
   const provider = getSignerProvider()
 
+  const ethChainId = (await provider.getNetwork()).chainId
+  if (ethChainId !== Number(process.env.ethChainId)) {
+    // Webapp should prevent the user from confirming if the wrong network is selected
+    throw new Error(
+      `Wrong eth network for approve, expected: ${process.env.ethChainId}, got: ${ethChainId}`
+    )
+  }
+
   const safeReorgHeight = await provider.getBlockNumber() - 20
   const erc20Contract = new ethers.Contract(
     transfer.sourceToken,
@@ -265,11 +272,11 @@ async function approve (transfer) {
 async function checkApprove (transfer) {
   const provider = getEthProvider()
 
-  const ethNetwork = (await provider.getNetwork()).name
-  if (ethNetwork !== process.env.ethNetworkId) {
+  const ethChainId = (await provider.getNetwork()).chainId
+  if (ethChainId !== Number(process.env.ethChainId)) {
     console.log(
       'Wrong eth network for checkApprove, expected: %s, got: %s',
-      process.env.ethNetworkId, ethNetwork
+      process.env.ethChainId, ethChainId
     )
     return transfer
   }
@@ -318,14 +325,7 @@ async function checkApprove (transfer) {
   if (!approvalReceipt) return transfer
 
   if (!approvalReceipt.status) {
-    let error
-    try {
-      error = await getRevertReason(approvalHash, ethNetwork, 'latest', provider)
-    } catch (e) {
-      console.error(e)
-      error = `Could not determine why transaction '${approvalReceipt.transactionHash}'
-        failed; encountered error: ${e.message}`
-    }
+    const error = `Transaction failed: ${approvalReceipt.transactionHash}`
     return {
       ...transfer,
       approvalReceipts: [...transfer.approvalReceipts, approvalReceipt],
@@ -363,6 +363,14 @@ async function checkApprove (transfer) {
 async function lock (transfer) {
   const provider = getSignerProvider()
 
+  const ethChainId = (await provider.getNetwork()).chainId
+  if (ethChainId !== Number(process.env.ethChainId)) {
+    // Webapp should prevent the user from confirming if the wrong network is selected
+    throw new Error(
+      `Wrong eth network for lock, expected: ${process.env.ethChainId}, got: ${ethChainId}`
+    )
+  }
+
   const ethTokenLocker = new ethers.Contract(
     process.env.ethLockerAddress,
     process.env.ethLockerAbiText,
@@ -391,11 +399,11 @@ async function checkLock (transfer) {
   const provider = getEthProvider()
 
   const lockHash = last(transfer.lockHashes)
-  const ethNetwork = (await provider.getNetwork()).name
-  if (ethNetwork !== process.env.ethNetworkId) {
+  const ethChainId = (await provider.getNetwork()).chainId
+  if (ethChainId !== Number(process.env.ethChainId)) {
     console.log(
       'Wrong eth network for checkLock, expected: %s, got: %s',
-      process.env.ethNetworkId, ethNetwork
+      process.env.ethChainId, ethChainId
     )
     return transfer
   }
@@ -443,13 +451,7 @@ async function checkLock (transfer) {
   if (!lockReceipt) return transfer
 
   if (!lockReceipt.status) {
-    let error
-    try {
-      error = await getRevertReason(lockHash, ethNetwork, 'latest', provider)
-    } catch (e) {
-      console.error(e)
-      error = `Could not determine why transaction failed; encountered error: ${e.message}`
-    }
+    const error = `Transaction failed: ${lockReceipt.transactionHash}`
     return {
       ...transfer,
       status: status.FAILED,

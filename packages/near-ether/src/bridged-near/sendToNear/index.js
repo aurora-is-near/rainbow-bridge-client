@@ -1,6 +1,5 @@
 import BN from 'bn.js'
 import { Decimal } from 'decimal.js'
-import getRevertReason from 'eth-revert-reason'
 import { ethers } from 'ethers'
 import { track } from '@near-eth/client'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
@@ -206,6 +205,14 @@ export async function initiate ({
 async function burn (transfer) {
   const provider = getSignerProvider()
 
+  const ethChainId = (await provider.getNetwork()).chainId
+  if (ethChainId !== Number(process.env.ethChainId)) {
+    // Webapp should prevent the user from confirming if the wrong network is selected
+    throw new Error(
+      `Wrong eth network for burn, expected: ${process.env.ethChainId}, got: ${ethChainId}`
+    )
+  }
+
   const ethTokenLocker = new ethers.Contract(
     process.env.eNEARAddress,
     process.env.eNEARAbiText,
@@ -234,11 +241,11 @@ async function checkBurn (transfer) {
   const provider = getEthProvider()
 
   const burnHash = last(transfer.burnHashes)
-  const ethNetwork = (await provider.getNetwork()).name
-  if (ethNetwork !== process.env.ethNetworkId) {
+  const ethChainId = (await provider.getNetwork()).chainId
+  if (ethChainId !== Number(process.env.ethChainId)) {
     console.log(
       'Wrong eth network for checkBurn, expected: %s, got: %s',
-      process.env.ethNetworkId, ethNetwork
+      process.env.ethChainId, ethChainId
     )
     return transfer
   }
@@ -283,13 +290,7 @@ async function checkBurn (transfer) {
   if (!burnReceipt) return transfer
 
   if (!burnReceipt.status) {
-    let error
-    try {
-      error = await getRevertReason(burnHash, ethNetwork, 'latest', provider)
-    } catch (e) {
-      console.error(e)
-      error = `Could not determine why transaction failed; encountered error: ${e.message}`
-    }
+    const error = `Transaction failed: ${burnReceipt.transactionHash}`
     return {
       ...transfer,
       status: status.FAILED,
