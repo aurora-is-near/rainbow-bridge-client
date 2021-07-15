@@ -1,7 +1,6 @@
 import BN from 'bn.js'
 import { Decimal } from 'decimal.js'
 import bs58 from 'bs58'
-import getRevertReason from 'eth-revert-reason'
 import { ethers } from 'ethers'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
 import { utils } from 'near-api-js'
@@ -515,11 +514,11 @@ async function checkSync (transfer) {
     return transfer
   }
   const provider = getEthProvider()
-  const ethNetwork = (await provider.getNetwork()).name
-  if (ethNetwork !== process.env.ethNetworkId) {
+  const ethChainId = (await provider.getNetwork()).chainId
+  if (ethChainId !== Number(process.env.ethChainId)) {
     console.log(
       'Wrong eth network for checkSync, expected: %s, got: %s',
-      process.env.ethNetworkId, ethNetwork
+      process.env.ethChainId, ethChainId
     )
     return transfer
   }
@@ -622,11 +621,11 @@ async function mint (transfer) {
 async function checkMint (transfer) {
   const provider = getEthProvider()
 
-  const ethNetwork = (await provider.getNetwork()).name
-  if (ethNetwork !== process.env.ethNetworkId) {
+  const ethChainId = (await provider.getNetwork()).chainId
+  if (ethChainId !== Number(process.env.ethChainId)) {
     console.log(
       'Wrong eth network for checkMint, expected: %s, got: %s',
-      process.env.ethNetworkId, ethNetwork
+      process.env.ethChainId, ethChainId
     )
     return transfer
   }
@@ -673,13 +672,7 @@ async function checkMint (transfer) {
   if (!mintReceipt) return transfer
 
   if (!mintReceipt.status) {
-    let error
-    try {
-      error = await getRevertReason(mintHash, ethNetwork, 'latest', provider)
-    } catch (e) {
-      console.error(e)
-      error = `Could not determine why transaction failed; encountered error: ${e.message}`
-    }
+    const error = `Transaction failed: ${mintReceipt.transactionHash}`
     return {
       ...transfer,
       status: status.FAILED,
