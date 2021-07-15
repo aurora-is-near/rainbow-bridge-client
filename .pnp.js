@@ -1032,7 +1032,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@yarnpkg/pnpify", "virtual:d6e270ced375feae8aa67e695e8f6605fb9bdb5436bd33ea71c586d53ece0ac57c48d636803398a59ac1d977701119730da4426f2c7cb4803b7ff452c934acf5#npm:2.4.0"],
             ["bn.js", "npm:5.2.0"],
             ["bs58", "npm:4.0.1"],
-            ["eth-revert-reason", "npm:1.0.3"],
             ["ethereumjs-util", "npm:7.0.10"],
             ["ethers", "npm:5.4.1"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
@@ -1059,7 +1058,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@yarnpkg/pnpify", "virtual:d6e270ced375feae8aa67e695e8f6605fb9bdb5436bd33ea71c586d53ece0ac57c48d636803398a59ac1d977701119730da4426f2c7cb4803b7ff452c934acf5#npm:2.4.0"],
             ["bn.js", "npm:5.2.0"],
             ["bs58", "npm:4.0.1"],
-            ["eth-revert-reason", "npm:1.0.3"],
             ["ethereumjs-util", "npm:7.0.10"],
             ["ethers", "npm:5.4.1"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
@@ -1101,7 +1099,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@yarnpkg/pnpify", "virtual:d6e270ced375feae8aa67e695e8f6605fb9bdb5436bd33ea71c586d53ece0ac57c48d636803398a59ac1d977701119730da4426f2c7cb4803b7ff452c934acf5#npm:2.4.0"],
             ["bn.js", "npm:5.2.0"],
             ["bs58", "npm:4.0.1"],
-            ["eth-revert-reason", "npm:1.0.3"],
             ["ethereumjs-util", "npm:7.0.10"],
             ["ethers", "npm:5.4.1"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
@@ -1128,7 +1125,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@yarnpkg/pnpify", "virtual:d6e270ced375feae8aa67e695e8f6605fb9bdb5436bd33ea71c586d53ece0ac57c48d636803398a59ac1d977701119730da4426f2c7cb4803b7ff452c934acf5#npm:2.4.0"],
             ["bn.js", "npm:5.2.0"],
             ["bs58", "npm:4.0.1"],
-            ["eth-revert-reason", "npm:1.0.3"],
             ["ethereumjs-util", "npm:7.0.10"],
             ["ethers", "npm:5.4.1"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
@@ -3527,20 +3523,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["elliptic", [
-        ["npm:6.5.3", {
-          "packageLocation": "./.yarn/cache/elliptic-npm-6.5.3-783c509c01-b66cf0b8f8.zip/node_modules/elliptic/",
-          "packageDependencies": [
-            ["elliptic", "npm:6.5.3"],
-            ["bn.js", "npm:4.12.0"],
-            ["brorand", "npm:1.1.0"],
-            ["hash.js", "npm:1.1.7"],
-            ["hmac-drbg", "npm:1.0.1"],
-            ["inherits", "npm:2.0.4"],
-            ["minimalistic-assert", "npm:1.0.1"],
-            ["minimalistic-crypto-utils", "npm:1.0.1"]
-          ],
-          "linkType": "HARD",
-        }],
         ["npm:6.5.4", {
           "packageLocation": "./.yarn/cache/elliptic-npm-6.5.4-0ca8204a86-e0fb360fb6.zip/node_modules/elliptic/",
           "packageDependencies": [
@@ -4186,16 +4168,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "linkType": "HARD",
         }]
       ]],
-      ["eth-revert-reason", [
-        ["npm:1.0.3", {
-          "packageLocation": "./.yarn/cache/eth-revert-reason-npm-1.0.3-9443e8cc1a-a94a4592c8.zip/node_modules/eth-revert-reason/",
-          "packageDependencies": [
-            ["eth-revert-reason", "npm:1.0.3"],
-            ["ethers", "npm:4.0.48"]
-          ],
-          "linkType": "HARD",
-        }]
-      ]],
       ["eth-util-lite", [
         ["https://github.com/near/eth-util-lite.git#commit=ae0210cbe127b4d43ba01fd7cd4898d1a3f6c96a", {
           "packageLocation": "./.yarn/cache/eth-util-lite-https-509b7182a8-881528b08e.zip/node_modules/eth-util-lite/",
@@ -4259,22 +4231,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["ethers", [
-        ["npm:4.0.48", {
-          "packageLocation": "./.yarn/cache/ethers-npm-4.0.48-9602cd191c-b215043dba.zip/node_modules/ethers/",
-          "packageDependencies": [
-            ["ethers", "npm:4.0.48"],
-            ["aes-js", "npm:3.0.0"],
-            ["bn.js", "npm:4.12.0"],
-            ["elliptic", "npm:6.5.3"],
-            ["hash.js", "npm:1.1.3"],
-            ["js-sha3", "npm:0.5.7"],
-            ["scrypt-js", "npm:2.0.4"],
-            ["setimmediate", "npm:1.0.4"],
-            ["uuid", "npm:2.0.1"],
-            ["xmlhttprequest", "npm:1.8.0"]
-          ],
-          "linkType": "HARD",
-        }],
         ["npm:5.4.1", {
           "packageLocation": "./.yarn/cache/ethers-npm-5.4.1-0c0da101f1-13e05fba35.zip/node_modules/ethers/",
           "packageDependencies": [
@@ -5172,15 +5128,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["hash.js", [
-        ["npm:1.1.3", {
-          "packageLocation": "./.yarn/cache/hash.js-npm-1.1.3-db96f2fb97-b61aef3fb3.zip/node_modules/hash.js/",
-          "packageDependencies": [
-            ["hash.js", "npm:1.1.3"],
-            ["inherits", "npm:2.0.4"],
-            ["minimalistic-assert", "npm:1.0.1"]
-          ],
-          "linkType": "HARD",
-        }],
         ["npm:1.1.7", {
           "packageLocation": "./.yarn/cache/hash.js-npm-1.1.7-f1ad187358-fceb7fb87e.zip/node_modules/hash.js/",
           "packageDependencies": [
@@ -8015,13 +7962,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["scrypt-js", [
-        ["npm:2.0.4", {
-          "packageLocation": "./.yarn/cache/scrypt-js-npm-2.0.4-d3712b5675-f81f69e5b1.zip/node_modules/scrypt-js/",
-          "packageDependencies": [
-            ["scrypt-js", "npm:2.0.4"]
-          ],
-          "linkType": "HARD",
-        }],
         ["npm:3.0.1", {
           "packageLocation": "./.yarn/cache/scrypt-js-npm-3.0.1-fd2d3fa606-2ae93c4dd5.zip/node_modules/scrypt-js/",
           "packageDependencies": [
@@ -8126,13 +8066,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["setimmediate", [
-        ["npm:1.0.4", {
-          "packageLocation": "./.yarn/cache/setimmediate-npm-1.0.4-48edecde5a-6ed7af0034.zip/node_modules/setimmediate/",
-          "packageDependencies": [
-            ["setimmediate", "npm:1.0.4"]
-          ],
-          "linkType": "HARD",
-        }],
         ["npm:1.0.5", {
           "packageLocation": "./.yarn/cache/setimmediate-npm-1.0.5-54587459b6-87884d8add.zip/node_modules/setimmediate/",
           "packageDependencies": [
@@ -9195,13 +9128,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["uuid", [
-        ["npm:2.0.1", {
-          "packageLocation": "./.yarn/unplugged/uuid-npm-2.0.1-a78a0c30dd/node_modules/uuid/",
-          "packageDependencies": [
-            ["uuid", "npm:2.0.1"]
-          ],
-          "linkType": "HARD",
-        }],
         ["npm:3.3.2", {
           "packageLocation": "./.yarn/cache/uuid-npm-3.3.2-62715051ac-f407d974ca.zip/node_modules/uuid/",
           "packageDependencies": [
@@ -9773,15 +9699,6 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageDependencies": [
             ["xhr2-cookies", "npm:1.1.0"],
             ["cookiejar", "npm:2.1.2"]
-          ],
-          "linkType": "HARD",
-        }]
-      ]],
-      ["xmlhttprequest", [
-        ["npm:1.8.0", {
-          "packageLocation": "./.yarn/cache/xmlhttprequest-npm-1.8.0-7ac1c8e494-67ee586d0d.zip/node_modules/xmlhttprequest/",
-          "packageDependencies": [
-            ["xmlhttprequest", "npm:1.8.0"]
           ],
           "linkType": "HARD",
         }]
