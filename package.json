@@ -1,7 +1,7 @@
 {
   "name": "rainbow-bridge-client-monorepo",
   "license": "(MIT AND Apache-2.0)",
-  "version": "1.4.0",
+  "version": "1.5.1",
   "private": true,
   "scripts": {
     "build": "yarn workspaces foreach run build",
@@ -31,8 +31,8 @@
     "url": "https://github.com/aurora-is-near/rainbow-bridge-client"
   },
   "engines": {
-    "node": "15.3.0",
-    "npm": "7.5.4"
+    "node": ">=14.17.0",
+    "npm": ">=6.14.13"
   },
   "workspaces": [
     "packages/*"

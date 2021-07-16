@@ -1,8 +1,0 @@
-declined:
-  - rainbow-bridge-client-monorepo
-  - "@near-eth/client"
-  - find-replacement-tx
-  - lite-merkle-patricia-tree
-  - "@near-eth/near-ether"
-  - "@near-eth/nep141-erc20"
-  - "@near-eth/utils"

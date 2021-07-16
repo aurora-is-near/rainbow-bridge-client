@@ -1,4 +1,4 @@
-import Web3 from 'web3'
+import { ethers } from 'ethers'
 import getName from './getName'
 import { getEthProvider } from '@near-eth/client/dist/utils'
 
@@ -6,8 +6,7 @@ const erc20Symbols = {}
 export async function getSymbol (address) {
   if (erc20Symbols[address]) return erc20Symbols[address]
 
-  const web3 = new Web3(getEthProvider())
-
+  const provider = getEthProvider()
   const contract = new web3.eth.Contract(
     JSON.parse(process.env.ethErc20AbiText),
     address
@@ -23,18 +22,20 @@ const erc20Decimals = {}
 export async function getDecimals (address) {
   if (erc20Decimals[address] !== undefined) return erc20Decimals[address]
 
-  const web3 = new Web3(getEthProvider())
+  const provider = getEthProvider()
 
-  const contract = new web3.eth.Contract(
-    JSON.parse(process.env.ethErc20AbiText),
-    address
+  const contract = new ethers.Contract(
+    address,
+    process.env.ethErc20AbiText,
+    provider
   )
 
-  erc20Decimals[address] = Number(
-    await contract.methods.decimals()
-      .call()
-      .catch(() => 0)
-  )
+  try {
+    erc20Decimals[address] = Number(await contract.decimals())
+  } catch {
+    console.log(`Failed to read token decimals for: ${address}`)
+    erc20Decimals[address] = 0
+  }
 
   return erc20Decimals[address]
 }
@@ -45,7 +46,7 @@ async function getIcon (address) {
 
   // Checksum address needed to fetch token icons.
   const url = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${
-    Web3.utils.toChecksumAddress(address)
+    ethers.utils.getAddress(address)
   }/logo.png`
 
   erc20Icons[address] = await new Promise(resolve => {

@@ -5,11 +5,27 @@ import {
   Transfer,
   DecoratedTransfer,
   Step,
-  UnsavedTransfer
+  UnsavedTransfer,
+  CustomTransferTypes
 } from './types'
 
 export { onChange } from './storage'
-export { setEthProvider, setNearConnection } from './utils'
+export {
+  setEthProvider, setNearConnection, setAuroraProvider, setSignerProvider,
+  getSignerProvider, getEthProvider, getAuroraProvider
+} from './utils'
+export * as utils from './utils'
+
+let customTransferTypes: CustomTransferTypes = {}
+
+export function setTransferTypes (newTransferTypes: CustomTransferTypes): CustomTransferTypes {
+  customTransferTypes = newTransferTypes
+  return customTransferTypes
+}
+
+function getCustomTransferType (transfer: Transfer): ConnectorLib | undefined {
+  return customTransferTypes[transfer.type]
+}
 
 /**
  * Get the connector library for the given transfer's type
@@ -17,6 +33,8 @@ export { setEthProvider, setNearConnection } from './utils'
  */
 function getTransferType (transfer: Transfer): ConnectorLib {
   // TODO: find a way to `require(transfer.type)`
+  const customTransferType = getCustomTransferType(transfer)
+  if (customTransferType) return customTransferType
   try {
     switch (transfer.type) {
       case '@near-eth/nep141-erc20/natural-erc20/sendToNear':
@@ -27,6 +45,18 @@ function getTransferType (transfer: Transfer): ConnectorLib {
         return require('@near-eth/near-ether/dist/natural-near/sendToEthereum')
       case '@near-eth/near-ether/bridged-near/sendToNear':
         return require('@near-eth/near-ether/dist/bridged-near/sendToNear')
+      case '@near-eth/near-ether/natural-ether/sendToNear':
+        return require('@near-eth/near-ether/dist/natural-ether/sendToNear')
+      case '@near-eth/near-ether/bridged-ether/sendToEthereum':
+        return require('@near-eth/near-ether/dist/bridged-ether/sendToEthereum')
+      case '@near-eth/aurora-erc20/natural-erc20/sendToAurora':
+        return require('@near-eth/aurora-erc20/dist/natural-erc20/sendToAurora')
+      case '@near-eth/aurora-erc20/bridged-erc20/sendToEthereum':
+        return require('@near-eth/aurora-erc20/dist/bridged-erc20/sendToEthereum')
+      case '@near-eth/aurora-ether/natural-ether/sendToAurora':
+        return require('@near-eth/aurora-ether/dist/natural-ether/sendToAurora')
+      case '@near-eth/aurora-ether/bridged-ether/sendToEthereum':
+        return require('@near-eth/aurora-ether/dist/bridged-ether/sendToEthereum')
       default:
         throw new Error(`Unregistered library for transfer with type=${transfer.type}`)
     }
