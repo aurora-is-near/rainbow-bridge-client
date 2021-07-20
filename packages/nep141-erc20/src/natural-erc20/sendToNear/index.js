@@ -10,7 +10,6 @@ import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider } fro
 import { urlParams, ethOnNearSyncHeight, findEthProof } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 import getName from '../getName'
-import getAllowance from '../getAllowance'
 import { getDecimals } from '../getMetadata'
 
 export const SOURCE_NETWORK = 'ethereum'
@@ -23,7 +22,6 @@ const SYNC = 'sync-natural-erc20-to-nep141'
 const MINT = 'mint-natural-erc20-to-nep141'
 
 const steps = [
-  APPROVE,
   LOCK,
   SYNC,
   MINT
@@ -63,7 +61,6 @@ const transferDraft = {
 export const i18n = {
   en_US: {
     steps: transfer => stepsFor(transfer, steps, {
-      [APPROVE]: `Approve transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from Ethereum`,
       [LOCK]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to NEAR`,
       [SYNC]: `Wait for ${transfer.neededConfirmations + Number(process.env.nearEventRelayerMargin)} transfer confirmations for security`,
       [MINT]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in NEAR`
@@ -218,26 +215,16 @@ export async function initiate ({
     decimals
   }
 
-  const allowance = await getAllowance({
-    erc20Address,
-    owner: sender,
-    spender: process.env.ethLockerAddress
+  transfer = await lock({
+    ...transfer,
+    completedStep: APPROVE,
+    status: status.ACTION_NEEDED
   })
-  if (decimalAmount.comparedTo(new Decimal(allowance)) === 1) {
-    // amount > allowance
-    transfer = await approve(transfer)
-  } else {
-    transfer = await lock({
-      ...transfer,
-      completedStep: APPROVE,
-      status: status.ACTION_NEEDED
-    })
-  }
 
   track(transfer)
 }
 
-async function approve (transfer) {
+export async function approve ({ erc20Address, amount }) {
   const provider = getSignerProvider()
 
   const ethChainId = (await provider.getNetwork()).chainId
@@ -250,14 +237,16 @@ async function approve (transfer) {
 
   const safeReorgHeight = await provider.getBlockNumber() - 20
   const erc20Contract = new ethers.Contract(
-    transfer.sourceToken,
+    erc20Address,
     process.env.ethErc20AbiText,
     provider.getSigner()
   )
-  const pendingApprovalTx = await erc20Contract.approve(process.env.ethLockerAddress, transfer.amount)
+  const pendingApprovalTx = await erc20Contract.approve(process.env.ethLockerAddress, amount)
 
   return {
-    ...transfer,
+    ...transferDraft,
+    amount: amount.toString(),
+    sourceToken: erc20Address,
     ethCache: {
       from: pendingApprovalTx.from,
       to: pendingApprovalTx.to,
@@ -265,12 +254,12 @@ async function approve (transfer) {
       data: pendingApprovalTx.data,
       nonce: pendingApprovalTx.nonce
     },
-    approvalHashes: [...transfer.approvalHashes, pendingApprovalTx.hash],
+    approvalHashes: [pendingApprovalTx.hash],
     status: status.IN_PROGRESS
   }
 }
 
-async function checkApprove (transfer) {
+export async function checkApprove (transfer) {
   const provider = getEthProvider()
 
   const ethChainId = (await provider.getNetwork()).chainId
