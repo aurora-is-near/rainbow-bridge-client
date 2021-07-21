@@ -25,8 +25,7 @@ export function set (newParams: { [x: string]: string }): void {
   for (const param in newParams) {
     params.set(param, newParams[param]!)
   }
-  // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-  window.history.replaceState({}, '', `${location.pathname}?${params}`)
+  window.history.replaceState({}, '', `${location.pathname}?${params.toString()}`)
 }
 
 export function clear (...paramNames: any[]): void {
@@ -36,8 +35,7 @@ export function clear (...paramNames: any[]): void {
     const params = new URLSearchParams(window.location.search)
     paramNames.forEach(p => params.delete(p))
     if (params.toString()) {
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      window.history.replaceState({}, '', `${location.pathname}?${params}`)
+      window.history.replaceState({}, '', `${location.pathname}?${params.toString()}`)
     } else {
       window.history.replaceState({}, '', location.pathname)
     }
