@@ -100,6 +100,7 @@ const transferDraft: TransferDraft = {
   mintHashes: []
 }
 
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 export const i18n = {
   en_US: {
     steps: (transfer: Transfer) => stepsFor(transfer, steps, {
@@ -133,6 +134,7 @@ export const i18n = {
     }
   }
 }
+/* eslint-enable @typescript-eslint/restrict-template-expressions */
 
 /**
  * Called when status is ACTION_NEEDED or FAILED
@@ -562,6 +564,7 @@ async function checkSync (
     sendToNearSyncInterval?: number
     nep141Factory?: string
     nearEventRelayerMargin?: number
+    nearAccount?: ConnectedWalletAccount
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -593,7 +596,7 @@ async function checkSync (
       options.erc20LockerAbi ?? bridgeParams.erc20LockerAbi,
       provider
     )
-    const nearAccount = await getNearAccount()
+    const nearAccount = options.nearAccount ?? await getNearAccount()
     const proofAlreadyUsed = await nearAccount.viewFunction(
       options.nep141Factory ?? bridgeParams.nep141Factory,
       'is_used_proof',
