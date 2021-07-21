@@ -7,12 +7,13 @@ export async function getSymbol (address) {
   if (erc20Symbols[address]) return erc20Symbols[address]
 
   const provider = getEthProvider()
-  const contract = new web3.eth.Contract(
-    JSON.parse(process.env.ethErc20AbiText),
-    address
+  const contract = new ethers.Contract(
+    address,
+    process.env.ethErc20AbiText,
+    provider
   )
 
-  erc20Symbols[address] = await contract.methods.symbol().call()
+  erc20Symbols[address] = await contract.symbol()
     .catch(() => address.slice(0, 5) + '…')
 
   return erc20Symbols[address]

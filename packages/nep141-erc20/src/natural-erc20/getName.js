@@ -18,6 +18,5 @@ export default async function getName (address) {
     console.log(`Failed to read token symbol for: ${address}`)
     erc20Names[address] = address.slice(0, 5) + '…'
   }
-  
   return erc20Names[address]
 }
