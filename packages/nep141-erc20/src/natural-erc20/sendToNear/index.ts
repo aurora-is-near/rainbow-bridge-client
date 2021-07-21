@@ -1,16 +1,13 @@
 import BN from 'bn.js'
-import { Decimal } from 'decimal.js'
 import { ethers } from 'ethers'
 import { track, get } from '@near-eth/client'
-import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
-import { utils } from 'near-api-js'
+import { utils, ConnectedWalletAccount } from 'near-api-js'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
-import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider } from '@near-eth/client/dist/utils'
+import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import { urlParams, ethOnNearSyncHeight, findEthProof } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
-import getName from '../getName'
-import { getDecimals } from '../getMetadata'
+import { getDecimals, getSymbol } from '../getMetadata'
 
 export const SOURCE_NETWORK = 'ethereum'
 export const DESTINATION_NETWORK = 'near'
@@ -27,7 +24,54 @@ const steps = [
   MINT
 ]
 
-const transferDraft = {
+export interface TransactionStatus {
+  errors: string[]
+  completedStep: null | string
+  status: typeof status.IN_PROGRESS |
+          typeof status.ACTION_NEEDED |
+          typeof status.COMPLETE |
+          typeof status.FAILED
+}
+
+export interface TransactionInfo {
+  amount: string
+  sourceToken: string
+  ethCache?: {
+    from: string
+    to: string
+    safeReorgHeight: number
+    data: string
+    nonce: number
+  }
+}
+
+export interface TransferDraft extends TransactionStatus {
+  type: string
+  lockHashes: string[]
+  lockReceipts: ethers.providers.TransactionReceipt[]
+  mintHashes: string[]
+  completedConfirmations: number
+  neededConfirmations: number
+}
+
+export interface ApprovalInfo extends TransactionInfo, TransactionStatus {
+  approvalHashes: string[]
+  approvalReceipts: ethers.providers.TransactionReceipt[]
+}
+
+export interface Transfer extends TransferDraft, TransactionInfo {
+  id: string
+  decimals: number
+  destinationTokenName: string
+  recipient: string
+  sender: string
+  sourceTokenName: string
+  checkSyncInterval?: number
+  nextCheckSyncTimestamp?: Date
+  proof?: Uint8Array
+}
+
+const transferDraft: TransferDraft = {
   // Attributes common to all transfer types
   // amount,
   completedStep: null,
@@ -49,8 +93,6 @@ const transferDraft = {
   // }
 
   // Attributes specific to natural-erc20-to-nep141 transfers
-  approvalHashes: [],
-  approvalReceipts: [],
   completedConfirmations: 0,
   lockHashes: [],
   lockReceipts: [],
@@ -60,34 +102,31 @@ const transferDraft = {
 
 export const i18n = {
   en_US: {
-    steps: transfer => stepsFor(transfer, steps, {
-      [LOCK]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to NEAR`,
-      [SYNC]: `Wait for ${transfer.neededConfirmations + Number(process.env.nearEventRelayerMargin)} transfer confirmations for security`,
-      [MINT]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in NEAR`
+    steps: (transfer: Transfer) => stepsFor(transfer, steps, {
+      [LOCK]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals).toString()} ${transfer.sourceTokenName} to NEAR`,
+      [SYNC]: `Wait for ${transfer.neededConfirmations + Number(getBridgeParams().nearEventRelayerMargin)} transfer confirmations for security`,
+      [MINT]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals).toString()} ${transfer.destinationTokenName} in NEAR`
     }),
-    statusMessage: transfer => {
+    statusMessage: (transfer: Transfer) => {
       if (transfer.status === status.FAILED) return 'Failed'
       if (transfer.status === status.ACTION_NEEDED) {
         switch (transfer.completedStep) {
-          case APPROVE: return 'Ready to transfer from Ethereum'
           case SYNC: return 'Ready to deposit in NEAR'
-          default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
+          default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep!}`)
         }
       }
       switch (transfer.completedStep) {
-        case null: return 'Approving transfer'
-        case APPROVE: return 'Transfering to NEAR'
-        case LOCK: return `Confirming transfer ${transfer.completedConfirmations + 1} of ${transfer.neededConfirmations + Number(process.env.nearEventRelayerMargin)}`
+        case null: return 'Transfering to NEAR'
+        case LOCK: return `Confirming transfer ${transfer.completedConfirmations + 1} of ${transfer.neededConfirmations + Number(getBridgeParams().nearEventRelayerMargin)}`
         case SYNC: return 'Depositing in NEAR'
         case MINT: return 'Transfer complete'
         default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
       }
     },
-    callToAction: transfer => {
+    callToAction: (transfer: Transfer) => {
       if (transfer.status === status.FAILED) return 'Retry'
       if (transfer.status !== status.ACTION_NEEDED) return null
       switch (transfer.completedStep) {
-        case APPROVE: return 'Transfer'
         case SYNC: return 'Deposit'
         default: return null
       }
@@ -99,12 +138,11 @@ export const i18n = {
  * Called when status is ACTION_NEEDED or FAILED
  * @param {*} transfer
  */
-export function act (transfer) {
+export async function act (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
-    case null: return approve(transfer)
-    case APPROVE: return lock(transfer)
-    case LOCK: return checkSync(transfer)
-    case SYNC: return mint(transfer)
+    case null: return await lock(transfer)
+    case LOCK: return await checkSync(transfer)
+    case SYNC: return await mint(transfer)
     default: throw new Error(`Don't know how to act on transfer: ${transfer.id}`)
   }
 }
@@ -113,12 +151,11 @@ export function act (transfer) {
  * Called when status is IN_PROGRESS
  * @param {*} transfer
  */
-export function checkStatus (transfer) {
+export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
-    case null: return checkApprove(transfer)
-    case APPROVE: return checkLock(transfer)
-    case LOCK: return checkSync(transfer)
-    case SYNC: return checkMint(transfer)
+    case null: return await checkLock(transfer)
+    case LOCK: return await checkSync(transfer)
+    case SYNC: return await checkMint(transfer)
     default: throw new Error(`Don't know how to checkStatus for transfer ${transfer.id}`)
   }
 }
@@ -128,32 +165,42 @@ export function checkStatus (transfer) {
  * Track a new transfer at the completedStep = LOCK so that it can be minted
  * @param {*} lockTxHash
  */
-export async function recover (lockTxHash) {
-  const provider = getEthProvider()
+export async function recover (
+  lockTxHash: string,
+  options?: {
+    provider?: ethers.providers.Web3Provider
+    erc20LockerAddress?: string
+    erc20LockerAbi?: string
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getEthProvider()
 
   const receipt = await provider.getTransactionReceipt(lockTxHash)
   const ethTokenLocker = new ethers.Contract(
-    process.env.ethLockerAddress,
-    process.env.ethLockerAbiText,
+    options.erc20LockerAddress ?? bridgeParams.erc20LockerAddress,
+    options.erc20LockerAbi ?? bridgeParams.erc20LockerAbi,
     provider
   )
-  const filter = ethTokenLocker.filters.Locked()
+  const filter = ethTokenLocker.filters.Locked!()
   const events = await ethTokenLocker.queryFilter(filter, receipt.blockNumber, receipt.blockNumber)
   const lockedEvent = events.find(event => event.transactionHash === lockTxHash)
   if (!lockedEvent) {
     throw new Error('Unable to process lock transaction event.')
   }
-  const erc20Address = lockedEvent.args.token
-  const amount = lockedEvent.args.amount.toString()
-  const recipient = lockedEvent.args.accountId
-  const sender = lockedEvent.args.sender
-  const sourceTokenName = await getName(erc20Address)
-  const decimals = await getDecimals(erc20Address)
+  const erc20Address = lockedEvent.args!.token
+  const amount = lockedEvent.args!.amount.toString()
+  const recipient = lockedEvent.args!.accountId
+  const sender = lockedEvent.args!.sender
+  const sourceTokenName: string = await getSymbol({ erc20Address, options: { provider } })
+  const decimals = await getDecimals({ erc20Address, options: { provider } })
   const destinationTokenName = 'n' + sourceTokenName
 
-  let transfer = {
+  const transfer = {
     ...transferDraft,
 
+    id: new Date().toISOString(),
     amount,
     completedStep: LOCK,
     destinationTokenName,
@@ -168,8 +215,7 @@ export async function recover (lockTxHash) {
   }
 
   // Check transfer status
-  transfer = await checkSync(transfer)
-  return transfer
+  return await checkSync(transfer)
 }
 
 // Call contract given by `erc20` contract, requesting permission for contract
@@ -178,16 +224,29 @@ export async function recover (lockTxHash) {
 // Only wait for transaction to have dependable transactionHash created. Avoid
 // blocking to wait for transaction to be mined. Status of transactionHash
 // being mined is then checked in checkStatus.
-export async function initiate ({
-  erc20Address,
-  amount,
-  sender,
-  recipient
-}) {
+export async function initiate (
+  { erc20Address, amount, recipient, options }: {
+    erc20Address: string
+    amount: string | ethers.BigNumber
+    recipient: string
+    options?: {
+      symbol?: string
+      decimals?: number
+      sender?: string
+      ethChainId?: number
+      provider?: ethers.providers.Web3Provider
+      erc20LockerAddress?: string
+      erc20LockerAbi?: string
+    }
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const provider = options.provider ?? getSignerProvider()
+
   const [conflictingTransfer] = await get({
     filter: ({ sourceToken, completedStep }) =>
       sourceToken === erc20Address &&
-      (!completedStep || completedStep === APPROVE)
+      (!completedStep || completedStep === null)
   })
   if (conflictingTransfer) {
     throw new Error(
@@ -195,18 +254,17 @@ export async function initiate ({
     )
   }
 
-  // TODO: move to core 'decorate'; get both from contracts
-  const sourceTokenName = await getName(erc20Address)
-  // TODO: call initiate with a formated amount and query decimals when decorate()
-  const decimals = await getDecimals(erc20Address)
+  const sourceTokenName: string = options.symbol ?? await getSymbol({ erc20Address, options: { provider } })
+  const decimals = options.decimals ?? await getDecimals({ erc20Address, options: { provider } })
   const destinationTokenName = 'n' + sourceTokenName
-  const decimalAmount = new Decimal(amount).times(10 ** decimals)
+  const sender = options.sender ?? (await provider.getSigner().getAddress()).toLowerCase()
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
     ...transferDraft,
 
-    amount: decimalAmount.toFixed(),
+    id: new Date().toISOString(),
+    amount: amount.toString(),
     destinationTokenName,
     recipient,
     sender,
@@ -215,33 +273,58 @@ export async function initiate ({
     decimals
   }
 
-  transfer = await lock({
-    ...transfer,
-    completedStep: APPROVE,
-    status: status.ACTION_NEEDED
-  })
+  transfer = await lock(transfer, options)
 
-  track(transfer)
+  await track(transfer)
+  return transfer
 }
 
-export async function approve ({ erc20Address, amount }) {
-  const provider = getSignerProvider()
+export async function approve (
+  { erc20Address, amount, options }: {
+    erc20Address: string
+    amount: string | ethers.BigNumber
+    options?: {
+      provider?: ethers.providers.Web3Provider
+      ethChainId?: number
+      erc20LockerAddress?: string
+      erc20Abi?: string
+    }
+  }
+): Promise<ApprovalInfo> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getSignerProvider()
 
-  const ethChainId = (await provider.getNetwork()).chainId
-  if (ethChainId !== Number(process.env.ethChainId)) {
+  const ethChainId: number = (await provider.getNetwork()).chainId
+  const expectedChainId: number = options.ethChainId ?? bridgeParams.ethChainId
+  if (ethChainId !== expectedChainId) {
     // Webapp should prevent the user from confirming if the wrong network is selected
     throw new Error(
-      `Wrong eth network for approve, expected: ${process.env.ethChainId}, got: ${ethChainId}`
+      `Wrong eth network for approve, expected: ${expectedChainId}, got: ${ethChainId}`
+    )
+  }
+
+  const [conflictingTransfer] = await get({
+    filter: ({ sourceToken, completedStep }) =>
+      sourceToken === erc20Address &&
+      (!completedStep || completedStep === null)
+  })
+  if (conflictingTransfer) {
+    throw new Error(
+      'Another transfer is already in progress, please complete the "Start transfer" step and try again.'
     )
   }
 
   const safeReorgHeight = await provider.getBlockNumber() - 20
   const erc20Contract = new ethers.Contract(
     erc20Address,
-    process.env.ethErc20AbiText,
+    options.erc20Abi ?? bridgeParams.erc20Abi,
     provider.getSigner()
   )
-  const pendingApprovalTx = await erc20Contract.approve(process.env.ethLockerAddress, amount)
+  const pendingApprovalTx = await erc20Contract.approve(
+    options.erc20LockerAddress ?? bridgeParams.erc20LockerAddress,
+    amount
+  )
 
   return {
     ...transferDraft,
@@ -255,24 +338,34 @@ export async function approve ({ erc20Address, amount }) {
       nonce: pendingApprovalTx.nonce
     },
     approvalHashes: [pendingApprovalTx.hash],
+    approvalReceipts: [],
     status: status.IN_PROGRESS
   }
 }
 
-export async function checkApprove (transfer) {
-  const provider = getEthProvider()
+export async function checkApprove (
+  transfer: ApprovalInfo,
+  options?: {
+    provider?: ethers.providers.Web3Provider
+    ethChainId?: number
+  }
+): Promise<ApprovalInfo> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getEthProvider()
 
   const ethChainId = (await provider.getNetwork()).chainId
-  if (ethChainId !== Number(process.env.ethChainId)) {
+  const expectedChainId = options.ethChainId ?? bridgeParams.ethChainId
+  if (ethChainId !== expectedChainId) {
     console.log(
       'Wrong eth network for checkApprove, expected: %s, got: %s',
-      process.env.ethChainId, ethChainId
+      expectedChainId, ethChainId
     )
     return transfer
   }
 
   const approvalHash = last(transfer.approvalHashes)
-  let approvalReceipt = await provider.getTransactionReceipt(approvalHash)
+  let approvalReceipt: ethers.providers.TransactionReceipt = await provider.getTransactionReceipt(approvalHash)
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!approvalReceipt) {
@@ -314,12 +407,9 @@ export async function checkApprove (transfer) {
 
   if (approvalReceipt.transactionHash !== approvalHash) {
     // Record the replacement tx approvalHash
-    return {
+    transfer = {
       ...transfer,
-      status: status.ACTION_NEEDED,
-      completedStep: APPROVE,
-      approvalHashes: [...transfer.approvalHashes, approvalReceipt.transactionHash],
-      approvalReceipts: [...transfer.approvalReceipts, approvalReceipt]
+      approvalHashes: [...transfer.approvalHashes, approvalReceipt.transactionHash]
     }
   }
 
@@ -338,20 +428,31 @@ export async function checkApprove (transfer) {
  * being mined is then checked in checkStatus.
  * @param {*} transfer
  */
-async function lock (transfer) {
-  const provider = getSignerProvider()
+async function lock (
+  transfer: Transfer,
+  options?: {
+    provider?: ethers.providers.Web3Provider
+    ethChainId?: number
+    erc20LockerAddress?: string
+    erc20LockerAbi?: string
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getSignerProvider()
 
-  const ethChainId = (await provider.getNetwork()).chainId
-  if (ethChainId !== Number(process.env.ethChainId)) {
+  const ethChainId: number = (await provider.getNetwork()).chainId
+  const expectedChainId: number = options.ethChainId ?? bridgeParams.ethChainId
+  if (ethChainId !== expectedChainId) {
     // Webapp should prevent the user from confirming if the wrong network is selected
     throw new Error(
-      `Wrong eth network for lock, expected: ${process.env.ethChainId}, got: ${ethChainId}`
+      `Wrong eth network for lock, expected: ${expectedChainId}, got: ${ethChainId}`
     )
   }
 
   const ethTokenLocker = new ethers.Contract(
-    process.env.ethLockerAddress,
-    process.env.ethLockerAbiText,
+    options.erc20LockerAddress ?? bridgeParams.erc20LockerAddress,
+    options.erc20LockerAbi ?? bridgeParams.erc20LockerAbi,
     provider.getSigner()
   )
 
@@ -374,19 +475,28 @@ async function lock (transfer) {
   }
 }
 
-async function checkLock (transfer) {
-  const provider = getEthProvider()
+async function checkLock (
+  transfer: Transfer,
+  options?: {
+    provider?: ethers.providers.Web3Provider
+    ethChainId?: number
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getEthProvider()
 
   const lockHash = last(transfer.lockHashes)
   const ethChainId = (await provider.getNetwork()).chainId
-  if (ethChainId !== Number(process.env.ethChainId)) {
+  const expectedChainId = options.ethChainId ?? bridgeParams.ethChainId
+  if (ethChainId !== expectedChainId) {
     console.log(
       'Wrong eth network for checkLock, expected: %s, got: %s',
-      process.env.ethChainId, ethChainId
+      expectedChainId, ethChainId
     )
     return transfer
   }
-  let lockReceipt = await provider.getTransactionReceipt(lockHash)
+  let lockReceipt: ethers.providers.TransactionReceipt = await provider.getTransactionReceipt(lockHash)
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!lockReceipt) {
@@ -429,12 +539,9 @@ async function checkLock (transfer) {
 
   if (lockReceipt.transactionHash !== lockHash) {
     // Record the replacement tx lockHash
-    return {
+    transfer = {
       ...transfer,
-      status: status.IN_PROGRESS,
-      completedStep: LOCK,
-      lockHashes: [...transfer.lockHashes, lockReceipt.transactionHash],
-      lockReceipts: [...transfer.lockReceipts, lockReceipt]
+      lockHashes: [...transfer.lockHashes, lockReceipt.transactionHash]
     }
   }
 
@@ -446,12 +553,26 @@ async function checkLock (transfer) {
   }
 }
 
-async function checkSync (transfer) {
+async function checkSync (
+  transfer: Transfer,
+  options?: {
+    provider?: ethers.providers.JsonRpcProvider
+    erc20LockerAddress?: string
+    erc20LockerAbi?: string
+    sendToNearSyncInterval?: number
+    nep141Factory?: string
+    nearEventRelayerMargin?: number
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getEthProvider()
+
   if (!transfer.checkSyncInterval) {
     // checkSync every 20s: reasonable value to show the confirmation counter x/30
     transfer = {
       ...transfer,
-      checkSyncInterval: Number(process.env.sendToNearSyncInterval)
+      checkSyncInterval: options.sendToNearSyncInterval ?? bridgeParams.sendToNearSyncInterval
     }
   }
   if (transfer.nextCheckSyncTimestamp && new Date() < new Date(transfer.nextCheckSyncTimestamp)) {
@@ -468,13 +589,13 @@ async function checkSync (transfer) {
     proof = await findEthProof(
       'Locked',
       lockReceipt.transactionHash,
-      process.env.ethLockerAddress,
-      process.env.ethLockerAbiText,
-      getEthProvider()
+      options.erc20LockerAddress ?? bridgeParams.erc20LockerAddress,
+      options.erc20LockerAbi ?? bridgeParams.erc20LockerAbi,
+      provider
     )
     const nearAccount = await getNearAccount()
     const proofAlreadyUsed = await nearAccount.viewFunction(
-      process.env.nearTokenFactoryAccount,
+      options.nep141Factory ?? bridgeParams.nep141Factory,
       'is_used_proof',
       Buffer.from(proof)
     )
@@ -491,11 +612,12 @@ async function checkSync (transfer) {
     }
   }
 
-  if (completedConfirmations < transfer.neededConfirmations + Number(process.env.nearEventRelayerMargin)) {
+  const nearEventRelayerMargin: number = options.nearEventRelayerMargin ?? bridgeParams.nearEventRelayerMargin
+  if (completedConfirmations < transfer.neededConfirmations + nearEventRelayerMargin) {
     // Leave some time for the relayer to finalize
     return {
       ...transfer,
-      nextCheckSyncTimestamp: new Date(Date.now() + transfer.checkSyncInterval),
+      nextCheckSyncTimestamp: new Date(Date.now() + transfer.checkSyncInterval!),
       completedConfirmations,
       status: status.IN_PROGRESS
     }
@@ -515,8 +637,16 @@ async function checkSync (transfer) {
  * currently dealt with using URL params.
  * @param {*} transfer
  */
-async function mint (transfer) {
-  const nearAccount = await getNearAccount()
+async function mint (
+  transfer: Transfer,
+  options?: {
+    nearAccount?: ConnectedWalletAccount
+    nep141Factory?: string
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const nearAccount = options.nearAccount ?? await getNearAccount()
 
   // Check if the transfer is finalized and get the proof if not
   transfer = await checkSync(transfer)
@@ -538,9 +668,10 @@ async function mint (transfer) {
   // to start two `deposit` calls at the same time, and the `checkMint` will be
   // able to correctly identify the transfer and see if the transaction
   // succeeded.
-  setTimeout(async () => {
-    await nearAccount.functionCall(
-      process.env.nearTokenFactoryAccount,
+  setTimeout(() => {
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    nearAccount.functionCall(
+      options!.nep141Factory ?? bridgeParams.nep141Factory,
       'deposit',
       proof,
       // 200Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
@@ -567,11 +698,17 @@ async function mint (transfer) {
  * So urlparams.clear() is called when status.FAILED or at the end of this function.
  * @param {*} transfer
  */
-export async function checkMint (transfer) {
-  const id = urlParams.get('minting')
+export async function checkMint (
+  transfer: Transfer,
+  options?: {
+    nearAccount?: ConnectedWalletAccount
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const id = urlParams.get('minting') as string | null
   // NOTE: when a single tx is executed, transactionHashes is equal to that hash
-  const txHash = urlParams.get('transactionHashes')
-  const errorCode = urlParams.get('errorCode')
+  const txHash = urlParams.get('transactionHashes') as string | null
+  const errorCode = urlParams.get('errorCode') as string | null
   if (!id && !txHash) {
     // The user closed the tab and never rejected or approved the tx from Near wallet.
     // This doesn't protect agains the user broadcasting a tx and closing the tab before
@@ -637,30 +774,28 @@ export async function checkMint (transfer) {
   }
 
   const decodedTxHash = utils.serialize.base_decode(txHash)
-  const nearAccount = await getNearAccount()
+  const nearAccount = options.nearAccount ?? await getNearAccount()
   const mintTx = await nearAccount.connection.provider.txStatus(
     decodedTxHash, nearAccount.accountId
   )
 
+  // @ts-expect-error : wallet returns errorCode
   if (mintTx.status.Unknown) {
     // Transaction or receipt not processed yet
     return transfer
   }
 
   // Check status of tx broadcasted by wallet
+  // @ts-expect-error : wallet returns errorCode
   if (mintTx.status.Failure) {
     urlParams.clear()
-    console.error('mintTx.status.Failure', mintTx.status.Failure)
-    const errorMessage = typeof mintTx.status.Failure === 'object'
-      ? parseRpcError(mintTx.status.Failure)
-      : `Transaction <a href="${process.env.nearExplorerUrl}/transactions/${mintTx.transaction.hash}">${mintTx.transaction.hash}</a> failed`
-
+    const error = `NEAR transaction failed: ${txHash}`
+    console.error(error)
     return {
       ...transfer,
-      errors: [...transfer.errors, errorMessage],
+      errors: [...transfer.errors, error],
       status: status.FAILED,
-      mintHashes: [...transfer.mintHashes, txHash],
-      mintTx
+      mintHashes: [...transfer.mintHashes, txHash]
     }
   }
 
@@ -676,4 +811,4 @@ export async function checkMint (transfer) {
   }
 }
 
-const last = arr => arr[arr.length - 1]
+const last = (arr: any[]): any => arr[arr.length - 1]
