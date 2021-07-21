@@ -5,6 +5,7 @@ let ethProvider: any // TODO add proper Ethereum Provider typing
 let nearConnection: WalletConnection
 let auroraProvider: any
 let signerProvider: any
+let bridgeParams: any
 
 /**
  * Set ethProvider
@@ -170,4 +171,13 @@ export function formatLargeNum (n: string, decimals = 18): Decimal {
     return new Decimal(0)
   }
   return new Decimal(n).dividedBy(10 ** decimals)
+}
+
+export function getBridgeParams (): any {
+  return bridgeParams
+}
+
+export function setBridgeParams (params: any): any {
+  bridgeParams = params
+  return bridgeParams
 }
