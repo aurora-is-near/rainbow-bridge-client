@@ -1,4 +1,3 @@
-import BN from 'bn.js'
 import { ACTION_NEEDED, IN_PROGRESS, COMPLETE, FAILED } from './statuses'
 
 export interface Step {
@@ -8,7 +7,6 @@ export interface Step {
 }
 
 export interface UnsavedTransfer {
-  amount: BN
   completedStep: null | string
   destinationTokenName: string
   errors: string[]
