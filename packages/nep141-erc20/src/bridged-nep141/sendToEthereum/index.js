@@ -14,8 +14,7 @@ import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof } f
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider } from '@near-eth/client/dist/utils'
 import getNep141Address from '../getAddress'
-import getErc20Name from '../../natural-erc20/getName'
-import { getDecimals } from '../../natural-erc20/getMetadata'
+import { getDecimals, getSymbol } from '../../natural-erc20/getMetadata'
 
 export const SOURCE_NETWORK = 'near'
 export const DESTINATION_NETWORK = 'ethereum'
@@ -183,8 +182,8 @@ export async function recover (withdrawTxHash, sender = 'todo') {
   const amount = withdrawEvent.amount.toString()
   const recipient = '0x' + Buffer.from(withdrawEvent.recipient).toString('hex')
   const erc20Address = '0x' + Buffer.from(withdrawEvent.token).toString('hex')
-  const destinationTokenName = await getErc20Name(erc20Address)
-  const decimals = await getDecimals(erc20Address)
+  const destinationTokenName = await getSymbol({ erc20Address })
+  const decimals = await getDecimals({ erc20Address })
   const sourceTokenName = 'n' + destinationTokenName
   const sourceToken = getNep141Address(erc20Address)
 
@@ -288,9 +287,9 @@ export async function initiate ({
   recipient
 }) {
   // TODO: move to core 'decorate'; get both from contracts
-  const destinationTokenName = await getErc20Name(erc20Address)
+  const destinationTokenName = await getSymbol({ erc20Address })
   // TODO: call initiate with a formated amount and query decimals when decorate()
-  const decimals = await getDecimals(erc20Address)
+  const decimals = await getDecimals({ erc20Address })
   const sourceTokenName = 'n' + destinationTokenName
   const sourceToken = getNep141Address(erc20Address)
 

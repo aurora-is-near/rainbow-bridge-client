@@ -1,10 +1,10 @@
 import getAddress from './getAddress'
 import getBalance from './getBalance'
-import getErc20Name from '../natural-erc20/getName'
+import { getSymbol } from '../natural-erc20/getMetadata'
 
 // TODO: get from NEAR token metadata
 async function getName (erc20Address) {
-  const erc20Name = await getErc20Name(erc20Address)
+  const erc20Name = await getSymbol({ erc20Address })
   return 'n' + erc20Name
 }
 
