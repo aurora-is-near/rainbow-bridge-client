@@ -12,11 +12,11 @@ export default async function getAllowance ({ erc20Address, owner, spender }) {
 
   const provider = getEthProvider()
 
-  const erc20Contract = new ethers.Contract(
+  const contract = new ethers.Contract(
     erc20Address,
     process.env.ethErc20AbiText,
     provider
   )
 
-  return (await erc20Contract.allowance(owner, spender)).toString()
+  return (await contract.allowance(owner, spender)).toString()
 }
