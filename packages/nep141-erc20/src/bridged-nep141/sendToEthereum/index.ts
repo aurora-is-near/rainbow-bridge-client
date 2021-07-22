@@ -121,7 +121,7 @@ export const i18n = {
       switch (transfer.completedStep) {
         case null: return 'Transfer'
         case SYNC: return 'Deposit'
-        default: return null
+        default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
       }
     }
   }
@@ -161,9 +161,16 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
  * @param {string} withdrawTxHash Near tx hash containing the token withdrawal
  * @param {string} sender Near account sender of withdrawTxHash
  */
-export async function recover (withdrawTxHash: string, sender: string = 'todo'): Promise<Transfer> {
+export async function recover (
+  withdrawTxHash: string,
+  sender: string = 'todo',
+  options?: {
+    nearAccount?: ConnectedWalletAccount
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const nearAccount = options.nearAccount ?? await getNearAccount()
   const decodedTxHash = utils.serialize.base_decode(withdrawTxHash)
-  const nearAccount = await getNearAccount()
   const withdrawTx = await nearAccount.connection.provider.txStatus(
     // TODO: when multiple shards, the sender should be known in order to query txStatus
     decodedTxHash, sender
@@ -363,7 +370,7 @@ export async function initiate (
 
   transfer = await track(transfer) as Transfer
 
-  await withdraw(transfer)
+  await withdraw(transfer, options)
   return transfer
 }
 

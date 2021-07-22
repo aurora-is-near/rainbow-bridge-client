@@ -954,6 +954,7 @@ __metadata:
     "@near-eth/client": "workspace:*"
     "@near-eth/utils": "workspace:*"
     "@types/bn.js": ^5.1.0
+    "@types/bs58": ^4.0.1
     "@types/node": ^14.14.28
     "@yarnpkg/pnpify": ^2.4.0
     bn.js: ^5.1.3

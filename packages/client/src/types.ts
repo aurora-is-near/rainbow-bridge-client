@@ -32,6 +32,7 @@ export interface TransactionInfo {
     safeReorgHeight: number
     data: string
     nonce: number
+    value?: string
   }
 }
 
