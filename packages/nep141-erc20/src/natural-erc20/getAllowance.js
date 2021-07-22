@@ -1,4 +1,4 @@
-import Web3 from 'web3'
+import { ethers } from 'ethers'
 import { getEthProvider } from '@near-eth/client/dist/utils'
 
 /**
@@ -10,12 +10,13 @@ import { getEthProvider } from '@near-eth/client/dist/utils'
 export default async function getAllowance ({ erc20Address, owner, spender }) {
   if (!owner || !spender) return null
 
-  const web3 = new Web3(getEthProvider())
+  const provider = getEthProvider()
 
-  const erc20Contract = new web3.eth.Contract(
-    JSON.parse(process.env.ethErc20AbiText),
-    erc20Address
+  const contract = new ethers.Contract(
+    erc20Address,
+    process.env.ethErc20AbiText,
+    provider
   )
 
-  return await erc20Contract.methods.allowance(owner, spender).call()
+  return (await contract.allowance(owner, spender)).toString()
 }

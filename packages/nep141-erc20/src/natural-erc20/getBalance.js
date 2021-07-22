@@ -1,15 +1,16 @@
-import Web3 from 'web3'
+import { ethers } from 'ethers'
 import { getEthProvider } from '@near-eth/client/dist/utils'
 
 export default async function getBalance (address, user) {
   if (!user) return null
 
-  const web3 = new Web3(getEthProvider())
+  const provider = getEthProvider()
 
-  const erc20Contract = new web3.eth.Contract(
-    JSON.parse(process.env.ethErc20AbiText),
-    address
+  const contract = new ethers.Contract(
+    address,
+    process.env.ethErc20AbiText,
+    provider
   )
 
-  return await erc20Contract.methods.balanceOf(user).call()
+  return await contract.balanceOf(user)
 }

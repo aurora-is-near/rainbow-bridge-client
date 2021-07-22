@@ -1,6 +1,4 @@
-import Web3 from 'web3'
-import { Transaction } from 'web3-core'
-import { PastEventOptions } from 'web3-eth-contract'
+import { ethers } from 'ethers'
 
 export class SearchError extends Error {}
 export class TxValidationError extends Error {}
@@ -13,33 +11,30 @@ export class TxValidationError extends Error {}
  * @param nonce Nonce of the transaction searched
  */
 export async function getTransactionByNonce (
-  provider: any,
+  provider: ethers.providers.Provider,
   startSearch: number,
   from: string,
   nonce: number
-): Promise<Transaction | null> {
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
-
-  const currentNonce = await web3.eth.getTransactionCount(from, 'latest')
+): Promise<ethers.providers.TransactionResponse | null> {
+  const currentNonce = await provider.getTransactionCount(from, 'latest')
 
   // Transaction still pending
   if (currentNonce <= nonce) return null
 
   // Binary search the block containing the transaction between startSearch and latest.
   let txBlock
-  let maxBlock = await web3.eth.getBlockNumber() // latest: chain head
+  let maxBlock: number = await provider.getBlockNumber() // latest: chain head
   let minBlock = startSearch
   while (minBlock <= maxBlock) {
     const middleBlock = Math.floor((minBlock + maxBlock) / 2)
-    const middleNonce = await web3.eth.getTransactionCount(from, middleBlock) - 1
+    const middleNonce = await provider.getTransactionCount(from, middleBlock) - 1
     if (middleNonce < nonce) {
       // middleBlock was mined before the tx with broadcasted nonce, so take next block as lower bound
       minBlock = middleBlock + 1
     } else if (middleNonce >= nonce) {
       // The middleBlock was mined after the tx with tx.nonce, so check if the account has a
       // lower nonce at previous block which would mean that tx.nonce was mined in this middleBlock.
-      if (await web3.eth.getTransactionCount(from, middleBlock - 1) - 1 < nonce) {
+      if (await provider.getTransactionCount(from, middleBlock - 1) - 1 < nonce) {
         // Confirm the nonce changed by checking the previous block:
         // use previous block nonce `>=` broadcasted nonce in case there are multiple user tx
         // in the previous block. If only 1 user tx, then `===` would work
@@ -54,7 +49,7 @@ export async function getTransactionByNonce (
     const error = 'Could not find replacement transaction. It may be due to a chain reorg.'
     throw new SearchError(error)
   }
-  const block = await web3.eth.getBlock(txBlock, true)
+  const block = await provider.getBlockWithTransactions(txBlock)
   const transaction = block.transactions.find(
     blockTx => blockTx.from.toLowerCase() === from.toLowerCase() && blockTx.nonce === nonce
   )
@@ -88,15 +83,12 @@ export async function findReplacementTx (
     address: string
     validate: ({ returnValues }: { returnValues: any }) => boolean
   }
-): Promise<Transaction | null> {
+): Promise<ethers.providers.TransactionResponse | null> {
   const transaction = await getTransactionByNonce(provider, startSearch, tx.from, tx.nonce)
   // Transaction still pending
   if (!transaction) return null
 
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
-
-  if (transaction.input === '0x' && transaction.from === transaction.to && transaction.value === '0') {
+  if (transaction.data === '0x' && transaction.from === transaction.to && transaction.value.isZero()) {
     const error = 'Transaction canceled.'
     throw new TxValidationError(error)
   }
@@ -109,35 +101,33 @@ export async function findReplacementTx (
   }
 
   if (tx.data) {
-    if (transaction.input !== tx.data) {
+    if (transaction.data !== tx.data) {
       const error = `Failed to validate transaction data.
-        Expected ${tx.data}, got ${transaction.input}.
+        Expected ${tx.data}, got ${transaction.data}.
         Transaction was dropped and replaced by '${transaction.hash}'`
       throw new TxValidationError(error)
     }
   }
 
   if (tx.value) {
-    if (transaction.value !== tx.value) {
+    if (transaction.value.toString() !== tx.value) {
       const error = `Failed to validate transaction value.
-        Expected ${tx.value}, got ${transaction.value}.
+        Expected ${tx.value}, got ${transaction.value.toString()}.
         Transaction was dropped and replaced by '${transaction.hash}'`
       throw new TxValidationError(error)
     }
   }
 
   if (event) {
-    const tokenContract = new web3.eth.Contract(
-      JSON.parse(event.abi),
-      event.address
+    const tokenContract = new ethers.Contract(
+      event.address,
+      event.abi,
+      provider
     )
-    const eventOptions: PastEventOptions = {
-      fromBlock: transaction.blockNumber!,
-      toBlock: transaction.blockNumber!
-    }
-    const events = await tokenContract.getPastEvents(event.name, eventOptions)
+    const filter = tokenContract.filters[event.name]!()
+    const events = await tokenContract.queryFilter(filter, transaction.blockNumber, transaction.blockNumber)
     const foundEvent = events.find(e => e.transactionHash === transaction.hash)
-    if (!foundEvent || !event.validate(foundEvent)) {
+    if (!foundEvent || !event.validate({ returnValues: foundEvent.args })) {
       const error = `Failed to validate event.
         Transaction was dropped and replaced by '${transaction.hash}'`
       throw new TxValidationError(error)

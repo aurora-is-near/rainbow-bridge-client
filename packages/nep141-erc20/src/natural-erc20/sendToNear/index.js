@@ -1,19 +1,18 @@
 import BN from 'bn.js'
 import { Decimal } from 'decimal.js'
 import getRevertReason from 'eth-revert-reason'
-import Web3 from 'web3'
+import { ethers } from 'ethers'
 import { track, get } from '@near-eth/client'
 import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
 import { utils } from 'near-api-js'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
-import { getEthProvider, getNearAccount, formatLargeNum } from '@near-eth/client/dist/utils'
-import { urlParams, ethOnNearSyncHeight } from '@near-eth/utils'
+import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider } from '@near-eth/client/dist/utils'
+import { urlParams, ethOnNearSyncHeight, findEthProof } from '@near-eth/utils'
 import { findReplacementTx, SearchError, TxValidationError } from 'find-replacement-tx'
 import getName from '../getName'
 import getAllowance from '../getAllowance'
 import { getDecimals } from '../getMetadata'
-import findProof from './findProof'
 
 export const SOURCE_NETWORK = 'ethereum'
 export const DESTINATION_NETWORK = 'near'
@@ -46,7 +45,8 @@ const transferDraft = {
   type: TRANSFER_TYPE,
   // Cache eth tx information used for finding a replaced (speedup/cancel) tx.
   // ethCache: {
-  //   signer,                   // tx.from of last broadcasted eth tx
+  //   from,                     // tx.from of last broadcasted eth tx
+  //   to,                       // tx.to of last broadcasted eth tx (can be multisig contract)
   //   safeReorgHeight,          // Lower boundary for replacement tx search
   //   nonce                     // tx.nonce of last broadcasted eth tx
   // }
@@ -66,7 +66,7 @@ export const i18n = {
     steps: transfer => stepsFor(transfer, steps, {
       [APPROVE]: `Approve transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from Ethereum`,
       [LOCK]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} to NEAR`,
-      [SYNC]: `Wait for ${transfer.neededConfirmations} transfer confirmations for security`,
+      [SYNC]: `Wait for ${transfer.neededConfirmations + Number(process.env.nearEventRelayerMargin)} transfer confirmations for security`,
       [MINT]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in NEAR`
     }),
     statusMessage: transfer => {
@@ -134,26 +134,23 @@ export function checkStatus (transfer) {
  */
 export async function recover (lockTxHash) {
   const provider = getEthProvider()
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider receipt.status
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
-  const receipt = await web3.eth.getTransactionReceipt(lockTxHash)
-  const ethTokenLocker = new web3.eth.Contract(
-    JSON.parse(process.env.ethLockerAbiText),
-    process.env.ethLockerAddress
+  const receipt = await provider.getTransactionReceipt(lockTxHash)
+  const ethTokenLocker = new ethers.Contract(
+    process.env.ethLockerAddress,
+    process.env.ethLockerAbiText,
+    provider
   )
-  const events = await ethTokenLocker.getPastEvents('Locked', {
-    fromBlock: receipt.blockNumber,
-    toBlock: receipt.blockNumber
-  })
+  const filter = ethTokenLocker.filters.Locked()
+  const events = await ethTokenLocker.queryFilter(filter, receipt.blockNumber, receipt.blockNumber)
   const lockedEvent = events.find(event => event.transactionHash === lockTxHash)
   if (!lockedEvent) {
     throw new Error('Unable to process lock transaction event.')
   }
-  const erc20Address = lockedEvent.returnValues.token
-  const amount = lockedEvent.returnValues.amount
-  const recipient = lockedEvent.returnValues.accountId
-  const sender = lockedEvent.returnValues.sender
+  const erc20Address = lockedEvent.args.token
+  const amount = lockedEvent.args.amount.toString()
+  const recipient = lockedEvent.args.accountId
+  const sender = lockedEvent.args.sender
   const sourceTokenName = await getName(erc20Address)
   const decimals = await getDecimals(erc20Address)
   const destinationTokenName = 'n' + sourceTokenName
@@ -242,24 +239,15 @@ export async function initiate ({
 }
 
 async function approve (transfer) {
-  const web3 = new Web3(getEthProvider())
+  const provider = getSignerProvider()
 
-  const erc20Contract = new web3.eth.Contract(
-    JSON.parse(process.env.ethErc20AbiText),
+  const safeReorgHeight = await provider.getBlockNumber() - 20
+  const erc20Contract = new ethers.Contract(
     transfer.sourceToken,
-    { from: transfer.sender }
+    process.env.ethErc20AbiText,
+    provider.getSigner()
   )
-
-  // If this tx is dropped and replaced, lower the search boundary
-  // in case there was a reorg.
-  const safeReorgHeight = await web3.eth.getBlockNumber() - 20
-  const approvalHash = await new Promise((resolve, reject) => {
-    erc20Contract.methods
-      .approve(process.env.ethLockerAddress, transfer.amount).send()
-      .on('transactionHash', resolve)
-      .catch(reject)
-  })
-  const pendingApprovalTx = await web3.eth.getTransaction(approvalHash)
+  const pendingApprovalTx = await erc20Contract.approve(process.env.ethLockerAddress, transfer.amount)
 
   return {
     ...transfer,
@@ -269,17 +257,15 @@ async function approve (transfer) {
       safeReorgHeight,
       nonce: pendingApprovalTx.nonce
     },
-    approvalHashes: [...transfer.approvalHashes, approvalHash],
+    approvalHashes: [...transfer.approvalHashes, pendingApprovalTx.hash],
     status: status.IN_PROGRESS
   }
 }
 
 async function checkApprove (transfer) {
   const provider = getEthProvider()
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
-  const ethNetwork = await web3.eth.net.getNetworkType()
+  const ethNetwork = (await provider.getNetwork()).name
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(
       'Wrong eth network for checkApprove, expected: %s, got: %s',
@@ -289,7 +275,7 @@ async function checkApprove (transfer) {
   }
 
   const approvalHash = last(transfer.approvalHashes)
-  let approvalReceipt = await web3.eth.getTransactionReceipt(approvalHash)
+  let approvalReceipt = await provider.getTransactionReceipt(approvalHash)
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!approvalReceipt) {
@@ -310,13 +296,13 @@ async function checkApprove (transfer) {
             owner.toLowerCase() === transfer.sender.toLowerCase() &&
             spender.toLowerCase() === process.env.ethLockerAddress.toLowerCase()
             // Don't check value as the user may have increased approval before signing.
-            // value === transfer.amount
+            // value.toString() === transfer.amount
           )
         }
       }
       const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
       if (!foundTx) return transfer
-      approvalReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
+      approvalReceipt = await provider.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
       if (error instanceof SearchError || error instanceof TxValidationError) {
@@ -334,7 +320,7 @@ async function checkApprove (transfer) {
   if (!approvalReceipt.status) {
     let error
     try {
-      error = await getRevertReason(approvalHash, ethNetwork)
+      error = await getRevertReason(approvalHash, ethNetwork, 'latest', provider)
     } catch (e) {
       console.error(e)
       error = `Could not determine why transaction '${approvalReceipt.transactionHash}'
@@ -375,25 +361,18 @@ async function checkApprove (transfer) {
  * @param {*} transfer
  */
 async function lock (transfer) {
-  const web3 = new Web3(getEthProvider())
-  const ethUserAddress = (await web3.eth.getAccounts())[0]
+  const provider = getSignerProvider()
 
-  const ethTokenLocker = new web3.eth.Contract(
-    JSON.parse(process.env.ethLockerAbiText),
+  const ethTokenLocker = new ethers.Contract(
     process.env.ethLockerAddress,
-    { from: ethUserAddress }
+    process.env.ethLockerAbiText,
+    provider.getSigner()
   )
 
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
-  const safeReorgHeight = await web3.eth.getBlockNumber() - 20
-  const lockHash = await new Promise((resolve, reject) => {
-    ethTokenLocker.methods
-      .lockToken(transfer.sourceToken, transfer.amount, transfer.recipient).send()
-      .on('transactionHash', resolve)
-      .catch(reject)
-  })
-  const pendingLockTx = await web3.eth.getTransaction(lockHash)
+  const safeReorgHeight = await provider.getBlockNumber() - 20
+  const pendingLockTx = await ethTokenLocker.lockToken(transfer.sourceToken, transfer.amount, transfer.recipient)
 
   return {
     ...transfer,
@@ -404,17 +383,15 @@ async function lock (transfer) {
       safeReorgHeight,
       nonce: pendingLockTx.nonce
     },
-    lockHashes: [...transfer.lockHashes, lockHash]
+    lockHashes: [...transfer.lockHashes, pendingLockTx.hash]
   }
 }
 
 async function checkLock (transfer) {
   const provider = getEthProvider()
-  // If available connect to rpcUrl to avoid issues with WalletConnectProvider
-  const web3 = new Web3(provider.rpcUrl ? provider.rpcUrl : provider)
 
   const lockHash = last(transfer.lockHashes)
-  const ethNetwork = await web3.eth.net.getNetworkType()
+  const ethNetwork = (await provider.getNetwork()).name
   if (ethNetwork !== process.env.ethNetworkId) {
     console.log(
       'Wrong eth network for checkLock, expected: %s, got: %s',
@@ -422,7 +399,7 @@ async function checkLock (transfer) {
     )
     return transfer
   }
-  let lockReceipt = await web3.eth.getTransactionReceipt(lockHash)
+  let lockReceipt = await provider.getTransactionReceipt(lockHash)
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!lockReceipt) {
@@ -439,18 +416,17 @@ async function checkLock (transfer) {
         abi: process.env.ethLockerAbiText,
         address: process.env.ethLockerAddress,
         validate: ({ returnValues: { token, sender, amount, accountId } }) => {
-          if (!event) return false
           return (
             token.toLowerCase() === transfer.sourceToken.toLowerCase() &&
             sender.toLowerCase() === transfer.sender.toLowerCase() &&
-            amount === transfer.amount &&
+            amount.toString() === transfer.amount &&
             accountId === transfer.recipient
           )
         }
       }
       const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx, event)
       if (!foundTx) return transfer
-      lockReceipt = await web3.eth.getTransactionReceipt(foundTx.hash)
+      lockReceipt = await provider.getTransactionReceipt(foundTx.hash)
     } catch (error) {
       console.error(error)
       if (error instanceof SearchError || error instanceof TxValidationError) {
@@ -469,7 +445,7 @@ async function checkLock (transfer) {
   if (!lockReceipt.status) {
     let error
     try {
-      error = await getRevertReason(lockHash, ethNetwork)
+      error = await getRevertReason(lockHash, ethNetwork, 'latest', provider)
     } catch (e) {
       console.error(e)
       error = `Could not determine why transaction failed; encountered error: ${e.message}`
@@ -510,7 +486,13 @@ async function checkSync (transfer) {
 
   if (completedConfirmations > transfer.neededConfirmations) {
     // Check if relayer already minted
-    proof = await findProof(lockReceipt.transactionHash)
+    proof = await findEthProof(
+      'Locked',
+      lockReceipt.transactionHash,
+      process.env.ethLockerAddress,
+      process.env.ethLockerAbiText,
+      getEthProvider()
+    )
     const nearAccount = await getNearAccount()
     const proofAlreadyUsed = await nearAccount.viewFunction(
       process.env.nearTokenFactoryAccount,

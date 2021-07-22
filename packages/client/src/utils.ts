@@ -5,6 +5,7 @@ import { ethers } from 'ethers'
 let ethProvider: any // TODO add proper Ethereum Provider typing
 let nearConnection: WalletConnection
 let auroraJsonRpcProvider: any
+let signerProvider: any
 
 /**
  * Set ethProvider
@@ -35,6 +36,17 @@ export function getAuroraProvider (): any {
   })
 
   return auroraJsonRpcProvider
+
+export function setAuroraProvider (provider: any): any {
+  auroraJsonRpcProvider = provider
+  // TODO: verify provider meets expectations
+  return auroraJsonRpcProvider
+}
+
+export function setSignerProvider (provider: any): any {
+  signerProvider = provider
+  // TODO: verify provider meets expectations
+  return signerProvider
 }
 
 /**
@@ -70,10 +82,18 @@ export function setNearConnection (connection: WalletConnection): WalletConnecti
  * other connector libraries that interoperate with @near-eth/client. If you
  * are an app developer, you can ignore this function.
  *
- * @returns an Ethereum Provider for use with ethers.js or web3js
+ * @returns an Ethereum Provider for use with ethers.js
  */
 export function getEthProvider (): any {
   return ethProvider
+}
+
+export function getAuroraProvider (): any {
+  return auroraProvider
+}
+
+export function getSignerProvider (): any {
+  return signerProvider
 }
 
 /**

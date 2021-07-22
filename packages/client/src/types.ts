@@ -44,6 +44,10 @@ export interface Transfers {
   [key: string]: Transfer
 }
 
+export interface CustomTransferTypes {
+  [key: string]: ConnectorLib
+}
+
 interface Localizations {
   steps: (t: Transfer) => Step[]
   callToAction: (t: Transfer) => string | null
