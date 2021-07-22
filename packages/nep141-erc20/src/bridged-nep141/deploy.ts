@@ -1,6 +1,6 @@
 import BN from 'bn.js'
-import { utils } from 'near-api-js'
-import { getNearAccount } from '@near-eth/client/dist/utils'
+import { ConnectedWalletAccount } from 'near-api-js'
+import { getNearAccount, getBridgeParams } from '@near-eth/client/dist/utils'
 import { urlParams } from '@near-eth/utils'
 
 /**
@@ -34,13 +34,24 @@ import { urlParams } from '@near-eth/utils'
  * attached deposit (of 30.02 NEAR) and will thus always cause a redirect to
  * NEAR Wallet for confirmation.
  */
-export default async function deployBridgeToken (erc20Address) {
-  const nearAccount = await getNearAccount()
+export default async function deployBridgeToken (
+  { erc20Address, options }: {
+    erc20Address: string
+    options?: {
+      nearAccount?: ConnectedWalletAccount
+      nep141Factory?: string
+    }
+  }
+): Promise<void> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const nep141Factory: string = options.nep141Factory ?? bridgeParams.nep141Factory
+  const nearAccount = options.nearAccount ?? await getNearAccount()
   urlParams.set({ bridging: erc20Address })
 
   // causes redirect to NEAR Wallet
   await nearAccount.functionCall(
-    process.env.nearTokenFactoryAccount,
+    nep141Factory,
     'deploy_bridge_token',
     { address: erc20Address.replace('0x', '') },
 
@@ -55,6 +66,7 @@ export default async function deployBridgeToken (erc20Address) {
     // 3N for the base fee, plus .02 for for storing the name of the contract
     // Might not need full .02, but need more than .01, error message did not
     // include needed amount at time of writing.
-    new BN(utils.format.parseNearAmount('3.02'))
+    // new BN(utils.format.parseNearAmount('3.02'))
+    new BN('302' + '0'.repeat(22))
   )
 }

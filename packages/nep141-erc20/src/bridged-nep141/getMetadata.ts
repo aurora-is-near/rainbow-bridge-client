@@ -1,9 +1,8 @@
 import getAddress from './getAddress'
-import getBalance from './getBalance'
 import { getSymbol } from '../natural-erc20/getMetadata'
 
 // TODO: get from NEAR token metadata
-async function getName (erc20Address) {
+async function getName (erc20Address: string): Promise<string> {
   const erc20Name = await getSymbol({ erc20Address })
   return 'n' + erc20Name
 }
@@ -26,22 +25,14 @@ async function getName (erc20Address) {
  *
  * @returns {Promise<{ address: string, balance: number|null, decimals: null, icon: null, name: string }>}
  */
-export default async function getNep141Data (erc20Address, user) {
-  const address = getAddress(erc20Address)
-
-  const [balance, name] = await Promise.all([
-    // getBalance purposely designed to always require `user`; circumventing here
-    // to match `naturalErc20.getMetadata`
-    new Promise((resolve, reject) => {
-      if (!user) resolve(null)
-      else getBalance({ erc20Address, user }).then(resolve).catch(reject)
-    }),
-    getName(erc20Address)
-  ])
+export default async function getMetadata (
+  { erc20Address }: { erc20Address: string }
+): Promise<{address: string, decimals: null, icon: null, name: string}> {
+  const address = getAddress({ erc20Address })
+  const name = await getName(erc20Address)
 
   return {
     address,
-    balance,
     decimals: null,
     icon: null,
     name
