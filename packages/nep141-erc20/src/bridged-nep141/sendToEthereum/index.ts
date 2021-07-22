@@ -1,18 +1,18 @@
 import BN from 'bn.js'
-import { Decimal } from 'decimal.js'
 import bs58 from 'bs58'
 import { ethers } from 'ethers'
-import { parseRpcError } from 'near-api-js/lib/utils/rpc_errors'
-import { utils } from 'near-api-js'
+import { ConnectedWalletAccount, utils } from 'near-api-js'
+import { FinalExecutionOutcome } from 'near-api-js/lib/providers'
 import {
   deserialize as deserializeBorsh
 } from 'near-api-js/lib/utils/serialize'
 import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
+import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { track } from '@near-eth/client'
 import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
-import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider } from '@near-eth/client/dist/utils'
+import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import getNep141Address from '../getAddress'
 import { getDecimals, getSymbol } from '../../natural-erc20/getMetadata'
 
@@ -32,9 +32,32 @@ const steps = [
   UNLOCK
 ]
 
+export interface TransferDraft extends TransferStatus {
+  type: string
+  finalityBlockHeights: number[]
+  nearOnEthClientBlockHeight: null | number
+  unlockHashes: string[]
+  unlockReceipts: ethers.providers.TransactionReceipt[]
+  withdrawHashes: string[]
+  withdrawReceiptBlockHeights: number[]
+  withdrawReceiptIds: string[]
+}
+
+export interface Transfer extends TransferDraft, TransactionInfo {
+  id: string
+  decimals: number
+  destinationTokenName: string
+  recipient: string
+  sender: string
+  sourceTokenName: string
+  checkSyncInterval?: number
+  nextCheckSyncTimestamp?: Date
+  proof?: Uint8Array
+}
+
 class TransferError extends Error {}
 
-const transferDraft = {
+const transferDraft: TransferDraft = {
   // Attributes common to all transfer types
   // amount,
   completedStep: null,
@@ -61,23 +84,26 @@ const transferDraft = {
   unlockHashes: [],
   unlockReceipts: [],
   withdrawReceiptBlockHeights: [],
-  withdrawReceiptIds: []
+  withdrawReceiptIds: [],
+  withdrawHashes: []
 }
 
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 export const i18n = {
   en_US: {
-    steps: transfer => stepsFor(transfer, steps, {
-      [WITHDRAW]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.sourceTokenName} from NEAR`,
+    steps: (transfer: Transfer) => stepsFor(transfer, steps, {
+      [WITHDRAW]: `Start transfer of ${formatLargeNum(transfer.amount, transfer.decimals).toString()} ${transfer.sourceTokenName} from NEAR`,
       [AWAIT_FINALITY]: 'Confirm in NEAR',
       [SYNC]: 'Confirm in Ethereum. This can take around 16 hours. Feel free to return to this window later, to complete the final step of the transfer.',
-      [UNLOCK]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals)} ${transfer.destinationTokenName} in Ethereum`
+      [UNLOCK]: `Deposit ${formatLargeNum(transfer.amount, transfer.decimals).toString()} ${transfer.destinationTokenName} in Ethereum`
     }),
-    statusMessage: transfer => {
+    statusMessage: (transfer: Transfer) => {
       if (transfer.status === status.FAILED) return 'Failed'
       if (transfer.status === status.ACTION_NEEDED) {
         switch (transfer.completedStep) {
           case null: return 'Ready to transfer from NEAR'
           case SYNC: return 'Ready to deposit in Ethereum'
+          default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
         }
       }
       switch (transfer.completedStep) {
@@ -86,28 +112,31 @@ export const i18n = {
         case AWAIT_FINALITY: return 'Confirming transfer'
         case SYNC: return 'Depositing in Ethereum'
         case UNLOCK: return 'Transfer complete'
+        default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
       }
     },
-    callToAction: transfer => {
+    callToAction: (transfer: Transfer) => {
       if (transfer.status === status.FAILED) return 'Retry'
       if (transfer.status !== status.ACTION_NEEDED) return null
       switch (transfer.completedStep) {
         case null: return 'Transfer'
         case SYNC: return 'Deposit'
+        default: return null
       }
     }
   }
 }
+/* eslint-enable @typescript-eslint/restrict-template-expressions */
 
 /**
  * Called when status is ACTION_NEEDED or FAILED
  * @param {*} transfer
  */
-export function act (transfer) {
+export async function act (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
-    case null: return withdraw(transfer)
-    case AWAIT_FINALITY: return checkSync(transfer)
-    case SYNC: return unlock(transfer)
+    case null: return await withdraw(transfer)
+    case AWAIT_FINALITY: return await checkSync(transfer)
+    case SYNC: return await unlock(transfer)
     default: throw new Error(`Don't know how to act on transfer: ${JSON.stringify(transfer)}`)
   }
 }
@@ -116,12 +145,13 @@ export function act (transfer) {
  * Called when status is IN_PROGRESS
  * @param {*} transfer
  */
-export function checkStatus (transfer) {
+export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
-    case null: return checkWithdraw(transfer)
-    case WITHDRAW: return checkFinality(transfer)
-    case AWAIT_FINALITY: return checkSync(transfer)
-    case SYNC: return checkUnlock(transfer)
+    case null: return await checkWithdraw(transfer)
+    case WITHDRAW: return await checkFinality(transfer)
+    case AWAIT_FINALITY: return await checkSync(transfer)
+    case SYNC: return await checkUnlock(transfer)
+    default: throw new Error(`Don't know how to checkStatus for transfer ${transfer.id}`)
   }
 }
 
@@ -131,7 +161,7 @@ export function checkStatus (transfer) {
  * @param {string} withdrawTxHash Near tx hash containing the token withdrawal
  * @param {string} sender Near account sender of withdrawTxHash
  */
-export async function recover (withdrawTxHash, sender = 'todo') {
+export async function recover (withdrawTxHash: string, sender: string = 'todo'): Promise<Transfer> {
   const decodedTxHash = utils.serialize.base_decode(withdrawTxHash)
   const nearAccount = await getNearAccount()
   const withdrawTx = await nearAccount.connection.provider.txStatus(
@@ -140,18 +170,20 @@ export async function recover (withdrawTxHash, sender = 'todo') {
   )
   sender = withdrawTx.transaction.signer_id
 
+  // @ts-expect-error TODO
   if (withdrawTx.status.Unknown) {
     // Transaction or receipt not processed yet
     throw new Error(`Withdraw transaction pending: ${withdrawTxHash}`)
   }
 
-  // Check status of tx broadcasted by wallet
+  // @ts-expect-error TODO
   if (withdrawTx.status.Failure) {
     throw new Error(`Withdraw transaction failed: ${withdrawTxHash}`)
   }
 
   // Get withdraw event information from successValue
-  const successValue = withdrawTx.status.SuccessValue
+  // @ts-expect-error TODO
+  const successValue: string = withdrawTx.status.SuccessValue
   if (!successValue) {
     throw new Error(
       `Invalid withdrawTx successValue: '${successValue}'
@@ -159,8 +191,9 @@ export async function recover (withdrawTxHash, sender = 'todo') {
     )
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
   class WithdrawEvent {
-    constructor (args) {
+    constructor (args: any) {
       Object.assign(this, args)
     }
   }
@@ -185,14 +218,15 @@ export async function recover (withdrawTxHash, sender = 'todo') {
   const destinationTokenName = await getSymbol({ erc20Address })
   const decimals = await getDecimals({ erc20Address })
   const sourceTokenName = 'n' + destinationTokenName
-  const sourceToken = getNep141Address(erc20Address)
+  const sourceToken = getNep141Address({ erc20Address })
 
   const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, sender, sourceToken)
 
   // various attributes stored as arrays, to keep history of retries
-  let transfer = {
+  const transfer = {
     ...transferDraft,
 
+    id: new Date().toISOString(),
     amount,
     completedStep: WITHDRAW,
     destinationTokenName,
@@ -207,8 +241,7 @@ export async function recover (withdrawTxHash, sender = 'todo') {
   }
 
   // Check transfer status
-  transfer = await checkSync(transfer)
-  return transfer
+  return await checkSync(transfer)
 }
 
 /**
@@ -218,7 +251,11 @@ export async function recover (withdrawTxHash, sender = 'todo') {
  * @param {string} sender
  * @param {string} sourceToken
  */
-async function parseWithdrawReceipt (withdrawTx, sender, sourceToken) {
+async function parseWithdrawReceipt (
+  withdrawTx: FinalExecutionOutcome,
+  sender: string,
+  sourceToken: string
+): Promise<{id: string, blockHeight: number }> {
   const nearAccount = await getNearAccount()
   const receiptIds = withdrawTx.transaction_outcome.outcome.receipt_ids
 
@@ -232,23 +269,28 @@ async function parseWithdrawReceipt (withdrawTx, sender, sourceToken) {
   // Get receipt information for recording and building withdraw proof
   const txReceiptId = receiptIds[0]
   const successReceiptOutcome = withdrawTx.receipts_outcome
-    .find(r => r.id === txReceiptId).outcome
+    .find(r => r.id === txReceiptId)!
+    .outcome
+  // @ts-expect-error TODO
   const successReceiptId = successReceiptOutcome.status.SuccessReceiptId
+  // @ts-expect-error TODO
   const successReceiptExecutorId = successReceiptOutcome.executor_id
 
-  let withdrawReceiptId
+  let withdrawReceiptId: string
 
   // Check if this tx was made from a 2fa
   switch (successReceiptExecutorId) {
     case sender: {
       // `confirm` transaction executed on 2fa account
       const withdrawReceiptOutcome = withdrawTx.receipts_outcome
-        .find(r => r.id === successReceiptId)
+        .find(r => r.id === successReceiptId)!
         .outcome
 
+      // @ts-expect-error TODO
       withdrawReceiptId = withdrawReceiptOutcome.status.SuccessReceiptId
 
-      const withdrawReceiptExecutorId = withdrawReceiptOutcome.executor_id
+      // @ts-expect-error TODO
+      const withdrawReceiptExecutorId: string = withdrawReceiptOutcome.executor_id
       // Expect this receipt to be the 2fa FunctionCall
       if (withdrawReceiptExecutorId !== sourceToken) {
         throw new TransferError(
@@ -271,7 +313,9 @@ async function parseWithdrawReceipt (withdrawTx, sender, sourceToken) {
   }
 
   const txReceiptBlockHash = withdrawTx.receipts_outcome
-    .find(r => r.id === withdrawReceiptId).block_hash
+    .find(r => r.id === withdrawReceiptId)!
+    // @ts-expect-error TODO
+    .block_hash
 
   const receiptBlock = await nearAccount.connection.provider.block({
     blockId: txReceiptBlockHash
@@ -280,24 +324,32 @@ async function parseWithdrawReceipt (withdrawTx, sender, sourceToken) {
   return { id: withdrawReceiptId, blockHeight: receiptBlockHeight }
 }
 
-export async function initiate ({
-  erc20Address,
-  amount,
-  sender,
-  recipient
-}) {
-  // TODO: move to core 'decorate'; get both from contracts
-  const destinationTokenName = await getSymbol({ erc20Address })
-  // TODO: call initiate with a formated amount and query decimals when decorate()
-  const decimals = await getDecimals({ erc20Address })
+export async function initiate (
+  { erc20Address, amount, recipient, sender, options }: {
+    erc20Address: string
+    amount: string | ethers.BigNumber
+    recipient: string
+    sender: string
+    options?: {
+      symbol?: string
+      decimals?: number
+      // sender?: string // TODO get from nearAccount to make optional
+      nearAccount?: ConnectedWalletAccount
+    }
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const destinationTokenName = options.symbol ?? await getSymbol({ erc20Address })
+  const decimals = options.decimals ?? await getDecimals({ erc20Address })
   const sourceTokenName = 'n' + destinationTokenName
-  const sourceToken = getNep141Address(erc20Address)
+  const sourceToken = getNep141Address({ erc20Address })
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
     ...transferDraft,
 
-    amount: (new Decimal(amount).times(10 ** decimals)).toFixed(),
+    id: new Date().toISOString(),
+    amount: amount.toString(),
     destinationTokenName,
     recipient,
     sender,
@@ -309,13 +361,20 @@ export async function initiate ({
   // Prevent checkStatus from creating failed transfer when called between track and withdraw
   urlParams.set({ withdrawing: 'processing' })
 
-  transfer = await track(transfer)
+  transfer = await track(transfer) as Transfer
 
   await withdraw(transfer)
+  return transfer
 }
 
-async function withdraw (transfer) {
-  const nearAccount = await getNearAccount()
+async function withdraw (
+  transfer: Transfer,
+  options?: {
+    nearAccount?: ConnectedWalletAccount
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const nearAccount = options.nearAccount ?? await getNearAccount()
   // Set url params before this withdraw() returns, otherwise there is a chance that checkWithdraw() is called before
   // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
   // url param is not there
@@ -331,8 +390,9 @@ async function withdraw (transfer) {
   // to start two `deposit` calls at the same time, and the `checkWithdraw` will be
   // able to correctly identify the transfer and see if the transaction
   // succeeded.
-  setTimeout(async () => {
-    await nearAccount.functionCall(
+  setTimeout(() => {
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    nearAccount.functionCall(
       transfer.sourceToken,
       'withdraw',
       {
@@ -360,11 +420,17 @@ async function withdraw (transfer) {
  * So urlparams.clear() is called when status.FAILED or at the end of this function.
  * @param {*} transfer
  */
-export async function checkWithdraw (transfer) {
-  const id = urlParams.get('withdrawing')
+export async function checkWithdraw (
+  transfer: Transfer,
+  options?: {
+    nearAccount?: ConnectedWalletAccount
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const id = urlParams.get('withdrawing') as string | null
   // NOTE: when a single tx is executed, transactionHashes is equal to that hash
-  const txHash = urlParams.get('transactionHashes')
-  const errorCode = urlParams.get('errorCode')
+  const txHash = urlParams.get('transactionHashes') as string | null
+  const errorCode = urlParams.get('errorCode') as string | null
   if (!id && !txHash) {
     // The user closed the tab and never rejected or approved the tx from Near wallet.
     // This doesn't protect agains the user broadcasting a tx and closing the tab before
@@ -428,31 +494,30 @@ export async function checkWithdraw (transfer) {
   }
 
   const decodedTxHash = utils.serialize.base_decode(txHash)
-  const nearAccount = await getNearAccount()
+  const nearAccount = options.nearAccount ?? await getNearAccount()
   const withdrawTx = await nearAccount.connection.provider.txStatus(
     // use transfer.sender instead of nearAccount.accountId so that a withdraw
     // tx hash can be recovered even if it is not made by the logged in account
     decodedTxHash, transfer.sender
   )
 
+  // @ts-expect-error : wallet returns errorCode
   if (withdrawTx.status.Unknown) {
     // Transaction or receipt not processed yet
     return transfer
   }
 
   // Check status of tx broadcasted by wallet
+  // @ts-expect-error : wallet returns errorCode
   if (withdrawTx.status.Failure) {
     urlParams.clear()
-    console.error('withdrawTx.status.Failure', withdrawTx.status.Failure)
-    const errorMessage = typeof withdrawTx.status.Failure === 'object'
-      ? parseRpcError(withdrawTx.status.Failure)
-      : `Transaction <a href="${process.env.nearExplorerUrl}/transactions/${withdrawTx.transaction.hash}">${withdrawTx.transaction.hash}</a> failed`
-
+    const error = `NEAR transaction failed: ${txHash}`
+    console.error(error)
     return {
       ...transfer,
-      errors: [...transfer.errors, errorMessage],
+      errors: [...transfer.errors, error],
       status: status.FAILED,
-      withdrawTx
+      withdrawHashes: [...transfer.withdrawHashes, txHash]
     }
   }
 
@@ -466,7 +531,7 @@ export async function checkWithdraw (transfer) {
         ...transfer,
         errors: [...transfer.errors, e.message],
         status: status.FAILED,
-        withdrawTx
+        withdrawHashes: [...transfer.withdrawHashes, txHash]
       }
     }
     // Any other error like provider connection error should throw
@@ -483,7 +548,8 @@ export async function checkWithdraw (transfer) {
     status: status.IN_PROGRESS,
     completedStep: WITHDRAW,
     withdrawReceiptIds: [...transfer.withdrawReceiptIds, withdrawReceipt.id],
-    withdrawReceiptBlockHeights: [...transfer.withdrawReceiptBlockHeights, withdrawReceipt.blockHeight]
+    withdrawReceiptBlockHeights: [...transfer.withdrawReceiptBlockHeights, withdrawReceipt.blockHeight],
+    withdrawHashes: [...transfer.withdrawHashes, txHash]
   }
 }
 
@@ -494,8 +560,14 @@ export async function checkWithdraw (transfer) {
  * TODO: support sharding
  * @param {*} transfer
  */
-async function checkFinality (transfer) {
-  const nearAccount = await getNearAccount()
+async function checkFinality (
+  transfer: Transfer,
+  options?: {
+    nearAccount?: ConnectedWalletAccount
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const nearAccount = options.nearAccount ?? await getNearAccount()
 
   const withdrawReceiptBlockHeight = last(transfer.withdrawReceiptBlockHeights)
   const latestFinalizedBlock = Number((
@@ -520,24 +592,36 @@ async function checkFinality (transfer) {
  * on the Near2EthClient.
  * @param {*} transfer
  */
-async function checkSync (transfer) {
+async function checkSync (
+  transfer: Transfer,
+  options?: {
+    provider?: ethers.providers.JsonRpcProvider
+    erc20LockerAddress?: string
+    sendToEthereumSyncInterval?: number
+    ethChainId?: number
+    nearAccount?: ConnectedWalletAccount
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getEthProvider()
   if (!transfer.checkSyncInterval) {
     // checkSync every 60s: reasonable value to detect transfer is ready to be finalized
     transfer = {
       ...transfer,
-      checkSyncInterval: Number(process.env.sendToEthereumSyncInterval)
+      checkSyncInterval: options.sendToEthereumSyncInterval ?? bridgeParams.sendToEthereumSyncInterval
     }
   }
   if (transfer.nextCheckSyncTimestamp && new Date() < new Date(transfer.nextCheckSyncTimestamp)) {
     return transfer
   }
-  const provider = getEthProvider()
 
   const ethChainId = (await provider.getNetwork()).chainId
-  if (ethChainId !== Number(process.env.ethChainId)) {
+  const expectedChainId = options.ethChainId ?? bridgeParams.ethChainId
+  if (ethChainId !== expectedChainId) {
     console.log(
       'Wrong eth network for checkSync, expected: %s, got: %s',
-      process.env.ethChainId, ethChainId
+      expectedChainId, ethChainId
     )
     return transfer
   }
@@ -546,15 +630,16 @@ async function checkSync (transfer) {
   const nearOnEthClientBlockHeight = await nearOnEthSyncHeight(provider)
   let proof
 
+  const nearAccount = options.nearAccount ?? await getNearAccount()
   if (nearOnEthClientBlockHeight > withdrawBlockHeight) {
     proof = await findNearProof(
       last(transfer.withdrawReceiptIds),
       transfer.sender,
       nearOnEthClientBlockHeight,
-      await getNearAccount(),
+      nearAccount,
       provider
     )
-    if (await proofAlreadyUsed(provider, proof)) {
+    if (await proofAlreadyUsed(provider, proof, options.erc20LockerAddress ?? bridgeParams.erc20LockerAddress)) {
       // TODO find the unlockTxHash
       return {
         ...transfer,
@@ -567,7 +652,7 @@ async function checkSync (transfer) {
   } else {
     return {
       ...transfer,
-      nextCheckSyncTimestamp: new Date(Date.now() + transfer.checkSyncInterval),
+      nextCheckSyncTimestamp: new Date(Date.now() + transfer.checkSyncInterval!),
       nearOnEthClientBlockHeight,
       status: status.IN_PROGRESS
     }
@@ -587,13 +672,13 @@ async function checkSync (transfer) {
  * @param {*} provider
  * @param {*} proof
  */
-async function proofAlreadyUsed (provider, proof) {
-  const usedProofsKey = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
+async function proofAlreadyUsed (provider: ethers.providers.JsonRpcProvider, proof: any, erc20LockerAddress: string): Promise<boolean> {
+  const usedProofsKey: string = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
   // The usedProofs_ mapping is the 4th variable defined in the contract storage.
   const usedProofsMappingPosition = '0'.repeat(63) + '3'
   const storageIndex = ethers.utils.keccak256('0x' + usedProofsKey + usedProofsMappingPosition)
   // eth_getStorageAt docs: https://eth.wiki/json-rpc/API
-  const proofIsUsed = await provider.getStorageAt(process.env.ethLockerAddress, storageIndex)
+  const proofIsUsed = await provider.getStorageAt(erc20LockerAddress, storageIndex)
   return Number(proofIsUsed) === 1
 }
 
@@ -603,8 +688,18 @@ async function proofAlreadyUsed (provider, proof) {
  * NEAR BridgeToken contract.
  * @param {*} transfer
  */
-async function unlock (transfer) {
-  const provider = getSignerProvider()
+async function unlock (
+  transfer: Transfer,
+  options?: {
+    provider?: ethers.providers.Web3Provider
+    ethChainId?: number
+    erc20LockerAddress?: string
+    erc20LockerAbi?: string
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getSignerProvider()
 
   // Build burn proof
   transfer = await checkSync(transfer)
@@ -614,8 +709,8 @@ async function unlock (transfer) {
   const borshProof = borshifyOutcomeProof(proof)
 
   const ethTokenLocker = new ethers.Contract(
-    process.env.ethLockerAddress,
-    process.env.ethLockerAbiText,
+    options.erc20LockerAddress ?? bridgeParams.erc20LockerAddress,
+    options.erc20LockerAbi ?? bridgeParams.erc20LockerAbi,
     provider.getSigner()
   )
   // If this tx is dropped and replaced, lower the search boundary
@@ -637,20 +732,29 @@ async function unlock (transfer) {
   }
 }
 
-async function checkUnlock (transfer) {
-  const provider = getEthProvider()
+async function checkUnlock (
+  transfer: Transfer,
+  options?: {
+    provider?: ethers.providers.Web3Provider
+    ethChainId?: number
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getEthProvider()
 
   const ethChainId = (await provider.getNetwork()).chainId
-  if (ethChainId !== Number(process.env.ethChainId)) {
+  const expectedChainId = options.ethChainId ?? bridgeParams.ethChainId
+  if (ethChainId !== expectedChainId) {
     console.log(
       'Wrong eth network for checkUnlock, expected: %s, got: %s',
-      process.env.ethChainId, ethChainId
+      expectedChainId, ethChainId
     )
     return transfer
   }
 
   const unlockHash = last(transfer.unlockHashes)
-  let unlockReceipt = await provider.getTransactionReceipt(unlockHash)
+  let unlockReceipt: ethers.providers.TransactionReceipt = await provider.getTransactionReceipt(unlockHash)
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!unlockReceipt) {
@@ -710,4 +814,4 @@ async function checkUnlock (transfer) {
   }
 }
 
-const last = arr => arr[arr.length - 1]
+const last = (arr: any[]): any => arr[arr.length - 1]

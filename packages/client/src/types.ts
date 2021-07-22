@@ -6,19 +6,33 @@ export interface Step {
   status: typeof FAILED | 'completed' | 'pending'
 }
 
-export interface UnsavedTransfer {
-  completedStep: null | string
-  destinationTokenName: string
+export interface TransferStatus {
   errors: string[]
-  recipient: string
-  sender: string
-  sourceToken: string
-  sourceTokenName: string
+  completedStep: null | string
   status: typeof IN_PROGRESS |
           typeof ACTION_NEEDED |
           typeof COMPLETE |
           typeof FAILED
+}
+export interface UnsavedTransfer extends TransferStatus {
+  destinationTokenName: string
+  recipient: string
+  sender: string
+  sourceToken: string
+  sourceTokenName: string
   type: string
+}
+
+export interface TransactionInfo {
+  amount: string
+  sourceToken: string
+  ethCache?: {
+    from: string
+    to: string
+    safeReorgHeight: number
+    data: string
+    nonce: number
+  }
 }
 
 /**

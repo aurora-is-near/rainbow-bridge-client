@@ -5,6 +5,7 @@ import { utils, ConnectedWalletAccount } from 'near-api-js'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
+import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { urlParams, ethOnNearSyncHeight, findEthProof } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 import { getDecimals, getSymbol } from '../getMetadata'
@@ -24,28 +25,7 @@ const steps = [
   MINT
 ]
 
-export interface TransactionStatus {
-  errors: string[]
-  completedStep: null | string
-  status: typeof status.IN_PROGRESS |
-          typeof status.ACTION_NEEDED |
-          typeof status.COMPLETE |
-          typeof status.FAILED
-}
-
-export interface TransactionInfo {
-  amount: string
-  sourceToken: string
-  ethCache?: {
-    from: string
-    to: string
-    safeReorgHeight: number
-    data: string
-    nonce: number
-  }
-}
-
-export interface TransferDraft extends TransactionStatus {
+export interface TransferDraft extends TransferStatus {
   type: string
   lockHashes: string[]
   lockReceipts: ethers.providers.TransactionReceipt[]
@@ -54,7 +34,7 @@ export interface TransferDraft extends TransactionStatus {
   neededConfirmations: number
 }
 
-export interface ApprovalInfo extends TransactionInfo, TransactionStatus {
+export interface ApprovalInfo extends TransactionInfo, TransferStatus {
   approvalHashes: string[]
   approvalReceipts: ethers.providers.TransactionReceipt[]
 }
@@ -128,6 +108,7 @@ export const i18n = {
       if (transfer.status === status.FAILED) return 'Retry'
       if (transfer.status !== status.ACTION_NEEDED) return null
       switch (transfer.completedStep) {
+        case null: return 'Transfer'
         case SYNC: return 'Deposit'
         default: return null
       }
