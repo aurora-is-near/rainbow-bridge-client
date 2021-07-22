@@ -103,7 +103,7 @@ export const i18n = {
       switch (transfer.completedStep) {
         case null: return 'Transfer'
         case SYNC: return 'Deposit'
-        default: return null
+        default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
       }
     }
   }

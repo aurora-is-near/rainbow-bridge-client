@@ -78,7 +78,7 @@ export const i18n = {
       if (transfer.status !== status.ACTION_NEEDED) return null
       switch (transfer.completedStep) {
         case SYNC: return 'Deposit'
-        default: return null
+        default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
       }
     }
   }
