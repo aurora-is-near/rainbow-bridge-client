@@ -6,6 +6,7 @@
   "scripts": {
     "build": "yarn workspaces foreach run build",
     "lint": "eslint packages/**/src",
+    "lint:fix": "eslint --fix packages/**/src",
     "commitlint": "commitlint --from HEAD~1 --to HEAD --verbose",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s"
   },

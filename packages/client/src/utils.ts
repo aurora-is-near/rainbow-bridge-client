@@ -1,9 +1,10 @@
 import { ConnectedWalletAccount, WalletConnection } from 'near-api-js'
 import { Decimal } from 'decimal.js'
+import { ethers } from 'ethers'
 
 let ethProvider: any // TODO add proper Ethereum Provider typing
 let nearConnection: WalletConnection
-let auroraProvider: any
+let auroraJsonRpcProvider: any
 let signerProvider: any
 
 /**
@@ -29,10 +30,17 @@ export function setEthProvider (provider: any): any {
   return ethProvider
 }
 
+export function getAuroraProvider (): any {
+  auroraJsonRpcProvider = () => new ethers.providers.JsonRpcProvider({
+    url: process.env.AURORA_RPC_URL
+  })
+
+  return auroraJsonRpcProvider
+
 export function setAuroraProvider (provider: any): any {
-  auroraProvider = provider
+  auroraJsonRpcProvider = provider
   // TODO: verify provider meets expectations
-  return auroraProvider
+  return auroraJsonRpcProvider
 }
 
 export function setSignerProvider (provider: any): any {
