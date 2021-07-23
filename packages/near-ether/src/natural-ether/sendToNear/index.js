@@ -325,7 +325,7 @@ async function checkSync (transfer) {
       lockReceipt.transactionHash,
       process.env.etherCustodianAddress,
       process.env.etherCustodianAbiText,
-      getSignerProvider()
+      getEthProvider()
     )
     const nearAccount = await getNearAccount()
     const proofAlreadyUsed = await nearAccount.viewFunction(
