@@ -1,3 +1,24 @@
+# [1.6.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v1.5.1...v1.6.0) (2021-07-23)
+
+
+### Bug Fixes
+
+* `findEthProof` support eip1559. ([01dc4a0](https://github.com/aurora-is-near/rainbow-bridge-client/commit/01dc4a035b0e8b7ef937bd4de246ba8c9f9d44d0))
+* Add id to recovered Erc20 -> Aurora. ([6b352ff](https://github.com/aurora-is-near/rainbow-bridge-client/commit/6b352ff3375ba35dcdbdfe4d1cfc341044f7e7ea))
+* Fix checkSync in NEAR to Ethereum. ([a167342](https://github.com/aurora-is-near/rainbow-bridge-client/commit/a167342e3c21c3271416ea1557b1fe92004e2082))
+* Fix network checks. ([d395066](https://github.com/aurora-is-near/rainbow-bridge-client/commit/d395066fb94f7497c27374dece67ea90742c0aca))
+* Improve handling of chain reorgs. ([daff226](https://github.com/aurora-is-near/rainbow-bridge-client/commit/daff2264d6d60e5281883b37a3e5cbefb3bc9352))
+* Use getEthProvider in checkSync. ([97f4143](https://github.com/aurora-is-near/rainbow-bridge-client/commit/97f41431bdeef1d41395218b105198fa83e941f6))
+
+
+### Features
+
+* Add ETH connector to `@near-eth/near-ether`. ([a30c6b2](https://github.com/aurora-is-near/rainbow-bridge-client/commit/a30c6b2acf6773a9fd529803b2d0ec30556cff5d))
+* Reduce checkSync data queries. ([4b4947d](https://github.com/aurora-is-near/rainbow-bridge-client/commit/4b4947d6e3b7dab9b8a741739a98463630b6391c))
+* Support custom transfer types in `client`. ([3c8069a](https://github.com/aurora-is-near/rainbow-bridge-client/commit/3c8069a674fb27b0e6b3dc5dcc8a84540154e3fe))
+
+
+
 ## [1.5.1](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v1.5.0...v1.5.1) (2021-07-08)
 
 
