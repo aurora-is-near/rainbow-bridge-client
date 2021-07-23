@@ -152,7 +152,7 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 export async function recover (
   lockTxHash: string,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     erc20LockerAddress?: string
     erc20LockerAbi?: string
   }
@@ -547,11 +547,13 @@ async function checkSync (
     nep141Factory?: string
     nearEventRelayerMargin?: number
     nearAccount?: ConnectedWalletAccount
+    nearClientAccount?: string
   }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
+  const nearAccount = options.nearAccount ?? await getNearAccount()
 
   if (!transfer.checkSyncInterval) {
     // checkSync every 20s: reasonable value to show the confirmation counter x/30
@@ -565,7 +567,10 @@ async function checkSync (
   }
   const lockReceipt = last(transfer.lockReceipts)
   const eventEmittedAt = lockReceipt.blockNumber
-  const syncedTo = await ethOnNearSyncHeight()
+  const syncedTo = await ethOnNearSyncHeight(
+    options.nearClientAccount ?? bridgeParams.nearClientAccount,
+    nearAccount
+  )
   const completedConfirmations = Math.max(0, syncedTo - eventEmittedAt)
   let proof
 
@@ -578,7 +583,6 @@ async function checkSync (
       options.erc20LockerAbi ?? bridgeParams.erc20LockerAbi,
       provider
     )
-    const nearAccount = options.nearAccount ?? await getNearAccount()
     const proofAlreadyUsed = await nearAccount.viewFunction(
       options.nep141Factory ?? bridgeParams.nep141Factory,
       'is_used_proof',

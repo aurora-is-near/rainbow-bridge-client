@@ -227,7 +227,7 @@ export async function recover (
   const sourceTokenName = 'n' + destinationTokenName
   const sourceToken = getNep141Address({ erc20Address })
 
-  const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, sender, sourceToken)
+  const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, sender, sourceToken, nearAccount)
 
   // various attributes stored as arrays, to keep history of retries
   const transfer = {
@@ -261,9 +261,9 @@ export async function recover (
 async function parseWithdrawReceipt (
   withdrawTx: FinalExecutionOutcome,
   sender: string,
-  sourceToken: string
+  sourceToken: string,
+  nearAccount: ConnectedWalletAccount
 ): Promise<{id: string, blockHeight: number }> {
-  const nearAccount = await getNearAccount()
   const receiptIds = withdrawTx.transaction_outcome.outcome.receipt_ids
 
   if (receiptIds.length !== 1) {
@@ -530,7 +530,7 @@ export async function checkWithdraw (
 
   let withdrawReceipt
   try {
-    withdrawReceipt = await parseWithdrawReceipt(withdrawTx, transfer.sender, transfer.sourceToken)
+    withdrawReceipt = await parseWithdrawReceipt(withdrawTx, transfer.sender, transfer.sourceToken, nearAccount)
   } catch (e) {
     if (e instanceof TransferError) {
       urlParams.clear()
@@ -607,6 +607,8 @@ async function checkSync (
     sendToEthereumSyncInterval?: number
     ethChainId?: number
     nearAccount?: ConnectedWalletAccount
+    ethClientAddress?: string
+    ethClientAbi?: string
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -634,7 +636,11 @@ async function checkSync (
   }
 
   const withdrawBlockHeight = last(transfer.withdrawReceiptBlockHeights)
-  const nearOnEthClientBlockHeight = await nearOnEthSyncHeight(provider)
+  const nearOnEthClientBlockHeight = await nearOnEthSyncHeight(
+    provider,
+    options.ethClientAddress ?? bridgeParams.ethClientAddress,
+    options.ethClientAbi ?? bridgeParams.ethClientAbi
+  )
   let proof
 
   const nearAccount = options.nearAccount ?? await getNearAccount()
@@ -644,7 +650,9 @@ async function checkSync (
       transfer.sender,
       nearOnEthClientBlockHeight,
       nearAccount,
-      provider
+      provider,
+      options.ethClientAddress ?? bridgeParams.ethClientAddress,
+      options.ethClientAbi ?? bridgeParams.ethClientAbi
     )
     if (await proofAlreadyUsed(provider, proof, options.erc20LockerAddress ?? bridgeParams.erc20LockerAddress)) {
       // TODO find the unlockTxHash

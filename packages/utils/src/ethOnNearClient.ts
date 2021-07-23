@@ -1,13 +1,7 @@
-import { keyStores, Near } from 'near-api-js'
+import { ConnectedWalletAccount } from 'near-api-js'
 import {
   deserialize as deserializeBorsh
 } from 'near-api-js/lib/utils/serialize'
-
-const near = new Near({
-  keyStore: new keyStores.InMemoryKeyStore(),
-  networkId: process.env.nearNetworkId!,
-  nodeUrl: process.env.nearNodeUrl!
-})
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 class EthOnNearClientBorsh {
@@ -29,13 +23,15 @@ function deserializeEthOnNearClient (raw: Buffer): any {
   return deserializeBorsh(schema, EthOnNearClientBorsh, raw)
 }
 
-export async function ethOnNearSyncHeight (): Promise<number> {
+export async function ethOnNearSyncHeight (
+  nearClientAccount: string,
+  nearAccount: ConnectedWalletAccount
+): Promise<number> {
   // near-api-js requires instantiating an "account" object, even though view
   // functions require no signature and therefore no associated account, so the
   // account name passed in doesn't matter.
-  const account = await near.account(process.env.nearClientAccount!)
-  const deserialized = await account.viewFunction(
-    process.env.nearClientAccount!,
+  const deserialized = await nearAccount.viewFunction(
+    nearClientAccount,
     'last_block_number',
     {},
     { parse: deserializeEthOnNearClient }

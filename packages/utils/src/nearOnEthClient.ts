@@ -1,9 +1,13 @@
 import { ethers } from 'ethers'
 
-export async function nearOnEthSyncHeight (provider: ethers.providers.Provider): Promise<number> {
+export async function nearOnEthSyncHeight (
+  provider: ethers.providers.Provider,
+  ethClientAddress: string,
+  ethClientAbi: string
+): Promise<number> {
   const nearOnEthClient = new ethers.Contract(
-    process.env.ethClientAddress!,
-    process.env.ethNearOnEthClientAbiText!,
+    ethClientAddress,
+    ethClientAbi,
     provider
   )
   const { currentHeight } = await nearOnEthClient.bridgeState()
