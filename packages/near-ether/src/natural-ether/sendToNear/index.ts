@@ -145,7 +145,7 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 export async function recover (
   lockTxHash: string,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     etherCustodianAddress?: string
     etherCustodianAbi?: string
   }
@@ -213,9 +213,9 @@ export async function initiate (
 ): Promise<Transfer> {
   options = options ?? {}
   const provider = options.provider ?? getSignerProvider()
-  const sourceTokenName = 'ETH'
-  const sourceToken = 'ETH'
-  const decimals = 18
+  const sourceTokenName = options.symbol ?? 'ETH'
+  const sourceToken = sourceTokenName
+  const decimals = options.decimals ?? 18
   const destinationTokenName = 'n' + sourceTokenName
   const sender = options.sender ?? (await provider.getSigner().getAddress()).toLowerCase()
 
@@ -383,11 +383,13 @@ async function checkSync (
     sendToNearSyncInterval?: number
     nearEventRelayerMargin?: number
     nearAccount?: ConnectedWalletAccount
+    nearClientAccount?: string
   }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
+  const nearAccount = options.nearAccount ?? await getNearAccount()
 
   if (!transfer.checkSyncInterval) {
     // checkSync every 20s: reasonable value to show the confirmation counter x/30
@@ -401,7 +403,10 @@ async function checkSync (
   }
   const lockReceipt = last(transfer.lockReceipts)
   const eventEmittedAt = lockReceipt.blockNumber
-  const syncedTo = await ethOnNearSyncHeight()
+  const syncedTo = await ethOnNearSyncHeight(
+    options.nearClientAccount ?? bridgeParams.nearClientAccount,
+    nearAccount
+  )
   const completedConfirmations = Math.max(0, syncedTo - eventEmittedAt)
   let proof
 
@@ -414,7 +419,6 @@ async function checkSync (
       options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
       provider
     )
-    const nearAccount = options.nearAccount ?? await getNearAccount()
     const proofAlreadyUsed = await nearAccount.viewFunction(
       options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
       'is_used_proof',

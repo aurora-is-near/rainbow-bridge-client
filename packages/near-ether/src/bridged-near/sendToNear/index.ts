@@ -145,7 +145,7 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 export async function recover (
   burnTxHash: string,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     eNEARAddress?: string
     eNEARAbi?: string
   }
@@ -385,10 +385,13 @@ async function checkSync (
     sendToNearSyncInterval?: number
     nearEventRelayerMargin?: number
     nearAccount?: ConnectedWalletAccount
+    nearClientAccount?: string
   }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
+  const nearAccount = options.nearAccount ?? await getNearAccount()
+
   if (!transfer.checkSyncInterval) {
     // checkSync every 20s: reasonable value to show the confirmation counter x/30
     transfer = {
@@ -401,7 +404,10 @@ async function checkSync (
   }
   const burnReceipt = last(transfer.burnReceipts)
   const eventEmittedAt = burnReceipt.blockNumber
-  const syncedTo = await ethOnNearSyncHeight()
+  const syncedTo = await ethOnNearSyncHeight(
+    options.nearClientAccount ?? bridgeParams.nearClientAccount,
+    nearAccount
+  )
   const completedConfirmations = Math.max(0, syncedTo - eventEmittedAt)
   let proof
 
@@ -414,7 +420,6 @@ async function checkSync (
       options.eNEARAbi ?? bridgeParams.eNEARAbi,
       getEthProvider()
     )
-    const nearAccount = options.nearAccount ?? await getNearAccount()
     const proofAlreadyUsed = await nearAccount.viewFunction(
       options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
       'is_used_proof',

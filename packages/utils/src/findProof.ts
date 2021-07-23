@@ -163,12 +163,12 @@ export async function findNearProof (
   nearBlockHeight: number,
   nearAccount: ConnectedWalletAccount,
   provider: ethers.providers.JsonRpcProvider,
-  options?: { ethClientAddress: string, ethNearOnEthClientAbi: any }
+  ethClientAddress: string,
+  ethClientAbi: string
 ): Promise<any> {
-  options = options ?? { ethClientAddress: process.env.ethClientAddress!, ethNearOnEthClientAbi: process.env.ethNearOnEthClientAbiText! }
   const nearOnEthClient = new ethers.Contract(
-    options.ethClientAddress,
-    options.ethNearOnEthClientAbi,
+    ethClientAddress,
+    ethClientAbi,
     provider
   )
   const clientBlockHashB58 = bs58.encode(toBuffer(

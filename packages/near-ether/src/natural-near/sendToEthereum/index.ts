@@ -608,6 +608,8 @@ async function checkSync (
     sendToEthereumSyncInterval?: number
     ethChainId?: number
     nearAccount?: ConnectedWalletAccount
+    ethClientAddress?: string
+    ethClientAbi?: string
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -634,7 +636,11 @@ async function checkSync (
   }
 
   const lockReceiptBlockHeight = last(transfer.lockReceiptBlockHeights)
-  const nearOnEthClientBlockHeight = await nearOnEthSyncHeight(provider)
+  const nearOnEthClientBlockHeight = await nearOnEthSyncHeight(
+    provider,
+    options.ethClientAddress ?? bridgeParams.ethClientAddress,
+    options.ethClientAbi ?? bridgeParams.ethClientAbi
+  )
   let proof
 
   const nearAccount = options.nearAccount ?? await getNearAccount()
@@ -644,7 +650,9 @@ async function checkSync (
       transfer.sender,
       nearOnEthClientBlockHeight,
       nearAccount,
-      provider
+      provider,
+      options.ethClientAddress ?? bridgeParams.ethClientAddress,
+      options.ethClientAbi ?? bridgeParams.ethClientAbi
     )
     if (await proofAlreadyUsed(provider, proof, options.eNEARAddress ?? bridgeParams.eNEARAddress)) {
       // TODO find the unlockTxHash
