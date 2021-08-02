@@ -328,7 +328,6 @@ export async function initiate (
   const sourceToken = symbol
   const decimals = 18
 
-  // TODO enable different recipient and consider multisig case where sender is not the signer
   const provider = getSignerProvider()
   const sender = options.sender ?? (await provider.getSigner().getAddress()).toLowerCase()
 

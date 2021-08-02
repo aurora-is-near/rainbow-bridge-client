@@ -333,15 +333,14 @@ async function parseWithdrawReceipt (
 }
 
 export async function initiate (
-  { erc20Address, amount, recipient, sender, options }: {
+  { erc20Address, amount, recipient, options }: {
     erc20Address: string
     amount: string | ethers.BigNumber
     recipient: string
-    sender: string
     options?: {
       symbol?: string
       decimals?: number
-      // sender?: string // TODO get from nearAccount to make optional
+      sender?: string
       nearAccount?: ConnectedWalletAccount
     }
   }
@@ -351,6 +350,8 @@ export async function initiate (
   const decimals = options.decimals ?? await getDecimals({ erc20Address })
   const sourceTokenName = 'n' + destinationTokenName
   const sourceToken = getNep141Address({ erc20Address })
+  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const sender = options.sender ?? nearAccount.accountId
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {

@@ -340,12 +340,11 @@ async function parseWithdrawReceipt (
 }
 
 export async function initiate (
-  { amount, recipient, sender, options }: {
+  { amount, recipient, options }: {
     amount: string | ethers.BigNumber
     recipient: string
-    sender: string
     options?: {
-      // sender?: string // TODO get from nearAccount to make optional
+      sender?: string
       auroraEvmAccount?: string
       nearAccount?: ConnectedWalletAccount
     }
@@ -357,6 +356,8 @@ export async function initiate (
   const decimals = 18
   const sourceTokenName = 'n' + destinationTokenName
   const sourceToken = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
+  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const sender = options.sender ?? nearAccount.accountId
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {

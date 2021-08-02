@@ -339,7 +339,6 @@ export async function initiate (
   const destinationTokenName = symbol
   const decimals = options.decimals ?? await getDecimals({ erc20Address, options: { provider } })
 
-  // TODO enable different recipient and consider multisig case where sender is not the signer
   const sender = options.sender ?? (await provider.getSigner().getAddress()).toLowerCase()
 
   // various attributes stored as arrays, to keep history of retries
