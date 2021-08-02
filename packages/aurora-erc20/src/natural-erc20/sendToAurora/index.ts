@@ -317,7 +317,7 @@ export async function approve (
 export async function checkApprove (
   transfer: ApprovalInfo,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     ethChainId?: number
   }
 ): Promise<ApprovalInfo> {
@@ -457,7 +457,7 @@ async function lock (
 async function checkLock (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     ethChainId?: number
   }
 ): Promise<Transfer> {

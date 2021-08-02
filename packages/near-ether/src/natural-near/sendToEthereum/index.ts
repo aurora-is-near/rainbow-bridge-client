@@ -751,7 +751,7 @@ async function mint (
 async function checkMint (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     ethChainId?: number
   }
 ): Promise<Transfer> {

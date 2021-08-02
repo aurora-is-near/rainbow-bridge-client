@@ -35,6 +35,9 @@ export default async function getBalance (
     return balanceAsString
   } catch (e) {
     console.warn(e)
-    return null
+    if (e.message.includes('does not exist while viewing')) {
+      return null
+    }
+    throw e
   }
 }
