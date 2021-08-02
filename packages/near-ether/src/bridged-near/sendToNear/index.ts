@@ -215,9 +215,7 @@ export async function initiate (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getSignerProvider()
-  // TODO: move to core 'decorate'; get both from contracts
   const sourceTokenName = 'NEAR'
-  // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = 24
   const destinationTokenName = 'NEAR'
   const sender = options.sender ?? (await provider.getSigner().getAddress()).toLowerCase()

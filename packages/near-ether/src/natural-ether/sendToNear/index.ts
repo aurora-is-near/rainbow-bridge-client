@@ -438,7 +438,6 @@ async function checkSync (
     }
   }
 
-  // TODO: uncomment this when manual transfer finalization becomes available on aurora.dev
   const nearEventRelayerMargin: number = options.nearEventRelayerMargin ?? bridgeParams.nearEventRelayerMargin
   if (completedConfirmations < transfer.neededConfirmations + nearEventRelayerMargin) {
     // Leave some time for the relayer to finalize
