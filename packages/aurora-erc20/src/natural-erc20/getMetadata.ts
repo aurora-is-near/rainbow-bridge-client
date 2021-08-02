@@ -1,12 +1,13 @@
 import { ethers } from 'ethers'
 import { getEthProvider, getBridgeParams } from '@near-eth/client/dist/utils'
+import { erc20 } from '@near-eth/utils'
 
 const erc20Decimals: {[key: string]: number} = {}
 export async function getDecimals (
   { erc20Address, options }: {
     erc20Address: string
     options?: {
-      provider?: ethers.providers.Web3Provider
+      provider?: ethers.providers.JsonRpcProvider
       erc20Abi?: string
     }
   }
@@ -16,21 +17,18 @@ export async function getDecimals (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
+  const erc20Abi = options.erc20Abi ?? bridgeParams.erc20Abi
 
-  const contract = new ethers.Contract(
-    erc20Address,
-    options.erc20Abi ?? bridgeParams.erc20Abi,
-    provider
-  )
-
+  let decimals
   try {
-    erc20Decimals[erc20Address] = Number(await contract.decimals())
+    decimals = await erc20.getDecimals({ erc20Address, provider, erc20Abi })
+    // Only record decimals if it was success
+    erc20Decimals[erc20Address] = decimals
   } catch {
     console.log(`Failed to read token decimals for: ${erc20Address}`)
-    erc20Decimals[erc20Address] = 0
+    decimals = 0
   }
-
-  return erc20Decimals[erc20Address]!
+  return decimals
 }
 
 const erc20Icons: {[key: string]: any} = {}
@@ -57,7 +55,7 @@ export async function getSymbol (
   { erc20Address, options }: {
     erc20Address: string
     options?: {
-      provider?: ethers.providers.Web3Provider
+      provider?: ethers.providers.JsonRpcProvider
       erc20Abi?: string
     }
   }
@@ -66,21 +64,18 @@ export async function getSymbol (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
+  const erc20Abi = options.erc20Abi ?? bridgeParams.erc20Abi
 
-  const contract = new ethers.Contract(
-    erc20Address,
-    options.erc20Abi ?? bridgeParams.erc20Abi,
-    provider
-  )
-
+  let symbol
   try {
-    erc20Symbols[erc20Address] = await contract.symbol()
+    symbol = await erc20.getSymbol({ erc20Address, provider, erc20Abi })
+    // Only record symbol if it was success
+    erc20Symbols[erc20Address] = symbol
   } catch {
     console.log(`Failed to read token symbol for: ${erc20Address}`)
-    erc20Symbols[erc20Address] = erc20Address.slice(0, 5) + '…'
+    symbol = erc20Address.slice(0, 5) + '…'
   }
-
-  return erc20Symbols[erc20Address]!
+  return symbol
 }
 
 /**
@@ -100,7 +95,7 @@ export default async function getMetadata (
   { erc20Address, options }: {
     erc20Address: string
     options?: {
-      provider?: ethers.providers.Web3Provider
+      provider?: ethers.providers.JsonRpcProvider
       erc20Abi?: string
     }
   }
