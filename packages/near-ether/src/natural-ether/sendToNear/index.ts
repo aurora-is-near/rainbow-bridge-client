@@ -246,7 +246,7 @@ export async function initiate (
  * being mined is then checked in checkStatus.
  * @param {*} transfer
  */
-async function lock (
+export async function lock (
   transfer: Transfer,
   options?: {
     provider?: ethers.providers.Web3Provider
@@ -296,7 +296,7 @@ async function lock (
   }
 }
 
-async function checkLock (
+export async function checkLock (
   transfer: Transfer,
   options?: {
     provider?: ethers.providers.JsonRpcProvider
@@ -373,7 +373,7 @@ async function checkLock (
   }
 }
 
-async function checkSync (
+export async function checkSync (
   transfer: Transfer,
   options?: {
     provider?: ethers.providers.JsonRpcProvider
@@ -463,7 +463,7 @@ async function checkSync (
  * currently dealt with using URL params.
  * @param {*} transfer
  */
-async function mint (
+export async function mint (
   transfer: Transfer,
   options?: {
     auroraEvmAccount?: string

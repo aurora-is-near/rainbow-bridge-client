@@ -215,7 +215,9 @@ export async function initiate (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getSignerProvider()
+  // TODO: move to core 'decorate'; get both from contracts
   const sourceTokenName = 'NEAR'
+  // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = 24
   const destinationTokenName = 'NEAR'
   const sender = options.sender ?? (await provider.getSigner().getAddress()).toLowerCase()
@@ -247,7 +249,7 @@ export async function initiate (
  * being mined is then checked in checkStatus.
  * @param {*} transfer
  */
-async function burn (
+export async function burn (
   transfer: Transfer,
   options?: {
     provider?: ethers.providers.Web3Provider
@@ -294,7 +296,7 @@ async function burn (
   }
 }
 
-async function checkBurn (
+export async function checkBurn (
   transfer: Transfer,
   options?: {
     provider?: ethers.providers.JsonRpcProvider
@@ -374,7 +376,7 @@ async function checkBurn (
   }
 }
 
-async function checkSync (
+export async function checkSync (
   transfer: Transfer,
   options?: {
     provider?: ethers.providers.JsonRpcProvider
@@ -462,7 +464,7 @@ async function checkSync (
  * currently dealt with using URL params.
  * @param {*} transfer
  */
-async function unlock (
+export async function unlock (
   transfer: Transfer,
   options?: {
     nearAccount?: ConnectedWalletAccount

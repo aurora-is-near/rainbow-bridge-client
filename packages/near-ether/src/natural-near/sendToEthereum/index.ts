@@ -262,7 +262,7 @@ export async function recover (
  * @param {*} lockTx
  * @param {string} sender
  */
-async function parseLockReceipt (
+export async function parseLockReceipt (
   lockTx: FinalExecutionOutcome,
   sender: string,
   nativeNEARLockerAddress: string,
@@ -382,7 +382,7 @@ export async function initiate (
  * Lock native NEAR to migrate to Ethereum.
  * @param {*} transfer
  */
-async function lock (
+export async function lock (
   transfer: Transfer,
   options?: {
     nativeNEARLockerAddress?: string
@@ -570,7 +570,7 @@ export async function checkLock (
  * TODO: support sharding
  * @param {*} transfer
  */
-async function checkFinality (
+export async function checkFinality (
   transfer: Transfer,
   options?: {
     nearAccount?: ConnectedWalletAccount
@@ -602,7 +602,7 @@ async function checkFinality (
  * on the Near2EthClient.
  * @param {*} transfer
  */
-async function checkSync (
+export async function checkSync (
   transfer: Transfer,
   options?: {
     provider?: ethers.providers.JsonRpcProvider
@@ -689,7 +689,7 @@ async function checkSync (
  * @param {*} provider
  * @param {*} proof
  */
-async function proofAlreadyUsed (provider: ethers.providers.JsonRpcProvider, proof: any, eNEARAddress: string): Promise<boolean> {
+export async function proofAlreadyUsed (provider: ethers.providers.JsonRpcProvider, proof: any, eNEARAddress: string): Promise<boolean> {
   const usedProofsKey: string = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
   // The usedProofs_ mapping is the 9th variable defined in the contract storage.
   const usedProofsMappingPosition = '0'.repeat(63) + '8'
@@ -705,7 +705,7 @@ async function proofAlreadyUsed (provider: ethers.providers.JsonRpcProvider, pro
  * NEAR BridgeToken contract.
  * @param {*} transfer
  */
-async function mint (
+export async function mint (
   transfer: Transfer,
   options?: {
     provider?: ethers.providers.Web3Provider
@@ -750,7 +750,7 @@ async function mint (
   }
 }
 
-async function checkMint (
+export async function checkMint (
   transfer: Transfer,
   options?: {
     provider?: ethers.providers.JsonRpcProvider
