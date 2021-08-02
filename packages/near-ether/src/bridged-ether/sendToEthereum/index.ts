@@ -269,7 +269,7 @@ export async function recover (
  * @param {string} sender
  * @param {string} sourceToken
  */
-async function parseWithdrawReceipt (
+export async function parseWithdrawReceipt (
   burnTx: FinalExecutionOutcome,
   sender: string,
   sourceToken: string,
@@ -382,7 +382,7 @@ export async function initiate (
   return transfer
 }
 
-async function burn (
+export async function burn (
   transfer: Transfer,
   options?: {
     nearAccount?: ConnectedWalletAccount
@@ -595,7 +595,7 @@ export async function checkBurn (
  * TODO: support sharding
  * @param {*} transfer
  */
-async function checkFinality (
+export async function checkFinality (
   transfer: Transfer,
   options?: {
     nearAccount?: ConnectedWalletAccount
@@ -627,7 +627,7 @@ async function checkFinality (
  * on the Near2EthClient.
  * @param {*} transfer
  */
-async function checkSync (
+export async function checkSync (
   transfer: Transfer,
   options?: {
     provider?: ethers.providers.JsonRpcProvider
@@ -715,7 +715,7 @@ async function checkSync (
  * @param {*} provider
  * @param {*} proof
  */
-async function proofAlreadyUsed (provider: ethers.providers.JsonRpcProvider, proof: any, etherCustodianAddress: string): Promise<boolean> {
+export async function proofAlreadyUsed (provider: ethers.providers.JsonRpcProvider, proof: any, etherCustodianAddress: string): Promise<boolean> {
   const usedProofsKey: string = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
   // The usedProofs_ mapping is the 4th variable defined in the contract storage.
   const usedProofsMappingPosition = '0'.repeat(63) + '3'
@@ -731,7 +731,7 @@ async function proofAlreadyUsed (provider: ethers.providers.JsonRpcProvider, pro
  * NEAR BridgeToken contract.
  * @param {*} transfer
  */
-async function unlock (
+export async function unlock (
   transfer: Transfer,
   options?: {
     provider?: ethers.providers.Web3Provider
@@ -775,7 +775,7 @@ async function unlock (
   }
 }
 
-async function checkUnlock (
+export async function checkUnlock (
   transfer: Transfer,
   options?: {
     provider?: ethers.providers.JsonRpcProvider
