@@ -243,6 +243,7 @@ export async function recover (
     sourceTokenName,
     decimals,
 
+    withdrawHashes: [withdrawTxHash],
     withdrawReceiptBlockHeights: [withdrawReceipt.blockHeight],
     withdrawReceiptIds: [withdrawReceipt.id]
   }

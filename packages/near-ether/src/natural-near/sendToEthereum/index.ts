@@ -247,6 +247,7 @@ export async function recover (
     sourceToken,
     decimals,
 
+    lockHashes: [lockTxHash],
     lockReceiptBlockHeights: [lockReceipt.blockHeight],
     lockReceiptIds: [lockReceipt.id]
   }
