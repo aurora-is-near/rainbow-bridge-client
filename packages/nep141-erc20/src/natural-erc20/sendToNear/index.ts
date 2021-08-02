@@ -93,12 +93,14 @@ export const i18n = {
       if (transfer.status === status.ACTION_NEEDED) {
         switch (transfer.completedStep) {
           case null: return 'Ready to transfer from Ethereum'
+          case APPROVE: return 'Ready to transfer from Ethereum' // TODO: remove. This was only needed to prevent breaking user's ongoing transfer
           case SYNC: return 'Ready to deposit in NEAR'
           default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
         }
       }
       switch (transfer.completedStep) {
         case null: return 'Transfering to NEAR'
+        case APPROVE: return 'Transfering to NEAR' // TODO: remove. This was only needed to prevent breaking user's ongoing transfer
         case LOCK: return `Confirming transfer ${transfer.completedConfirmations + 1} of ${transfer.neededConfirmations + Number(getBridgeParams().nearEventRelayerMargin)}`
         case SYNC: return 'Depositing in NEAR'
         case MINT: return 'Transfer complete'
@@ -110,6 +112,7 @@ export const i18n = {
       if (transfer.status !== status.ACTION_NEEDED) return null
       switch (transfer.completedStep) {
         case null: return 'Transfer'
+        case APPROVE: return 'Transfer' // TODO: remove. This was only needed to prevent breaking user's ongoing transfer
         case SYNC: return 'Deposit'
         default: throw new Error(`Transfer in unexpected state, transfer with ID=${transfer.id} & status=${transfer.status} has completedStep=${transfer.completedStep}`)
       }
@@ -125,6 +128,7 @@ export const i18n = {
 export async function act (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
     case null: return await lock(transfer)
+    case APPROVE: return await lock(transfer) // TODO: remove. This was only needed to prevent breaking user's ongoing transfer
     case LOCK: return await checkSync(transfer)
     case SYNC: return await mint(transfer)
     default: throw new Error(`Don't know how to act on transfer: ${transfer.id}`)
@@ -138,6 +142,7 @@ export async function act (transfer: Transfer): Promise<Transfer> {
 export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
     case null: return await checkLock(transfer)
+    case APPROVE: return await checkLock(transfer) // TODO: remove. This was only needed to prevent breaking user's ongoing transfer
     case LOCK: return await checkSync(transfer)
     case SYNC: return await checkMint(transfer)
     default: throw new Error(`Don't know how to checkStatus for transfer ${transfer.id}`)
