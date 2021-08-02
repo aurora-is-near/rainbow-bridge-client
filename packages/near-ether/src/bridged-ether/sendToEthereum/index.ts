@@ -253,6 +253,7 @@ export async function recover (
     sourceToken,
     decimals,
 
+    burnHashes: [burnTxHash],
     burnReceiptBlockHeights: [withdrawReceipt.blockHeight],
     burnReceiptIds: [withdrawReceipt.id]
   }

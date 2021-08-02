@@ -188,6 +188,7 @@ export async function recover (
     decimals,
     status: status.IN_PROGRESS,
 
+    burnHashes: [burnTxHash],
     burnReceipts: [receipt]
   }
 

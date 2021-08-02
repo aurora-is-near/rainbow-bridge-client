@@ -200,6 +200,7 @@ export async function recover (
     decimals,
     status: status.IN_PROGRESS,
 
+    lockHashes: [lockTxHash],
     lockReceipts: [receipt]
   }
 
