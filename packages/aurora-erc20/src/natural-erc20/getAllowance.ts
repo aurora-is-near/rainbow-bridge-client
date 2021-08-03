@@ -14,7 +14,7 @@ export default async function getAllowance (
     owner: string
     spender: string
     options?: {
-      provider?: ethers.providers.JsonRpcProvider
+      provider?: ethers.providers.Provider
       erc20Abi?: string
     }
   }

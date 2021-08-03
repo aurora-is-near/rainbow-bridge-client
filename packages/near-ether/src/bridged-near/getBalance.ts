@@ -4,7 +4,7 @@ import { getEthProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 export default async function getBalance (
   user: string,
   options?: {
-    provider?: ethers.providers.JsonRpcProvider
+    provider?: ethers.providers.Provider
     eNEARAddress?: string
     eNEARAbi?: string
   }

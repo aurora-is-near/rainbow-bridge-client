@@ -7,7 +7,7 @@ export async function getDecimals (
   { erc20Address, options }: {
     erc20Address: string
     options?: {
-      provider?: ethers.providers.JsonRpcProvider
+      provider?: ethers.providers.Provider
       erc20Abi?: string
     }
   }
@@ -55,7 +55,7 @@ export async function getSymbol (
   { erc20Address, options }: {
     erc20Address: string
     options?: {
-      provider?: ethers.providers.JsonRpcProvider
+      provider?: ethers.providers.Provider
       erc20Abi?: string
     }
   }
@@ -95,7 +95,7 @@ export default async function getMetadata (
   { erc20Address, options }: {
     erc20Address: string
     options?: {
-      provider?: ethers.providers.JsonRpcProvider
+      provider?: ethers.providers.Provider
       erc20Abi?: string
     }
   }

@@ -18,7 +18,7 @@ let bridgeParams: any
  *
  *     import { ethers } from 'ethers'
  *     import { setEthProvider } from '@near-eth/client'
- *     setEthProvider(new ethers.providers.JsonRpcProvider())
+ *     setEthProvider(new ethers.providers.Provider())
  *
  * @param provider Ethereum Provider
  *

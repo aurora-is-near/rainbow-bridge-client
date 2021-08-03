@@ -145,7 +145,7 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 export async function recover (
   burnTxHash: string,
   options?: {
-    provider?: ethers.providers.JsonRpcProvider
+    provider?: ethers.providers.Provider
     eNEARAddress?: string
     eNEARAbi?: string
   }
@@ -299,7 +299,7 @@ export async function burn (
 export async function checkBurn (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.JsonRpcProvider
+    provider?: ethers.providers.Provider
     ethChainId?: number
   }
 ): Promise<Transfer> {
@@ -379,7 +379,7 @@ export async function checkBurn (
 export async function checkSync (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.JsonRpcProvider
+    provider?: ethers.providers.Provider
     eNEARAddress?: string
     eNEARAbi?: string
     nativeNEARLockerAddress?: string

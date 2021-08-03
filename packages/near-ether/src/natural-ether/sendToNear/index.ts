@@ -145,7 +145,7 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 export async function recover (
   lockTxHash: string,
   options?: {
-    provider?: ethers.providers.JsonRpcProvider
+    provider?: ethers.providers.Provider
     etherCustodianAddress?: string
     etherCustodianAbi?: string
   }
@@ -299,7 +299,7 @@ export async function lock (
 export async function checkLock (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.JsonRpcProvider
+    provider?: ethers.providers.Provider
     ethChainId?: number
   }
 ): Promise<Transfer> {
@@ -376,7 +376,7 @@ export async function checkLock (
 export async function checkSync (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.JsonRpcProvider
+    provider?: ethers.providers.Provider
     etherCustodianAddress?: string
     etherCustodianAbi?: string
     auroraEvmAccount?: string

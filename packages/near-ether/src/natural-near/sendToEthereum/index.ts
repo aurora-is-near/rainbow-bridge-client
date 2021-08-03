@@ -605,7 +605,7 @@ export async function checkFinality (
 export async function checkSync (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.JsonRpcProvider
+    provider?: ethers.providers.Provider
     eNEARAddress?: string
     sendToEthereumSyncInterval?: number
     ethChainId?: number
@@ -689,7 +689,7 @@ export async function checkSync (
  * @param {*} provider
  * @param {*} proof
  */
-export async function proofAlreadyUsed (provider: ethers.providers.JsonRpcProvider, proof: any, eNEARAddress: string): Promise<boolean> {
+export async function proofAlreadyUsed (provider: ethers.providers.Provider, proof: any, eNEARAddress: string): Promise<boolean> {
   const usedProofsKey: string = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
   // The usedProofs_ mapping is the 9th variable defined in the contract storage.
   const usedProofsMappingPosition = '0'.repeat(63) + '8'
@@ -753,7 +753,7 @@ export async function mint (
 export async function checkMint (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.JsonRpcProvider
+    provider?: ethers.providers.Provider
     ethChainId?: number
   }
 ): Promise<Transfer> {

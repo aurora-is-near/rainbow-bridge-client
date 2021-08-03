@@ -162,7 +162,7 @@ export async function findNearProof (
   nearReceiverId: string,
   nearBlockHeight: number,
   nearAccount: ConnectedWalletAccount,
-  provider: ethers.providers.JsonRpcProvider,
+  provider: ethers.providers.Provider,
   ethClientAddress: string,
   ethClientAbi: string
 ): Promise<any> {
