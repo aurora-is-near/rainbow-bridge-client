@@ -327,7 +327,7 @@ export async function initiate (
       symbol?: string
       decimals?: number
       sender?: string
-      provider?: ethers.providers.Web3Provider
+      provider?: ethers.providers.JsonRpcProvider
       nearAccount?: ConnectedWalletAccount
     }
   }
@@ -372,7 +372,7 @@ export async function initiate (
 export async function burn (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     auroraChainId?: number
     auroraErc20Abi?: string
     auroraEvmAccount?: string
@@ -716,7 +716,7 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
 export async function unlock (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     ethChainId?: number
     erc20LockerAddress?: string
     erc20LockerAbi?: string

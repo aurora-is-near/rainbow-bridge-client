@@ -361,7 +361,7 @@ export async function initiate (
 export async function burn (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     auroraChainId?: number
     etherCustodianAddress?: string
     etherCustodianAbi?: string
@@ -397,7 +397,7 @@ export async function burn (
     status: status.IN_PROGRESS,
     ethCache: {
       from: pendingBurnTx.from,
-      to: pendingBurnTx.to,
+      to: pendingBurnTx.to!,
       data: pendingBurnTx.data,
       nonce: pendingBurnTx.nonce,
       value: pendingBurnTx.value.toString(),
@@ -687,7 +687,7 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
 export async function unlock (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     ethChainId?: number
     etherCustodianAddress?: string
     etherCustodianAbi?: string

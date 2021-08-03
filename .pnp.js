@@ -1080,6 +1080,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@types/node", "npm:14.17.5"],
             ["bn.js", "npm:5.2.0"],
             ["decimal.js", "npm:10.3.1"],
+            ["ethers", "npm:5.4.1"],
             ["near-api-js", "https://github.com/near/near-api-js.git#commit=fef7f683fca86980f3509987226fbc7f63b455cb"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
           ],

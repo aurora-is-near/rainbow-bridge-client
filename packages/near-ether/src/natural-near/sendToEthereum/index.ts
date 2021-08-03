@@ -708,7 +708,7 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
 export async function mint (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     ethChainId?: number
     eNEARAddress?: string
     eNEARAbi?: string

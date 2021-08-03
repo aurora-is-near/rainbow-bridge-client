@@ -1,10 +1,11 @@
 import { ConnectedWalletAccount, WalletConnection } from 'near-api-js'
 import { Decimal } from 'decimal.js'
+import { ethers } from 'ethers'
 
-let ethProvider: any // TODO add proper Ethereum Provider typing
+let ethProvider: ethers.providers.JsonRpcProvider
 let nearConnection: WalletConnection
-let auroraProvider: any
-let signerProvider: any
+let auroraProvider: ethers.providers.JsonRpcProvider
+let signerProvider: ethers.providers.JsonRpcProvider | ethers.providers.Web3Provider
 let bridgeParams: any
 
 /**
@@ -24,19 +25,19 @@ let bridgeParams: any
  *
  * @returns `provider`
  */
-export function setEthProvider (provider: any): any {
+export function setEthProvider (provider: ethers.providers.JsonRpcProvider): any {
   ethProvider = provider
   // TODO: verify provider meets expectations
   return ethProvider
 }
 
-export function setAuroraProvider (provider: any): any {
+export function setAuroraProvider (provider: ethers.providers.JsonRpcProvider): any {
   auroraProvider = provider
   // TODO: verify provider meets expectations
   return auroraProvider
 }
 
-export function setSignerProvider (provider: any): any {
+export function setSignerProvider (provider: ethers.providers.JsonRpcProvider | ethers.providers.Web3Provider): any {
   signerProvider = provider
   // TODO: verify provider meets expectations
   return signerProvider
@@ -77,15 +78,15 @@ export function setNearConnection (connection: WalletConnection): WalletConnecti
  *
  * @returns an Ethereum Provider for use with ethers.js
  */
-export function getEthProvider (): any {
+export function getEthProvider (): ethers.providers.JsonRpcProvider {
   return ethProvider
 }
 
-export function getAuroraProvider (): any {
+export function getAuroraProvider (): ethers.providers.JsonRpcProvider {
   return auroraProvider
 }
 
-export function getSignerProvider (): any {
+export function getSignerProvider (): ethers.providers.JsonRpcProvider {
   return signerProvider
 }
 
