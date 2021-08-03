@@ -7,7 +7,7 @@ export default async function getBalance (
     erc20Address: string
     owner: string
     options?: {
-      provider?: ethers.providers.JsonRpcProvider
+      provider?: ethers.providers.Provider
       erc20Abi?: string
     }
   }

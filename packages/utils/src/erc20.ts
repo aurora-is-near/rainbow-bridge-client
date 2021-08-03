@@ -4,7 +4,7 @@ export async function getBalance (
   { erc20Address, owner, provider, erc20Abi }: {
     erc20Address: string
     owner: string
-    provider: ethers.providers.JsonRpcProvider
+    provider: ethers.providers.Provider
     erc20Abi: string
   }
 ): Promise<string> {
@@ -22,7 +22,7 @@ export async function getAllowance (
     erc20Address: string
     owner: string
     spender: string
-    provider: ethers.providers.JsonRpcProvider
+    provider: ethers.providers.Provider
     erc20Abi: string
   }
 ): Promise<string> {
@@ -39,7 +39,7 @@ export async function getAllowance (
 export async function getDecimals (
   { erc20Address, provider, erc20Abi }: {
     erc20Address: string
-    provider: ethers.providers.JsonRpcProvider
+    provider: ethers.providers.Provider
     erc20Abi: string
   }
 ): Promise<number> {
@@ -55,7 +55,7 @@ export async function getDecimals (
 export async function getSymbol (
   { erc20Address, provider, erc20Abi }: {
     erc20Address: string
-    provider: ethers.providers.JsonRpcProvider
+    provider: ethers.providers.Provider
     erc20Abi: string
   }
 ): Promise<string> {
