@@ -206,7 +206,7 @@ export async function initiate (
     options?: {
       sender?: string
       ethChainId?: number
-      provider?: ethers.providers.Web3Provider
+      provider?: ethers.providers.JsonRpcProvider
       eNEARAddress?: string
       eNEARAbi?: string
     }
@@ -252,7 +252,7 @@ export async function initiate (
 export async function burn (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     ethChainId?: number
     eNEARAddress?: string
     eNEARAbi?: string
@@ -379,7 +379,7 @@ export async function checkBurn (
 export async function checkSync (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Provider
+    provider?: ethers.providers.JsonRpcProvider
     eNEARAddress?: string
     eNEARAbi?: string
     nativeNEARLockerAddress?: string
@@ -391,6 +391,7 @@ export async function checkSync (
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getEthProvider()
   const nearAccount = options.nearAccount ?? await getNearAccount()
 
   if (!transfer.checkSyncInterval) {
@@ -419,7 +420,7 @@ export async function checkSync (
       burnReceipt.transactionHash,
       options.eNEARAddress ?? bridgeParams.eNEARAddress,
       options.eNEARAbi ?? bridgeParams.eNEARAbi,
-      getEthProvider()
+      provider
     )
     const proofAlreadyUsed = await nearAccount.viewFunction(
       options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,

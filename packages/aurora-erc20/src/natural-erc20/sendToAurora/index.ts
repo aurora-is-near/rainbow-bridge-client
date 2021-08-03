@@ -222,7 +222,7 @@ export async function initiate (
       decimals?: number
       sender?: string
       ethChainId?: number
-      provider?: ethers.providers.Web3Provider
+      provider?: ethers.providers.JsonRpcProvider
       erc20LockerAddress?: string
       erc20LockerAbi?: string
     }
@@ -263,7 +263,7 @@ export async function approve (
     erc20Address: string
     amount: string | ethers.BigNumber
     options?: {
-      provider?: ethers.providers.Web3Provider
+      provider?: ethers.providers.JsonRpcProvider
       ethChainId?: number
       erc20LockerAddress?: string
       erc20Abi?: string
@@ -403,7 +403,7 @@ export async function checkApprove (
 export async function lock (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     ethChainId?: number
     erc20LockerAddress?: string
     erc20LockerAbi?: string
@@ -535,7 +535,7 @@ export async function checkLock (
 export async function checkSync (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Provider
+    provider?: ethers.providers.JsonRpcProvider
     erc20LockerAddress?: string
     erc20LockerAbi?: string
     sendToNearSyncInterval?: number

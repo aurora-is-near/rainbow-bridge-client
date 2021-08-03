@@ -205,7 +205,7 @@ export async function initiate (
       decimals?: number
       sender?: string
       ethChainId?: number
-      provider?: ethers.providers.Web3Provider
+      provider?: ethers.providers.JsonRpcProvider
       etherCustodianAddress?: string
       etherCustodianAbi?: string
     }
@@ -249,7 +249,7 @@ export async function initiate (
 export async function lock (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     ethChainId?: number
     etherCustodianAddress?: string
     etherCustodianAbi?: string
@@ -376,7 +376,7 @@ export async function checkLock (
 export async function checkSync (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Provider
+    provider?: ethers.providers.JsonRpcProvider
     etherCustodianAddress?: string
     etherCustodianAbi?: string
     auroraEvmAccount?: string

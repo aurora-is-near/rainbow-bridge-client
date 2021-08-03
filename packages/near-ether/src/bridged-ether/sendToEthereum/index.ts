@@ -734,7 +734,7 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
 export async function unlock (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Web3Provider
+    provider?: ethers.providers.JsonRpcProvider
     ethChainId?: number
     etherCustodianAddress?: string
     etherCustodianAbi?: string
