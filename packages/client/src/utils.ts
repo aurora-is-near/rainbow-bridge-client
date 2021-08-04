@@ -19,7 +19,7 @@ let bridgeParams: any
  *
  *     import { ethers } from 'ethers'
  *     import { setEthProvider } from '@near-eth/client'
- *     setEthProvider(new ethers.providers.Provider())
+ *     setEthProvider(new ethers.providers.JsonRpcProvider(url))
  *
  * @param provider Ethereum Provider
  *
@@ -31,12 +31,47 @@ export function setEthProvider (provider: ethers.providers.JsonRpcProvider): any
   return ethProvider
 }
 
+/**
+ * Set auroraProvider
+ *
+ * This must be called by apps that use @near-eth/client before performing any
+ * transfer operations with @near-eth/client itself or with connector libraries
+ * such as @near-eth/nep141-erc20.
+ *
+ * Example:
+ *
+ *     import { ethers } from 'ethers'
+ *     import { setAuroraProvider } from '@near-eth/client'
+ *     setAuroraProvider(new ethers.providers.JsonRpcProvider(url))
+ *
+ * @param provider Aurora Provider
+ *
+ * @returns `provider`
+ */
 export function setAuroraProvider (provider: ethers.providers.JsonRpcProvider): any {
   auroraProvider = provider
   // TODO: verify provider meets expectations
   return auroraProvider
 }
 
+/**
+ * Set signerProvider
+ *
+ * This must be called by apps that use @near-eth/client before performing any
+ * transfer operations with @near-eth/client itself or with connector libraries
+ * such as @near-eth/nep141-erc20.
+ *
+ * Example:
+ *
+ *     import { ethers } from 'ethers'
+ *     import { setSignerProvider } from '@near-eth/client'
+ *     setSignerProvider(new ethers.providers.Web3Provider(window.ethereum, 'any'))
+ *     // use 'any' to allow switching networks
+ *
+ * @param provider Signer Provider
+ *
+ * @returns `provider`
+ */
 export function setSignerProvider (provider: ethers.providers.JsonRpcProvider | ethers.providers.Web3Provider): any {
   signerProvider = provider
   // TODO: verify provider meets expectations
@@ -105,7 +140,7 @@ export function getSignerProvider (): ethers.providers.JsonRpcProvider {
  * If provided `strict: true`, will ENSURE that user is signed in against
  * `authAgainst` contract, and not just any contract address.
  *
- * @param {object} params Object with named arguments
+ * @param params Object with named arguments
  * @param params.authAgainst [undefined] string (optional) The address of a NEAR contract
  *   to authenticate against. If provided, will trigger a page redirect to NEAR
  *   Wallet if the user is not authenticated against ANY contract, whether this
@@ -174,10 +209,31 @@ export function formatLargeNum (n: string, decimals = 18): Decimal {
   return new Decimal(n).dividedBy(10 ** decimals)
 }
 
+/**
+ * Get bridgeParams
+ *
+ * Internal function, only expected to be used by @near-eth/nep141-erc20 and
+ * other connector libraries that interoperate with @near-eth/client. If you
+ * are an app developer, you can ignore this function.
+ *
+ * @returns Bridge parameters
+ */
 export function getBridgeParams (): any {
   return bridgeParams
 }
 
+/**
+ * Set bridge parameters (contract addresses, abi...)
+ *
+ * This should be called by apps that use @near-eth/client before performing any
+ * transfer operations with @near-eth/client itself or with connector libraries
+ * such as @near-eth/nep141-erc20.
+ * Otherwise connector libraries can also be used without bridgeParams by specifying the required
+ * arguments in `options`.
+ *
+ * @param params Object containing bridge parameters
+ * @returns `params`
+ */
 export function setBridgeParams (params: any): any {
   bridgeParams = params
   return bridgeParams

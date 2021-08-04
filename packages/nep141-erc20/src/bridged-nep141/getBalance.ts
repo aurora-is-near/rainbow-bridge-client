@@ -5,11 +5,13 @@ import getNep141Address from './getAddress'
 /**
  * Given an erc20 contract address, get the balance of user's equivalent NEP141.
  *
- * @param {object} params Uses Named Arguments pattern, please pass arguments as object
+ * @param params Uses Named Arguments pattern, please pass arguments as object
  * @param params.erc20Address Contract address of an ERC20 token on Ethereum
- * @param params.user NEAR account address
+ * @param params.owner NEAR account address
+ * @param params.options Optional arguments.
+ * @param params.options.nearAccount Connected NEAR wallet account to use.
  *
- * @returns {Promise<number|null>} if BridgeToken has been deployed, returns balance for `params.user`.
+ * @returns If BridgeToken has been deployed, returns balance for `params.user`.
  *   Otherwise, returns `null`.
  */
 export default async function getBalance (

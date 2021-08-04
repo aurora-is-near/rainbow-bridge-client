@@ -128,7 +128,7 @@ export const i18n = {
 
 /**
  * Called when status is ACTION_NEEDED or FAILED
- * @param {*} transfer
+ * @param transfer Transfer object to act on.
  */
 export async function act (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
@@ -141,7 +141,7 @@ export async function act (transfer: Transfer): Promise<Transfer> {
 
 /**
  * Called when status is IN_PROGRESS
- * @param {*} transfer
+ * @param transfer Transfer object to check status on.
  */
 export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
@@ -154,10 +154,13 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 }
 
 /**
- * Recover transfer from a lock tx hash
- * Track a new transfer at the completedStep = LOCK so that it can be minted
- * @param {string} lockTxHash Near tx hash containing the token lock
- * @param {string} sender Near account sender of lockTxHash
+ * Recover transfer from a lock tx hash.
+ * @param lockTxHash Near tx hash containing the token lock.
+ * @param sender Near account sender of lockTxHash.
+ * @param params.options Optional arguments.
+ * @param params.options.nearAccount Connected NEAR wallet account to use.
+ * @param params.options.nativeNEARLockerAddress $NEAR bridge connector address on NEAR.
+ * @returns The created transfer object.
  */
 export async function recover (
   lockTxHash: string,
@@ -259,8 +262,10 @@ export async function recover (
 /**
  * Parse the lock receipt id and block height needed to complete
  * the step LOCK
- * @param {*} lockTx
- * @param {string} sender
+ * @param lockTx
+ * @param sender
+ * @param nativeNEARLockerAddress
+ * @param nearAccount
  */
 export async function parseLockReceipt (
   lockTx: FinalExecutionOutcome,
@@ -335,7 +340,15 @@ export async function parseLockReceipt (
 }
 
 /**
- * Create a new transfer.
+ * Initiate a transfer from NEAR to Ethereum by locking $NEAR tokens.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.amount Number of tokens to transfer.
+ * @param params.recipient Ethereum address to receive tokens on the other side of the bridge.
+ * @param params.options Optional arguments.
+ * @param params.options.sender Sender of tokens (defaults to the connected NEAR wallet address).
+ * @param params.options.nativeNEARLockerAddress $NEAR bridge connector address on NEAR.
+ * @param params.options.nearAccount Connected NEAR wallet account to use.
+ * @returns The created transfer object.
  */
 export async function initiate (
   { amount, recipient, options }: {
@@ -380,7 +393,6 @@ export async function initiate (
 
 /**
  * Lock native NEAR to migrate to Ethereum.
- * @param {*} transfer
  */
 export async function lock (
   transfer: Transfer,
@@ -421,7 +433,6 @@ export async function lock (
  * Otherwise if this function throws due to provider or returns, then urlParams
  * should not be cleared so that checkLock can try again at the next loop.
  * So urlparams.clear() is called when status.FAILED or at the end of this function.
- * @param {*} transfer
  */
 export async function checkLock (
   transfer: Transfer,
@@ -568,7 +579,6 @@ export async function checkLock (
  * receipt. This block (or one of its ancestors) should hold the outcome.
  * Although this may not support sharding.
  * TODO: support sharding
- * @param {*} transfer
  */
 export async function checkFinality (
   transfer: Transfer,
@@ -600,7 +610,6 @@ export async function checkFinality (
  * Wait for the block with the given receipt/transaction in Near2EthClient, and
  * get the outcome proof only use block merkle root that we know is available
  * on the Near2EthClient.
- * @param {*} transfer
  */
 export async function checkSync (
   transfer: Transfer,
@@ -686,8 +695,6 @@ export async function checkSync (
 
 /**
  * Check if a NEAR outcome receipt_id has already been used to finalize a transfer to Ethereum.
- * @param {*} provider
- * @param {*} proof
  */
 export async function proofAlreadyUsed (provider: ethers.providers.Provider, proof: any, eNEARAddress: string): Promise<boolean> {
   const usedProofsKey: string = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
@@ -703,7 +710,6 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
  * Mint eNEAR tokens,
  * passing the proof that the tokens were locked in the corresponding
  * NEAR BridgeToken contract.
- * @param {*} transfer
  */
 export async function mint (
   transfer: Transfer,

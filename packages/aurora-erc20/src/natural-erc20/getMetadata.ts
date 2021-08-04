@@ -80,16 +80,15 @@ export async function getSymbol (
 
 /**
  * Fetch name, icon, and decimals (precision) of ERC20 token with given `address`.
+ * Values are cached.
  *
- * Can provide an Ethereum wallet address as second argument, in which case that
- * wallet's balance will also be returned. If omitted, `balance` is returned as `null`.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.erc20Address ERC20 token contract address
+ * @param params.options Optional arguments
+ * @param params.options.provider Ethereum provider to use
+ * @param params.options.erc20Abi ERC-20 ABI to use
  *
- * Values other than `balance` are cached.
- *
- * @param address ERC20 token contract address
- * @param user (optional) Ethereum wallet address that may hold tokens with given `address`
- *
- * @returns {Promise<{ address: string, balance: number|null, decimals: number, icon: string|null, name: string }>}
+ * @returns Metadata information
  */
 export default async function getMetadata (
   { erc20Address, options }: {

@@ -11,19 +11,14 @@ async function getName (erc20Address: string): Promise<string> {
  * Fetch address, name, icon, and decimals (precision) of NEP141 token matching
  * given `erc20Address`.
  *
- * Can provide a NEAR account address as second argument, in which case that
- * account's balance will also be returned. If omitted, `balance` is returned
- * as `null`.
- *
- * Values other than `balance` are cached.
+ * Values are cached.
  *
  * Returned `decimals` and `icon` will always be `null` until ratification,
  * adoption, & implementation of https://github.com/near/NEPs/discussions/148
  *
- * @param erc20Address ERC20 token contract address
- * @param user (optional) NEAR account address that may hold tokens with given `erc20Address`
- *
- * @returns {Promise<{ address: string, balance: number|null, decimals: null, icon: null, name: string }>}
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.erc20Address ERC20 token contract address
+ * @returns Metadata information
  */
 export default async function getMetadata (
   { erc20Address }: { erc20Address: string }
