@@ -19,16 +19,20 @@ import { urlParams } from '@near-eth/utils'
  *     const erc20Address = '0x123abc...'
  *     const bridgedNep141Balance = bridgedNep141.getBalance({
  *       erc20Address,
- *       user: userNearAccount
+ *       owner: userNearAccount
  *     })
  *     // Don't check `!bridgedNep141Balance`, because user may have a balance
  *     // of 0, which means the contract is deployed and they have no balance.
  *     // `0` in JavaScript is falsey.
  *     if (bridgedNep141Balance === null) {
- *       bridgeErc20(erc20Address)
+ *       deployBridgeToken({ erc20Address })
  *     }
  *
- * @param erc20Address Address of ERC20 token for which to deploy BridgeToken
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.erc20Address Address of ERC20 token for which to deploy BridgeToken
+ * @param params.options Optional arguments.
+ * @param params.options.nearAccount Connected NEAR wallet account to use.
+ * @param params.options.nep141Factory Bridge token factory account on NEAR.
  *
  * @returns void Doesn't actually return at all, as the contract call has an
  * attached deposit (of 30.02 NEAR) and will thus always cause a redirect to

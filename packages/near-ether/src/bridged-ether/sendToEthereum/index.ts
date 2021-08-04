@@ -129,7 +129,7 @@ export const i18n = {
 
 /**
  * Called when status is ACTION_NEEDED or FAILED
- * @param {*} transfer
+ * @param transfer Transfer object to act on.
  */
 export async function act (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
@@ -142,7 +142,7 @@ export async function act (transfer: Transfer): Promise<Transfer> {
 
 /**
  * Called when status is IN_PROGRESS
- * @param {*} transfer
+ * @param transfer Transfer object to check status on.
  */
 export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
@@ -157,8 +157,13 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 /**
  * Recover transfer from a burn tx hash
  * Track a new transfer at the completedStep = BURN so that it can be unlocked
- * @param {string} burnTxHash Near tx hash containing the token withdrawal
- * @param {string} sender Near account sender of burnTxHash
+ * @param burnTxHash Near tx hash containing the token withdrawal
+ * @param sender Near account sender of burnTxHash
+ * @param options Optional arguments.
+ * @param options.nearAccount Connected NEAR wallet account to use.
+ * @param options.etherCustodianAddress Rainbow bridge ether custodian address.
+ * @param options.auroraEvmAccount nETH bridged ETH account on NEAR (aurora)
+ * @returns The recovered transfer object
  */
 export async function recover (
   burnTxHash: string,
@@ -265,9 +270,10 @@ export async function recover (
 /**
  * Parse the burn receipt id and block height needed to complete
  * the step BURN
- * @param {*} burnTx
- * @param {string} sender
- * @param {string} sourceToken
+ * @param burnTx
+ * @param sender
+ * @param sourceToken
+ * @param nearAccount
  */
 export async function parseWithdrawReceipt (
   burnTx: FinalExecutionOutcome,
@@ -339,6 +345,17 @@ export async function parseWithdrawReceipt (
   return { id: withdrawReceiptId, blockHeight: receiptBlockHeight }
 }
 
+/**
+ * Initiate a transfer from NEAR to Ethereum by burning nETH tokens.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.amount Number of tokens to transfer.
+ * @param params.recipient Ethereum address to receive tokens on the other side of the bridge.
+ * @param params.options Optional arguments.
+ * @param params.options.sender Sender of tokens (defaults to the connected NEAR wallet address).
+ * @param options.auroraEvmAccount nETH bridged ETH account on NEAR (aurora)
+ * @param params.options.nearAccount Connected NEAR wallet account to use.
+ * @returns The created transfer object.
+ */
 export async function initiate (
   { amount, recipient, options }: {
     amount: string | ethers.BigNumber
@@ -453,7 +470,6 @@ export async function burn (
  * Otherwise if this function throws due to provider or returns, then urlParams
  * should not be cleared so that checkBurn can try again at the next loop.
  * So urlparams.clear() is called when status.FAILED or at the end of this function.
- * @param {*} transfer
  */
 export async function checkBurn (
   transfer: Transfer,
@@ -593,7 +609,6 @@ export async function checkBurn (
  * receipt. This block (or one of its ancestors) should hold the outcome.
  * Although this may not support sharding.
  * TODO: support sharding
- * @param {*} transfer
  */
 export async function checkFinality (
   transfer: Transfer,
@@ -625,7 +640,6 @@ export async function checkFinality (
  * Wait for the block with the given receipt/transaction in Near2EthClient, and
  * get the outcome proof only use block merkle root that we know is available
  * on the Near2EthClient.
- * @param {*} transfer
  */
 export async function checkSync (
   transfer: Transfer,
@@ -712,8 +726,6 @@ export async function checkSync (
 
 /**
  * Check if a NEAR outcome receipt_id has already been used to finalize a transfer to Ethereum.
- * @param {*} provider
- * @param {*} proof
  */
 export async function proofAlreadyUsed (provider: ethers.providers.Provider, proof: any, etherCustodianAddress: string): Promise<boolean> {
   const usedProofsKey: string = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
@@ -729,7 +741,6 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
  * Unlock tokens stored in the contract at process.env.ethLockerAddress,
  * passing the proof that the tokens were withdrawn/burned in the corresponding
  * NEAR BridgeToken contract.
- * @param {*} transfer
  */
 export async function unlock (
   transfer: Transfer,

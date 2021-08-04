@@ -142,7 +142,7 @@ export const i18n = {
 
 /**
  * Called when status is ACTION_NEEDED or FAILED
- * @param {*} transfer
+ * @param transfer Transfer object to act on.
  */
 export async function act (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
@@ -155,7 +155,7 @@ export async function act (transfer: Transfer): Promise<Transfer> {
 
 /**
  * Called when status is IN_PROGRESS
- * @param {*} transfer
+ * @param transfer Transfer object to check status on.
  */
 export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
@@ -170,7 +170,8 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 /**
  * Parse the burn receipt id and block height needed to complete
  * the step BURN
- * @param {*} nearBurnTx
+ * @param nearBurnTx
+ * @param nearAccount
  */
 export async function parseBurnReceipt (
   nearBurnTx: FinalExecutionOutcome,
@@ -212,8 +213,12 @@ export async function parseBurnReceipt (
 
 /**
  * Recover transfer from a burn tx hash
- * Track a new transfer at the completedStep = BURN so that it can be minted
- * @param {*} auroraBurnTxHash
+ * @param auroraBurnTxHash Aurora tx hash containing the token withdrawal
+ * @param sender Near account sender of burnTxHash (aurora relayer)
+ * @param options Optional arguments.
+ * @param options.nearAccount Connected NEAR wallet account to use.
+ * @param options.provider Aurora provider to use.
+ * @returns The recovered transfer object
  */
 export async function recover (
   auroraBurnTxHash: string,
@@ -318,6 +323,22 @@ export async function recover (
   return await checkSync(transfer)
 }
 
+/**
+ * Initiate a transfer from Aurora to Ethereum by burning minted tokens.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.erc20Address ERC-20 address of the bridged token to transfer.
+ * @param params.amount Number of tokens to transfer.
+ * @param params.recipient Ethereum address to receive tokens on the other side of the bridge.
+ * @param params.options Optional arguments.
+ * @param params.options.symbol ERC-20 symbol (queried if not provided).
+ * @param params.options.decimals ERC-20 decimals (queried if not provided).
+ * @param params.options.sender Sender of tokens (defaults to the connected wallet address).
+ * @param params.options.auroraChainId Aurora chain id of the bridge.
+ * @param params.options.auroraErc20Abi Aurora ERC-20 abi to call withdrawToEthereum.
+ * @param options.provider Aurora provider to use.
+ * @param params.options.nearAccount Connected NEAR wallet account to use.
+ * @returns The created transfer object.
+ */
 export async function initiate (
   { erc20Address, amount, recipient, options }: {
     erc20Address: string
@@ -327,6 +348,8 @@ export async function initiate (
       symbol?: string
       decimals?: number
       sender?: string
+      auroraChainId?: number
+      auroraErc20Abi?: string
       provider?: ethers.providers.JsonRpcProvider
       nearAccount?: ConnectedWalletAccount
     }
@@ -356,7 +379,7 @@ export async function initiate (
     decimals
   }
 
-  transfer = await burn(transfer)
+  transfer = await burn(transfer, options)
 
   await track(transfer)
   return transfer
@@ -367,7 +390,6 @@ export async function initiate (
  * Only wait for transaction to have dependable transactionHash created. Avoid
  * blocking to wait for transaction to be mined. Status of transactionHash
  * being mined is then checked in checkStatus.
- * @param {*} transfer
  */
 export async function burn (
   transfer: Transfer,
@@ -375,7 +397,6 @@ export async function burn (
     provider?: ethers.providers.JsonRpcProvider
     auroraChainId?: number
     auroraErc20Abi?: string
-    auroraEvmAccount?: string
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -576,7 +597,6 @@ export async function checkBurn (
  * receipt. This block (or one of its ancestors) should hold the outcome.
  * Although this may not support sharding.
  * TODO: support sharding
- * @param {*} transfer
  */
 export async function checkFinality (
   transfer: Transfer,
@@ -608,7 +628,6 @@ export async function checkFinality (
  * Wait for the block with the given receipt/transaction in Near2EthClient, and
  * get the outcome proof only use block merkle root that we know is available
  * on the Near2EthClient.
- * @param {*} transfer
  */
 export async function checkSync (
   transfer: Transfer,
@@ -694,8 +713,6 @@ export async function checkSync (
 
 /**
  * Check if a NEAR outcome receipt_id has already been used to finalize a transfer to Ethereum.
- * @param {*} provider
- * @param {*} proof
  */
 export async function proofAlreadyUsed (provider: ethers.providers.Provider, proof: any, erc20LockerAddress: string): Promise<boolean> {
   const usedProofsKey: string = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
@@ -711,7 +728,6 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
  * Unlock tokens stored in the contract at process.env.ethLockerAddress,
  * passing the proof that the tokens were withdrawn/burned in the corresponding
  * NEAR BridgeToken contract.
- * @param {*} transfer
  */
 export async function unlock (
   transfer: Transfer,

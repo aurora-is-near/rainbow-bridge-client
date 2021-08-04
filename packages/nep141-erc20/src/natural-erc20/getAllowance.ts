@@ -4,9 +4,15 @@ import { erc20 } from '@near-eth/utils'
 
 /**
  * Returns the amount of erc20Address tokens which spender is allowed to withdraw from owner.
- * @param {*} param.erc20Address
- * @param {*} param.owner
- * @param {*} param.spender
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.erc20Address ERC-20 token address
+ * @param params.owner Owner's address
+ * @param params.spender Spender's address
+ * @param params.options Optional arguments.
+ * @param options.provider Ethereum provider to use.
+ * @param params.options.erc20Abi ERC-20 token abi.
+ *
+ * @returns Allowance of spender
  */
 export default async function getAllowance (
   { erc20Address, owner, spender, options }: {

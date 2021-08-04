@@ -122,7 +122,7 @@ export const i18n = {
 
 /**
  * Called when status is ACTION_NEEDED or FAILED
- * @param {*} transfer
+ * @param transfer Transfer object to act on.
  */
 export async function act (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
@@ -135,7 +135,7 @@ export async function act (transfer: Transfer): Promise<Transfer> {
 
 /**
  * Called when status is IN_PROGRESS
- * @param {*} transfer
+ * @param transfer Transfer object to check status on.
  */
 export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
@@ -148,7 +148,13 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 
 /**
  * Recover transfer from a lock tx hash
- * @param {*} lockTxHash
+ * @param lockTxHash Ethereum transaction hash which initiated the transfer.
+ * @param options Optional arguments.
+ * @param options.provider Ethereum provider to use.
+ * @param options.erc20LockerAddress Rainbow bridge ERC-20 token locker address.
+ * @param options.erc20LockerAbi Rainbow bridge ERC-20 token locker abi.
+ * @param options.auroraEvmAccount Aurora account on NEAR.
+ * @returns The recovered transfer object
  */
 export async function recover (
   lockTxHash: string,
@@ -212,6 +218,27 @@ export async function recover (
   return await checkSync(transfer)
 }
 
+/**
+ * Initiate a transfer from Ethereum to Aurora by locking tokens.
+ * Broadcasts the lock transaction and creates a transfer object.
+ * The receipt will be fetched by checkStatus.
+ * Allowance must be enough before tokens can be transfered.
+ * Use `approve` to allow spending of ERC-20 tokens.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.erc20Address ERC-20 address of token to transfer.
+ * @param params.amount Number of tokens to transfer.
+ * @param params.recipient NEAR address to receive tokens on the other side of the bridge.
+ * @param params.options Optional arguments.
+ * @param params.options.symbol ERC-20 symbol (queried if not provided).
+ * @param params.options.decimals ERC-20 decimals (queried if not provided).
+ * @param params.options.sender Sender of tokens (defaults to the connected wallet address).
+ * @param params.options.ethChainId Ethereum chain id of the bridge.
+ * @param params.options.provider Ethereum provider to use.
+ * @param params.options.erc20LockerAddress Rainbow bridge ERC-20 token locker address.
+ * @param params.options.erc20LockerAbi Rainbow bridge ERC-20 token locker abi.
+ * @param options.auroraEvmAccount Aurora account on NEAR.
+ * @returns The created transfer object.
+ */
 export async function initiate (
   { erc20Address, amount, recipient, options }: {
     erc20Address: string
@@ -225,6 +252,7 @@ export async function initiate (
       provider?: ethers.providers.JsonRpcProvider
       erc20LockerAddress?: string
       erc20LockerAbi?: string
+      auroraEvmAccount?: string
     }
   }
 ): Promise<Transfer> {
@@ -252,12 +280,25 @@ export async function initiate (
     decimals
   }
 
-  transfer = await lock(transfer)
+  transfer = await lock(transfer, options)
 
   await track(transfer)
   return transfer
 }
 
+/**
+ * Allow the bridge ERC-20 locker to transfer tokens from the user's address.
+ * Allowance must be enough before tokens can be transfered with `initiate`
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.erc20Address ERC-20 address of token to transfer.
+ * @param params.amount Number of tokens to transfer.
+ * @param params.options Optional arguments.
+ * @param params.options.provider Ethereum provider to use.
+ * @param params.options.ethChainId Ethereum chain id of the bridge.
+ * @param params.options.erc20LockerAddress Rainbow bridge ERC-20 token locker address.
+ * @param params.options.erc20Abi ERC-20 token abi.
+ * @returns ApprovalInfo object which is used by checkApprove to track the transaction.
+ */
 export async function approve (
   { erc20Address, amount, options }: {
     erc20Address: string
@@ -398,7 +439,6 @@ export async function checkApprove (
  * Only wait for transaction to have dependable transactionHash created. Avoid
  * blocking to wait for transaction to be mined. Status of transactionHash
  * being mined is then checked in checkStatus.
- * @param {*} transfer
  */
 export async function lock (
   transfer: Transfer,

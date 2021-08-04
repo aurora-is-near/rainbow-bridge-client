@@ -113,7 +113,7 @@ export const i18n = {
 
 /**
  * Called when status is ACTION_NEEDED or FAILED
- * @param {*} transfer
+ * @param transfer Transfer object to act on.
  */
 export async function act (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
@@ -126,7 +126,7 @@ export async function act (transfer: Transfer): Promise<Transfer> {
 
 /**
  * Called when status is IN_PROGRESS
- * @param {*} transfer
+ * @param transfer Transfer object to check status on.
  */
 export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
@@ -139,7 +139,13 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 
 /**
  * Recover transfer from a lock tx hash
- * @param {*} lockTxHash
+ * @param lockTxHash Ethereum transaction hash which initiated the transfer.
+ * @param options Optional arguments.
+ * @param options.provider Ethereum provider to use.
+ * @param options.etherCustodianAddress Rainbow bridge ether custodian address.
+ * @param options.etherCustodianAbi Rainbow bridge ether custodian abi.
+ * @param options.auroraEvmAccount nETH bridged ETH account on NEAR (aurora)
+ * @returns The recovered transfer object
  */
 export async function recover (
   lockTxHash: string,
@@ -203,6 +209,23 @@ export async function recover (
   return await checkSync(transfer)
 }
 
+/**
+ * Initiate a transfer from Ethereum to Aurora by locking tokens.
+ * Broadcasts the lock transaction and creates a transfer object.
+ * The receipt will be fetched by checkStatus.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.amount Number of tokens to transfer.
+ * @param params.recipient Aurora address to receive tokens on the other side of the bridge.
+ * @param params.options Optional arguments.
+ * @param params.options.symbol ERC-20 symbol (ETH if not provided).
+ * @param params.options.decimals ERC-20 decimals (18 if not provided).
+ * @param params.options.sender Sender of tokens (defaults to the connected wallet address).
+ * @param params.options.ethChainId Ethereum chain id of the bridge.
+ * @param params.options.provider Ethereum provider to use.
+ * @param params.options.etherCustodianAddress Rainbow bridge ether custodian address.
+ * @param params.options.etherCustodianAbi Rainbow bridge ether custodian abi.
+ * @returns The created transfer object.
+ */
 export async function initiate (
   { amount, recipient, options }: {
     amount: string | ethers.BigNumber
@@ -255,7 +278,6 @@ export async function initiate (
  * Only wait for transaction to have dependable transactionHash created. Avoid
  * blocking to wait for transaction to be mined. Status of transactionHash
  * being mined is then checked in checkStatus.
- * @param {*} transfer
  */
 export async function lock (
   transfer: Transfer,
