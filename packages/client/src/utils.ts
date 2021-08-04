@@ -231,6 +231,22 @@ export function getBridgeParams (): any {
  * Otherwise connector libraries can also be used without bridgeParams by specifying the required
  * arguments in `options`.
  *
+ * Example: bridge parameters for @near-eth/nep141-erc20
+ *
+ *  setBridgeParams({
+ *    nearEventRelayerMargin: 10, // 10 blocks margin for the Event relayer to finalize the transfer
+ *    sendToNearSyncInterval: 20000, // check light client sync every 20sec
+ *    sendToEthereumSyncInterval: 60000, // check light client sync every 60sec
+ *    ethChainId: 1, // mainnet
+ *    erc20Abi: process.env.ethErc20AbiText, // Standard ERC-20 ABI
+ *    erc20LockerAddress: '0x23ddd3e3692d1861ed57ede224608875809e127f',
+ *    erc20LockerAbi: process.env.ethLockerAbiText,
+ *    nep141Factory: 'factory.bridge.near',
+ *    ethClientAddress: '0x0151568af92125fb289f1dd81d9d8f7484efc362',
+ *    ethClientAbi: process.env.ethNearOnEthClientAbiText,
+ *    nearClientAccount: 'client.bridge.near'
+ *  })
+ *
  * @param params Object containing bridge parameters
  * @returns `params`
  */
