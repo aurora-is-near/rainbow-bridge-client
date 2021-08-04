@@ -79,6 +79,26 @@ You can have multiple connector libraries in your app, some which may be maintai
 
 (Note: `@near-eth/nep4-erc721` and `rainbow-bridge-erc20-with-rebase-and-nep21` do NOT currently exist, and are only shown to illustrate how this could work. As an aside, the current ERC20 connector does NOT support [tokens which use the `rebase` feature](https://etherscan.io/tokens/label/rebase-token) like [AMPL](https://etherscan.io/token/0xd46ba6d942050d489dbd938a2c909a5d5039a161) & [BASE](https://etherscan.io/token/0x07150e919b4de5fd6a63de1f9384828396f25fdc), which is why a hypothetical community-contributed "erc20-with-rebase" connector library is shown.)
 
+Step 0: Set the bridge parameters
+---------------------------------
+
+These parameters are specific to the bridge being used.
+```js
+import { setBridgeParams } from '@near-eth/client'
+  setBridgeParams({
+    nearEventRelayerMargin: 10, // 10 blocks margin for the Event relayer to finalize the transfer
+    sendToNearSyncInterval: 20000, // check light client sync every 20sec
+    sendToEthereumSyncInterval: 60000, // check light client sync every 60sec
+    ethChainId: 1, // mainnet
+    erc20Abi: process.env.ethErc20AbiText, // Standard ERC-20 ABI
+    erc20LockerAddress: '0x23ddd3e3692d1861ed57ede224608875809e127f',
+    erc20LockerAbi: process.env.ethLockerAbiText,
+    nep141Factory: 'factory.bridge.near',
+    ethClientAddress: '0x0151568af92125fb289f1dd81d9d8f7484efc362',
+    ethClientAbi: process.env.ethNearOnEthClientAbiText,
+    nearClientAccount: 'client.bridge.near'
+})
+```
 
 Step 1: Authenticate user with both NEAR & Ethereum
 ---------------------------------------------------
@@ -138,13 +158,18 @@ You can use [web3modal](https://github.com/web3modal/web3modal) to add this hand
 
 ```js
 import Web3Modal from 'web3modal'
-import { setEthProvider } from '@near-eth/client'
+import { setEthProvider, setSignerProvider } from '@near-eth/client'
+import { ethers } from 'ethers'
+
+// Provider used for querying Ethereum data (transaction status, sync status ...)
+setEthProvider(new ethers.providers.InfuraProvider('mainnet', INFURA_ID))
 
 const web3Modal = new Web3Modal({ cacheProvider: true })
 
 async function loadWeb3Modal () {
   window.ethProvider = await web3Modal.connect()
-  setEthProvider(window.ethProvider)
+  // Provider used for signing transactions (MetaMask, WalletConnect...)
+  setSignerProvider(new ethers.providers.Web3Provider(window.ethProvider, 'any'))
 }
 
 document.querySelector('#authEthereum').onclick = loadWeb3Modal
@@ -180,11 +205,13 @@ document.querySelector('#sendErc20ToNear').onsubmit = async e => {
 
   const { erc20Address, amount } = e.target.elements
 
+  // The ERC-20 should be approved before tokens can be transfered to the bridge.
+  // naturalErc20.approve() and naturalErc20.checkApprove() are available,
+  // but developpers is free to set approval any way they like depending on UX.
   naturalErc20.sendToNear({
-    sender,
-    recipient,
     erc20Address: erc20Address.value,
     amount: amount.value
+    recipient,
   })
 }
 ```
