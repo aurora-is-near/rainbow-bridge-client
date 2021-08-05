@@ -43,6 +43,16 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
 }
+export interface CheckSyncOptions {
+  provider?: ethers.providers.JsonRpcProvider
+  eNEARAddress?: string
+  eNEARAbi?: string
+  nativeNEARLockerAddress?: string
+  sendToNearSyncInterval?: number
+  nearEventRelayerMargin?: number
+  nearAccount?: Account
+  nearClientAccount?: string
+}
 
 const transferDraft: TransferDraft = {
   // Attributes common to all transfer types
@@ -149,11 +159,7 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
  */
 export async function recover (
   burnTxHash: string,
-  options?: {
-    provider?: ethers.providers.Provider
-    eNEARAddress?: string
-    eNEARAbi?: string
-  }
+  options?: CheckSyncOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -198,7 +204,7 @@ export async function recover (
   }
 
   // Check transfer status
-  return await checkSync(transfer)
+  return await checkSync(transfer, options)
 }
 
 /**
@@ -394,16 +400,7 @@ export async function checkBurn (
 
 export async function checkSync (
   transfer: Transfer,
-  options?: {
-    provider?: ethers.providers.JsonRpcProvider
-    eNEARAddress?: string
-    eNEARAbi?: string
-    nativeNEARLockerAddress?: string
-    sendToNearSyncInterval?: number
-    nearEventRelayerMargin?: number
-    nearAccount?: Account
-    nearClientAccount?: string
-  }
+  options?: CheckSyncOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -482,17 +479,14 @@ export async function checkSync (
  */
 export async function unlock (
   transfer: Transfer,
-  options?: {
-    nearAccount?: Account
-    nativeNEARLockerAddress?: string
-  }
+  options?: CheckSyncOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const nearAccount = options.nearAccount ?? await getNearAccount()
 
   // Check if the transfer is finalized and get the proof if not
-  transfer = await checkSync(transfer)
+  transfer = await checkSync(transfer, options)
   if (transfer.status !== status.ACTION_NEEDED) return transfer
   const proof = transfer.proof
 

@@ -55,6 +55,16 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   proof?: Uint8Array
 }
 
+export interface CheckSyncOptions {
+  provider?: ethers.providers.Provider
+  erc20LockerAddress?: string
+  sendToEthereumSyncInterval?: number
+  ethChainId?: number
+  nearAccount?: Account
+  ethClientAddress?: string
+  ethClientAbi?: string
+}
+
 class TransferError extends Error {}
 
 const transferDraft: TransferDraft = {
@@ -166,9 +176,7 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 export async function recover (
   withdrawTxHash: string,
   sender: string = 'todo',
-  options?: {
-    nearAccount?: Account
-  }
+  options?: CheckSyncOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const nearAccount = options.nearAccount ?? await getNearAccount()
@@ -251,7 +259,7 @@ export async function recover (
   }
 
   // Check transfer status
-  return await checkSync(transfer)
+  return await checkSync(transfer, options)
 }
 
 /**
@@ -624,15 +632,7 @@ export async function checkFinality (
  */
 export async function checkSync (
   transfer: Transfer,
-  options?: {
-    provider?: ethers.providers.Provider
-    erc20LockerAddress?: string
-    sendToEthereumSyncInterval?: number
-    ethChainId?: number
-    nearAccount?: Account
-    ethClientAddress?: string
-    ethClientAbi?: string
-  }
+  options?: CheckSyncOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -725,19 +725,14 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
  */
 export async function unlock (
   transfer: Transfer,
-  options?: {
-    provider?: ethers.providers.JsonRpcProvider
-    ethChainId?: number
-    erc20LockerAddress?: string
-    erc20LockerAbi?: string
-  }
+  options?: Omit<CheckSyncOptions, 'provider'> & { provider?: ethers.providers.JsonRpcProvider, erc20LockerAbi?: string }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getSignerProvider()
 
   // Build burn proof
-  transfer = await checkSync(transfer)
+  transfer = await checkSync(transfer, options)
   if (transfer.status !== status.ACTION_NEEDED) return transfer
   const proof = transfer.proof
 
