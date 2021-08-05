@@ -346,6 +346,10 @@ export async function parseWithdrawReceipt (
  * @param params.options.decimals ERC-20 decimals (queried if not provided).
  * @param params.options.sender Sender of tokens (defaults to the connected NEAR wallet address).
  * @param params.options.nearAccount Connected NEAR wallet account to use.
+ * @param params.options.nep141Address params.erc20Address's address on NEAR.
+ * @param params.options.erc20Abi Standard ERC-20 ABI.
+ * @param params.options.provider Ethereum provider to use.
+ * @param params.options.nep141Factory ERC-20 connector factory to determine the NEAR address.
  * @returns The created transfer object.
  */
 export async function initiate (
@@ -358,14 +362,18 @@ export async function initiate (
       decimals?: number
       sender?: string
       nearAccount?: ConnectedWalletAccount
+      nep141Address?: string
+      erc20Abi?: string
+      provider?: ethers.providers.Provider
+      nep141Factory?: string
     }
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const destinationTokenName = options.symbol ?? await getSymbol({ erc20Address })
-  const decimals = options.decimals ?? await getDecimals({ erc20Address })
+  const destinationTokenName = options.symbol ?? await getSymbol({ erc20Address, options })
+  const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
   const sourceTokenName = 'n' + destinationTokenName
-  const sourceToken = getNep141Address({ erc20Address })
+  const sourceToken = options.nep141Address ?? getNep141Address({ erc20Address, options })
   const nearAccount = options.nearAccount ?? await getNearAccount()
   const sender = options.sender ?? nearAccount.accountId
 

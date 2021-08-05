@@ -230,6 +230,7 @@ export async function recover (
  * @param params.options.provider Ethereum provider to use.
  * @param params.options.erc20LockerAddress Rainbow bridge ERC-20 token locker address.
  * @param params.options.erc20LockerAbi Rainbow bridge ERC-20 token locker abi.
+ * @param params.options.erc20Abi ERC-20 token abi.
  * @returns The created transfer object.
  */
 export async function initiate (
@@ -245,6 +246,7 @@ export async function initiate (
       provider?: ethers.providers.JsonRpcProvider
       erc20LockerAddress?: string
       erc20LockerAbi?: string
+      erc20Abi?: string
     }
   }
 ): Promise<Transfer> {
@@ -262,8 +264,8 @@ export async function initiate (
     )
   }
 
-  const sourceTokenName: string = options.symbol ?? await getSymbol({ erc20Address, options: { provider } })
-  const decimals = options.decimals ?? await getDecimals({ erc20Address, options: { provider } })
+  const sourceTokenName: string = options.symbol ?? await getSymbol({ erc20Address, options })
+  const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
   const destinationTokenName = 'n' + sourceTokenName
   const sender = options.sender ?? (await provider.getSigner().getAddress()).toLowerCase()
 
