@@ -54,16 +54,16 @@ export default async function deployBridgeToken (
   urlParams.set({ bridging: erc20Address })
 
   // causes redirect to NEAR Wallet
-  await nearAccount.functionCall(
-    nep141Factory,
-    'deploy_bridge_token',
-    { address: erc20Address.replace('0x', '') },
+  await nearAccount.functionCall({
+    contractId: nep141Factory,
+    methodName: 'deploy_bridge_token',
+    args: { address: erc20Address.replace('0x', '') },
 
     // Default gas limit used by near-api-js is 3e13, but this tx fails with
     // that number. Doubling it works. Maybe slightly less would also work,
     // but at min gas price of 100M yN, this will only amount to 0.006 NEAR,
     // which is already negligible compared to the deposit.
-    new BN(3e13).mul(new BN(2)),
+    gas: new BN(3e13).mul(new BN(2)),
 
     // Attach a deposit to compensate the BridgeTokenFactory contract for the
     // storage costs associated with deploying the new BridgeToken contract.
@@ -71,6 +71,6 @@ export default async function deployBridgeToken (
     // Might not need full .02, but need more than .01, error message did not
     // include needed amount at time of writing.
     // new BN(utils.format.parseNearAmount('3.02'))
-    new BN('302' + '0'.repeat(22))
-  )
+    attachedDeposit: new BN('302' + '0'.repeat(22))
+  })
 }

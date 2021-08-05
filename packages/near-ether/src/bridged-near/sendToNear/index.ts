@@ -513,14 +513,14 @@ export async function unlock (
   // succeeded.
   setTimeout(() => {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nearAccount.functionCall(
-      options!.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
-      'finalise_eth_to_near_transfer',
-      proof,
+    nearAccount.functionCall({
+      contractId: options!.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
+      methodName: 'finalise_eth_to_near_transfer',
+      args: proof!,
       // 200Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
-      new BN('200' + '0'.repeat(12)),
-      new BN('100000000000000000000').mul(new BN('600'))
-    )
+      gas: new BN('200' + '0'.repeat(12)),
+      attachedDeposit: new BN('100000000000000000000').mul(new BN('600'))
+    })
   }, 100)
 
   return {

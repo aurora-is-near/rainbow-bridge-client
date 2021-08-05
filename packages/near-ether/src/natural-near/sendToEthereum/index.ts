@@ -409,15 +409,15 @@ export async function lock (
 
   setTimeout(() => {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nearAccount.functionCall(
-      options!.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
-      'migrate_to_ethereum',
-      {
+    nearAccount.functionCall({
+      contractId: options!.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
+      methodName: 'migrate_to_ethereum',
+      args: {
         eth_recipient: transfer.recipient.replace('0x', '')
       },
-      new BN('10' + '0'.repeat(12)), // 10TGas
-      new BN(transfer.amount)
-    )
+      gas: new BN('10' + '0'.repeat(12)), // 10TGas
+      attachedDeposit: new BN(transfer.amount)
+    })
   }, 100)
 
   return {

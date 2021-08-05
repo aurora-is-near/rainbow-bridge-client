@@ -425,17 +425,17 @@ export async function withdraw (
   // succeeded.
   setTimeout(() => {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nearAccount.functionCall(
-      transfer.sourceToken,
-      'withdraw',
-      {
+    nearAccount.functionCall({
+      contractId: transfer.sourceToken,
+      methodName: 'withdraw',
+      args: {
         amount: String(transfer.amount),
         recipient: transfer.recipient.replace('0x', '')
       },
       // 100Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
-      new BN('100' + '0'.repeat(12)),
-      new BN('1')
-    )
+      gas: new BN('100' + '0'.repeat(12)),
+      attachedDeposit: new BN('1')
+    })
   }, 100)
 
   return {
