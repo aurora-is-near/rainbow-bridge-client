@@ -20,6 +20,7 @@ import {
 } from '@near-eth/client/dist/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 import { getDecimals, getSymbol } from '../../natural-erc20/getMetadata'
+import getAuroraErc20Address from '../getAddress'
 
 export const SOURCE_NETWORK = 'aurora'
 export const DESTINATION_NETWORK = 'ethereum'
@@ -335,6 +336,8 @@ export async function recover (
  * @param params.options.sender Sender of tokens (defaults to the connected wallet address).
  * @param params.options.auroraChainId Aurora chain id of the bridge.
  * @param params.options.auroraErc20Abi Aurora ERC-20 abi to call withdrawToEthereum.
+ * @param params.options.auroraErc20Address params.erc20Address's address on Aurora.
+ * @param params.options.nep141Factory ERC-20 connector factory to determine the NEAR address.
  * @param options.provider Aurora provider to use.
  * @param params.options.nearAccount Connected NEAR wallet account to use.
  * @returns The created transfer object.
@@ -350,6 +353,8 @@ export async function initiate (
       sender?: string
       auroraChainId?: number
       auroraErc20Abi?: string
+      auroraErc20Address?: string
+      nep141Factory?: string
       provider?: ethers.providers.JsonRpcProvider
       nearAccount?: ConnectedWalletAccount
     }
@@ -357,10 +362,17 @@ export async function initiate (
 ): Promise<Transfer> {
   options = options ?? {}
   const provider = options.provider ?? getSignerProvider()
-  const symbol = options.symbol ?? await getSymbol({ erc20Address, options: { provider } })
+  const auroraErc20Address = options.auroraErc20Address ?? await getAuroraErc20Address(
+    { erc20Address, options }
+  )
+  const symbol = options.symbol ?? await getSymbol({
+    erc20Address: auroraErc20Address, options: { provider, erc20Abi: options.auroraErc20Abi }
+  })
   const sourceTokenName = 'a' + symbol
   const destinationTokenName = symbol
-  const decimals = options.decimals ?? await getDecimals({ erc20Address, options: { provider } })
+  const decimals = options.decimals ?? await getDecimals({
+    erc20Address: auroraErc20Address, options: { provider, erc20Abi: options.auroraErc20Abi }
+  })
 
   const sender = options.sender ?? (await provider.getSigner().getAddress()).toLowerCase()
 
@@ -373,7 +385,7 @@ export async function initiate (
     destinationTokenName,
     recipient,
     sender,
-    sourceToken: erc20Address,
+    sourceToken: auroraErc20Address,
     sourceTokenName,
     symbol,
     decimals
