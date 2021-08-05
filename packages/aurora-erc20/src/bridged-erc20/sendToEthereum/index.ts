@@ -5,7 +5,7 @@ import {
   deserialize as deserializeBorsh
 } from 'near-api-js/lib/utils/serialize'
 import { FinalExecutionOutcome } from 'near-api-js/lib/providers'
-import { ConnectedWalletAccount } from 'near-api-js'
+import { Account } from 'near-api-js'
 import { track } from '@near-eth/client'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
@@ -176,7 +176,7 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
  */
 export async function parseBurnReceipt (
   nearBurnTx: FinalExecutionOutcome,
-  nearAccount: ConnectedWalletAccount
+  nearAccount: Account
 ): Promise<{id: string, blockHeight: number }> {
   const receiptIds = nearBurnTx.transaction_outcome.outcome.receipt_ids
 
@@ -225,7 +225,7 @@ export async function recover (
   auroraBurnTxHash: string,
   sender: string = 'process.env.auroraRelayerAccount',
   options?: {
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
     provider?: ethers.providers.JsonRpcProvider
   }
 ): Promise<Transfer> {
@@ -356,7 +356,7 @@ export async function initiate (
       auroraErc20Address?: string
       nep141Factory?: string
       provider?: ethers.providers.JsonRpcProvider
-      nearAccount?: ConnectedWalletAccount
+      nearAccount?: Account
     }
   }
 ): Promise<Transfer> {
@@ -459,7 +459,7 @@ export async function checkBurn (
     provider?: ethers.providers.JsonRpcProvider
     auroraChainId?: number
     auroraRelayerAccount?: string
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -613,7 +613,7 @@ export async function checkBurn (
 export async function checkFinality (
   transfer: Transfer,
   options?: {
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -648,7 +648,7 @@ export async function checkSync (
     erc20LockerAddress?: string
     sendToEthereumSyncInterval?: number
     ethChainId?: number
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
     ethClientAddress?: string
     ethClientAbi?: string
   }

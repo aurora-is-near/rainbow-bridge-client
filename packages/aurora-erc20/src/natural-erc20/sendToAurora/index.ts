@@ -2,7 +2,7 @@ import { ethers } from 'ethers'
 import { track } from '@near-eth/client'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
-import { ConnectedWalletAccount } from 'near-api-js'
+import { Account } from 'near-api-js'
 import { getEthProvider, getSignerProvider, getNearAccount, formatLargeNum, getBridgeParams } from '@near-eth/client/dist/utils'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
@@ -583,7 +583,7 @@ export async function checkSync (
     sendToNearSyncInterval?: number
     nep141Factory?: string
     nearEventRelayerMargin?: number
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
     maxFindEthProofInterval?: number
     nearClientAccount?: string
   }

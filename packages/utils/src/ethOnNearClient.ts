@@ -1,4 +1,4 @@
-import { ConnectedWalletAccount } from 'near-api-js'
+import { Account } from 'near-api-js'
 import {
   deserialize as deserializeBorsh
 } from 'near-api-js/lib/utils/serialize'
@@ -25,7 +25,7 @@ function deserializeEthOnNearClient (raw: Buffer): any {
 
 export async function ethOnNearSyncHeight (
   nearClientAccount: string,
-  nearAccount: ConnectedWalletAccount
+  nearAccount: Account
 ): Promise<number> {
   // near-api-js requires instantiating an "account" object, even though view
   // functions require no signature and therefore no associated account, so the

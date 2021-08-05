@@ -1,7 +1,7 @@
 import { borshifyOutcomeProof, nearOnEthSyncHeight, findNearProof } from '@near-eth/utils'
 import { ethers } from 'ethers'
 import bs58 from 'bs58'
-import { utils, ConnectedWalletAccount } from 'near-api-js'
+import { utils, Account } from 'near-api-js'
 import {
   deserialize as deserializeBorsh
 } from 'near-api-js/lib/utils/serialize'
@@ -172,7 +172,7 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
  */
 export async function parseBurnReceipt (
   nearBurnTx: FinalExecutionOutcome,
-  nearAccount: ConnectedWalletAccount
+  nearAccount: Account
 ): Promise<{id: string, blockHeight: number }> {
   const receiptIds = nearBurnTx.transaction_outcome.outcome.receipt_ids
 
@@ -216,7 +216,7 @@ export async function recover (
   auroraBurnTxHash: string,
   sender: string = 'process.env.auroraRelayerAccount',
   options?: {
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
     provider?: ethers.providers.JsonRpcProvider
     etherCustodianAddress?: string
   }
@@ -434,7 +434,7 @@ export async function checkBurn (
     provider?: ethers.providers.JsonRpcProvider
     auroraChainId?: number
     auroraRelayerAccount?: string
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -573,7 +573,7 @@ export async function checkBurn (
 export async function checkFinality (
   transfer: Transfer,
   options?: {
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -607,7 +607,7 @@ export async function checkSync (
     etherCustodianAddress?: string
     sendToEthereumSyncInterval?: number
     ethChainId?: number
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
     ethClientAddress?: string
     ethClientAbi?: string
   }

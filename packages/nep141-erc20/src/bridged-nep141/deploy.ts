@@ -1,5 +1,5 @@
 import BN from 'bn.js'
-import { ConnectedWalletAccount } from 'near-api-js'
+import { Account } from 'near-api-js'
 import { getNearAccount, getBridgeParams } from '@near-eth/client/dist/utils'
 import { urlParams } from '@near-eth/utils'
 
@@ -42,7 +42,7 @@ export default async function deployBridgeToken (
   { erc20Address, options }: {
     erc20Address: string
     options?: {
-      nearAccount?: ConnectedWalletAccount
+      nearAccount?: Account
       nep141Factory?: string
     }
   }
