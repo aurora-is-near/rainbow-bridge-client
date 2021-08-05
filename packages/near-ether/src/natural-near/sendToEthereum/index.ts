@@ -53,6 +53,16 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   proof?: Uint8Array
 }
 
+export interface CheckSyncOptions {
+  provider?: ethers.providers.Provider
+  eNEARAddress?: string
+  sendToEthereumSyncInterval?: number
+  ethChainId?: number
+  nearAccount?: Account
+  ethClientAddress?: string
+  ethClientAbi?: string
+}
+
 class TransferError extends Error {}
 
 const transferDraft: TransferDraft = {
@@ -165,7 +175,7 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 export async function recover (
   lockTxHash: string,
   sender: string = 'todo',
-  options?: {
+  options?: CheckSyncOptions & {
     nearAccount?: Account
     nativeNEARLockerAddress?: string
   }
@@ -256,7 +266,7 @@ export async function recover (
   }
 
   // Check transfer status
-  return await checkSync(transfer)
+  return await checkSync(transfer, options)
 }
 
 /**
@@ -613,15 +623,7 @@ export async function checkFinality (
  */
 export async function checkSync (
   transfer: Transfer,
-  options?: {
-    provider?: ethers.providers.Provider
-    eNEARAddress?: string
-    sendToEthereumSyncInterval?: number
-    ethChainId?: number
-    nearAccount?: Account
-    ethClientAddress?: string
-    ethClientAbi?: string
-  }
+  options?: CheckSyncOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -713,19 +715,14 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
  */
 export async function mint (
   transfer: Transfer,
-  options?: {
-    provider?: ethers.providers.JsonRpcProvider
-    ethChainId?: number
-    eNEARAddress?: string
-    eNEARAbi?: string
-  }
+  options?: Omit<CheckSyncOptions, 'provider'> & { provider?: ethers.providers.JsonRpcProvider, eNEARAbi?: string }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getSignerProvider()
 
   // Build lock proof
-  transfer = await checkSync(transfer)
+  transfer = await checkSync(transfer, options)
   if (transfer.status !== status.ACTION_NEEDED) return transfer
   const proof = transfer.proof
 
