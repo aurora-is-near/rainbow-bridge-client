@@ -1,7 +1,7 @@
 import BN from 'bn.js'
 import bs58 from 'bs58'
 import { ethers } from 'ethers'
-import { ConnectedWalletAccount, utils } from 'near-api-js'
+import { Account, utils } from 'near-api-js'
 import { FinalExecutionOutcome } from 'near-api-js/lib/providers'
 import {
   deserialize as deserializeBorsh
@@ -166,7 +166,7 @@ export async function recover (
   lockTxHash: string,
   sender: string = 'todo',
   options?: {
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
     nativeNEARLockerAddress?: string
   }
 ): Promise<Transfer> {
@@ -271,7 +271,7 @@ export async function parseLockReceipt (
   lockTx: FinalExecutionOutcome,
   sender: string,
   nativeNEARLockerAddress: string,
-  nearAccount: ConnectedWalletAccount
+  nearAccount: Account
 ): Promise<{id: string, blockHeight: number }> {
   const receiptIds = lockTx.transaction_outcome.outcome.receipt_ids
 
@@ -357,7 +357,7 @@ export async function initiate (
     options?: {
       sender?: string
       nativeNEARLockerAddress?: string
-      nearAccount?: ConnectedWalletAccount
+      nearAccount?: Account
     }
   }
 ): Promise<Transfer> {
@@ -398,7 +398,7 @@ export async function lock (
   transfer: Transfer,
   options?: {
     nativeNEARLockerAddress?: string
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -438,7 +438,7 @@ export async function checkLock (
   transfer: Transfer,
   options?: {
     nativeNEARLockerAddress?: string
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -583,7 +583,7 @@ export async function checkLock (
 export async function checkFinality (
   transfer: Transfer,
   options?: {
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -618,7 +618,7 @@ export async function checkSync (
     eNEARAddress?: string
     sendToEthereumSyncInterval?: number
     ethChainId?: number
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
     ethClientAddress?: string
     ethClientAbi?: string
   }

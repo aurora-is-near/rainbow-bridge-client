@@ -1,7 +1,7 @@
 import BN from 'bn.js'
 import { ethers } from 'ethers'
 import { track } from '@near-eth/client'
-import { utils, ConnectedWalletAccount } from 'near-api-js'
+import { utils, Account } from 'near-api-js'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
@@ -401,7 +401,7 @@ export async function checkSync (
     nativeNEARLockerAddress?: string
     sendToNearSyncInterval?: number
     nearEventRelayerMargin?: number
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
     nearClientAccount?: string
   }
 ): Promise<Transfer> {
@@ -483,7 +483,7 @@ export async function checkSync (
 export async function unlock (
   transfer: Transfer,
   options?: {
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
     nativeNEARLockerAddress?: string
   }
 ): Promise<Transfer> {
@@ -540,7 +540,7 @@ export async function unlock (
 export async function checkUnlock (
   transfer: Transfer,
   options?: {
-    nearAccount?: ConnectedWalletAccount
+    nearAccount?: Account
   }
 ): Promise<Transfer> {
   options = options ?? {}

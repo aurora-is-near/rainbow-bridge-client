@@ -1,5 +1,5 @@
 import { getNearAccount } from '@near-eth/client/dist/utils'
-import { ConnectedWalletAccount } from 'near-api-js'
+import { Account } from 'near-api-js'
 import getNep141Address from './getAddress'
 
 /**
@@ -19,7 +19,7 @@ export default async function getBalance (
     erc20Address: string
     owner: string
     options?: {
-      nearAccount?: ConnectedWalletAccount
+      nearAccount?: Account
     }
   }
 ): Promise<string | null> {

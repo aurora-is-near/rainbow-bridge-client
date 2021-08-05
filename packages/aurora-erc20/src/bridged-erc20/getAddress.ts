@@ -1,5 +1,5 @@
 import { getBridgeParams, getNearAccount } from '@near-eth/client/dist/utils'
-import { ConnectedWalletAccount } from 'near-api-js'
+import { Account } from 'near-api-js'
 
 /**
  * Given an erc20 contract address, get the NEAR contract address of the
@@ -16,7 +16,7 @@ export default async function getAuroraErc20Address (
     erc20Address: string
     options?: {
       nep141Factory?: string
-      nearAccount?: ConnectedWalletAccount
+      nearAccount?: Account
     }
   }
 ): Promise<string> {

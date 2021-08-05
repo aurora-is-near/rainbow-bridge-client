@@ -6,7 +6,7 @@ import { Header, Proof, Receipt, Log } from 'eth-object'
 import { rlp, toBuffer } from 'ethereumjs-util'
 import { serialize as serializeBorsh } from 'near-api-js/lib/utils/serialize'
 import { IdType } from 'near-api-js/lib/providers/provider'
-import { ConnectedWalletAccount } from 'near-api-js'
+import { Account } from 'near-api-js'
 import { ethers } from 'ethers'
 import bs58 from 'bs58'
 
@@ -161,7 +161,7 @@ export async function findNearProof (
   nearReceiptId: string,
   nearReceiverId: string,
   nearBlockHeight: number,
-  nearAccount: ConnectedWalletAccount,
+  nearAccount: Account,
   provider: ethers.providers.Provider,
   ethClientAddress: string,
   ethClientAbi: string
