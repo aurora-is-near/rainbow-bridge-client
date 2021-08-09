@@ -426,12 +426,9 @@ export async function checkApprove (
 
   if (approvalReceipt.transactionHash !== approvalHash) {
     // Record the replacement tx approvalHash
-    return {
+    transfer = {
       ...transfer,
-      status: status.ACTION_NEEDED,
-      completedStep: APPROVE,
-      approvalHashes: [...transfer.approvalHashes, approvalReceipt.transactionHash],
-      approvalReceipts: [...transfer.approvalReceipts, approvalReceipt]
+      approvalHashes: [...transfer.approvalHashes, approvalReceipt.transactionHash]
     }
   }
 
@@ -564,12 +561,9 @@ export async function checkLock (
   }
   if (lockReceipt.transactionHash !== lockHash) {
     // Record the replacement tx lockHash
-    return {
+    transfer = {
       ...transfer,
-      status: status.IN_PROGRESS,
-      completedStep: LOCK,
-      lockHashes: [...transfer.lockHashes, lockReceipt.transactionHash],
-      lockReceipts: [...transfer.lockReceipts, lockReceipt]
+      lockHashes: [...transfer.lockHashes, lockReceipt.transactionHash]
     }
   }
 

@@ -344,6 +344,7 @@ export async function recover (
  * @param params.options.auroraChainId Aurora chain id of the bridge.
  * @param params.options.auroraErc20Abi Aurora ERC-20 abi to call withdrawToEthereum.
  * @param params.options.auroraErc20Address params.erc20Address's address on Aurora.
+ * @param options.auroraEvmAccount Aurora account on NEAR.
  * @param params.options.nep141Factory ERC-20 connector factory to determine the NEAR address.
  * @param options.provider Aurora provider to use.
  * @param params.options.nearAccount Connected NEAR wallet account to use.
@@ -361,6 +362,7 @@ export async function initiate (
       auroraChainId?: number
       auroraErc20Abi?: string
       auroraErc20Address?: string
+      auroraEvmAccount?: string
       nep141Factory?: string
       provider?: ethers.providers.JsonRpcProvider
       nearAccount?: Account
