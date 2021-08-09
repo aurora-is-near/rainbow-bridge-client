@@ -400,7 +400,7 @@ export async function burn (
   const provider = options.provider ?? getSignerProvider()
 
   const ethChainId: number = (await provider.getNetwork()).chainId
-  const expectedChainId: number = options.auroraChainId ?? bridgeParams.ethChainId
+  const expectedChainId: number = options.auroraChainId ?? bridgeParams.auroraChainId
   if (ethChainId !== expectedChainId) {
     // Webapp should prevent the user from confirming if the wrong network is selected
     throw new Error(
