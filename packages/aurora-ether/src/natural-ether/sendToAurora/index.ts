@@ -182,7 +182,7 @@ export async function recover (
   const sender = lockedEvent.args!.sender
   const protocolMessage = lockedEvent.args!.recipient
   const [auroraAddress, auroraRecipient]: [auroraAddress: string, auroraRecipient: string] = protocolMessage.split(':')
-  if (auroraAddress !== options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount) {
+  if (auroraAddress !== (options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount)) {
     throw new Error('Failed to parse auroraEvmAccount in protocol message')
   }
   if (!/^([A-Fa-f0-9]{40})$/.test(auroraRecipient)) {

@@ -233,15 +233,16 @@ export async function parseBurnReceipt (
  */
 export async function recover (
   auroraBurnTxHash: string,
-  sender: string = 'process.env.auroraRelayerAccount',
-  options?: Omit<CheckSyncOptions, 'provider'> & { provider?: ethers.providers.JsonRpcProvider }
+  sender: string = 'todo',
+  options?: CheckSyncOptions & { auroraProvider?: ethers.providers.JsonRpcProvider }
 ): Promise<Transfer> {
   options = options ?? {}
   const nearAccount = options.nearAccount ?? await getNearAccount()
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getEthProvider()
+  const auroraProvider = options.auroraProvider ?? getAuroraProvider()
 
   // Ethers formats the receipts and removes nearTransactionHash
-  const auroraBurnReceipt = await provider.send('eth_getTransactionReceipt', [auroraBurnTxHash])
+  const auroraBurnReceipt = await auroraProvider.send('eth_getTransactionReceipt', [auroraBurnTxHash])
 
   const decodedTxHash = Buffer.from(auroraBurnReceipt.nearTransactionHash.slice(2), 'hex')
   const nearBurnTxHash = bs58.encode(decodedTxHash)
