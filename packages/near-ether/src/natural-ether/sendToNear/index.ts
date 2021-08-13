@@ -44,7 +44,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   proof?: Uint8Array
 }
 
-export interface CheckSyncOptions {
+export interface TransferOptions {
   provider?: ethers.providers.JsonRpcProvider
   etherCustodianAddress?: string
   etherCustodianAbi?: string
@@ -152,15 +152,12 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 /**
  * Recover transfer from a lock tx hash
  * @param lockTxHash Ethereum transaction hash which initiated the transfer.
- * @param options Optional arguments.
- * @param options.provider Ethereum provider to use.
- * @param options.etherCustodianAddress Rainbow bridge ether custodian address.
- * @param options.etherCustodianAbi Rainbow bridge ether custodian abi.
+ * @param options TransferOptions optional arguments.
  * @returns The recovered transfer object
  */
 export async function recover (
   lockTxHash: string,
-  options?: CheckSyncOptions
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -223,6 +220,7 @@ export async function recover (
  * @param params.options.provider Ethereum provider to use.
  * @param params.options.etherCustodianAddress Rainbow bridge ether custodian address.
  * @param params.options.etherCustodianAbi Rainbow bridge ether custodian abi.
+ * @param params.options.signer Ethers signer to use.
  * @returns The created transfer object.
  */
 export async function initiate (
@@ -237,6 +235,7 @@ export async function initiate (
       provider?: ethers.providers.JsonRpcProvider
       etherCustodianAddress?: string
       etherCustodianAbi?: string
+      signer?: ethers.Signer
     }
   }
 ): Promise<Transfer> {
@@ -246,7 +245,8 @@ export async function initiate (
   const sourceToken = sourceTokenName
   const decimals = options.decimals ?? 18
   const destinationTokenName = 'n' + sourceTokenName
-  const sender = options.sender ?? (await provider.getSigner().getAddress()).toLowerCase()
+  const signer = options.signer ?? provider.getSigner()
+  const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
@@ -264,7 +264,8 @@ export async function initiate (
 
   transfer = await lock(transfer, options)
 
-  await track(transfer)
+  if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
+
   return transfer
 }
 
@@ -281,6 +282,7 @@ export async function lock (
     ethChainId?: number
     etherCustodianAddress?: string
     etherCustodianAbi?: string
+    signer?: ethers.Signer
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -299,7 +301,7 @@ export async function lock (
   const ethTokenLocker = new ethers.Contract(
     options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
     options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
-    provider.getSigner()
+    options.signer ?? provider.getSigner()
   )
 
   // If this tx is dropped and replaced, lower the search boundary
@@ -402,9 +404,12 @@ export async function checkLock (
 }
 
 export async function checkSync (
-  transfer: Transfer,
-  options?: CheckSyncOptions
+  transfer: Transfer | string,
+  options?: TransferOptions
 ): Promise<Transfer> {
+  if (typeof transfer === 'string') {
+    return await recover(transfer, options)
+  }
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
@@ -482,8 +487,8 @@ export async function checkSync (
  * currently dealt with using URL params.
  */
 export async function mint (
-  transfer: Transfer,
-  options?: CheckSyncOptions
+  transfer: Transfer | string,
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -497,36 +502,29 @@ export async function mint (
   // Set url params before this mint() returns, otherwise there is a chance that checkMint() is called before
   // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
   // url param is not there
-  urlParams.set({ minting: transfer.id })
+  if (typeof window !== 'undefined') urlParams.set({ minting: transfer.id })
 
-  // Calling `nearFungibleTokenFactory.deposit` causes a redirect to NEAR Wallet.
-  //
-  // This adds some info about the current transaction to the URL params, then
-  // returns to mark the transfer as in-progress, and THEN executes the
-  // `deposit` function.
-  //
-  // Since this happens very quickly in human time, a user will not have time
-  // to start two `deposit` calls at the same time, and the `checkMint` will be
-  // able to correctly identify the transfer and see if the transaction
-  // succeeded.
-  setTimeout(() => {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nearAccount.functionCall({
-      contractId: options!.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
-      methodName: 'deposit',
-      args: proof!,
-      // 200Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
-      gas: new BN('200' + '0'.repeat(12)),
-      // We need to attach tokens because minting increases the contract state, by <600 bytes, which
-      // requires an additional 0.06 NEAR to be deposited to the account for state staking.
-      // Note technically 0.0537 NEAR should be enough, but we round it up to stay on the safe side.
-      attachedDeposit: new BN('100000000000000000000').mul(new BN('600'))
-    })
-  }, 100)
+  // In the browser functionCall will redirect to NEAR wallet.
+  // In Node, tx will be processed
+  // Set the transfer as processing before the NEAR wallet redirect.
+  transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
+
+  const tx = await nearAccount.functionCall({
+    contractId: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
+    methodName: 'deposit',
+    args: proof!,
+    // 200Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
+    gas: new BN('200' + '0'.repeat(12)),
+    // We need to attach tokens because minting increases the contract state, by <600 bytes, which
+    // requires an additional 0.06 NEAR to be deposited to the account for state staking.
+    // Note technically 0.0537 NEAR should be enough, but we round it up to stay on the safe side.
+    attachedDeposit: new BN('100000000000000000000').mul(new BN('600'))
+  })
 
   return {
     ...transfer,
-    status: status.IN_PROGRESS
+    status: status.IN_PROGRESS,
+    mintHashes: [...transfer.mintHashes, tx.transaction.hash]
   }
 }
 

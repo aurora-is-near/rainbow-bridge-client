@@ -66,9 +66,11 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   proof?: Uint8Array
 }
 
-export interface CheckSyncOptions {
+export interface TransferOptions {
   provider?: ethers.providers.Provider
+  auroraProvider?: ethers.providers.JsonRpcProvider
   erc20LockerAddress?: string
+  erc20Abi?: string
   sendToEthereumSyncInterval?: number
   ethChainId?: number
   nearAccount?: Account
@@ -226,19 +228,16 @@ export async function parseBurnReceipt (
  * Recover transfer from a burn tx hash
  * @param auroraBurnTxHash Aurora tx hash containing the token withdrawal
  * @param sender Near account sender of burnTxHash (aurora relayer)
- * @param options Optional arguments.
- * @param options.nearAccount Connected NEAR wallet account to use.
- * @param options.provider Aurora provider to use.
+ * @param options TransferOptions optional arguments.
  * @returns The recovered transfer object
  */
 export async function recover (
   auroraBurnTxHash: string,
   sender: string = 'todo',
-  options?: CheckSyncOptions & { auroraProvider?: ethers.providers.JsonRpcProvider }
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const nearAccount = options.nearAccount ?? await getNearAccount()
-  const provider = options.provider ?? getEthProvider()
   const auroraProvider = options.auroraProvider ?? getAuroraProvider()
 
   // Ethers formats the receipts and removes nearTransactionHash
@@ -300,8 +299,8 @@ export async function recover (
   const amount = burnEvent.amount.toString()
   const recipient = '0x' + Buffer.from(burnEvent.recipient).toString('hex')
   const erc20Address = '0x' + Buffer.from(burnEvent.token).toString('hex')
-  const destinationTokenName = await getSymbol({ erc20Address, options: { provider } })
-  const decimals = await getDecimals({ erc20Address, options: { provider } })
+  const destinationTokenName = await getSymbol({ erc20Address, options })
+  const decimals = await getDecimals({ erc20Address, options })
   const sourceTokenName = 'a' + destinationTokenName
   const symbol = destinationTokenName
   const sourceToken = 'TODO get aurora address'
@@ -349,6 +348,7 @@ export async function recover (
  * @param params.options.nep141Factory ERC-20 connector factory to determine the NEAR address.
  * @param options.provider Aurora provider to use.
  * @param params.options.nearAccount Connected NEAR wallet account to use.
+ * @param params.options.signer Ethers signer to use.
  * @returns The created transfer object.
  */
 export async function initiate (
@@ -367,6 +367,7 @@ export async function initiate (
       nep141Factory?: string
       provider?: ethers.providers.JsonRpcProvider
       nearAccount?: Account
+      signer?: ethers.Signer
     }
   }
 ): Promise<Transfer> {
@@ -384,7 +385,8 @@ export async function initiate (
     erc20Address: auroraErc20Address, options: { provider, erc20Abi: options.auroraErc20Abi }
   })
 
-  const sender = options.sender ?? (await provider.getSigner().getAddress()).toLowerCase()
+  const signer = options.signer ?? provider.getSigner()
+  const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
@@ -403,7 +405,8 @@ export async function initiate (
 
   transfer = await burn(transfer, options)
 
-  await track(transfer)
+  if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
+
   return transfer
 }
 
@@ -419,6 +422,7 @@ export async function burn (
     provider?: ethers.providers.JsonRpcProvider
     auroraChainId?: number
     auroraErc20Abi?: string
+    signer?: ethers.Signer
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -437,7 +441,7 @@ export async function burn (
   const auroraErc20 = new ethers.Contract(
     transfer.sourceToken,
     options.auroraErc20Abi ?? bridgeParams.auroraErc20Abi,
-    provider.getSigner()
+    options.signer ?? provider.getSigner()
   )
 
   // If this tx is dropped and replaced, lower the search boundary
@@ -652,9 +656,12 @@ export async function checkFinality (
  * on the Near2EthClient.
  */
 export async function checkSync (
-  transfer: Transfer,
-  options?: CheckSyncOptions
+  transfer: Transfer | string,
+  options?: TransferOptions
 ): Promise<Transfer> {
+  if (typeof transfer === 'string') {
+    return await recover(transfer, 'todo', options)
+  }
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
@@ -744,8 +751,12 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
  * NEAR BridgeToken contract.
  */
 export async function unlock (
-  transfer: Transfer,
-  options?: Omit<CheckSyncOptions, 'provider'> & { provider?: ethers.providers.JsonRpcProvider, erc20LockerAbi?: string }
+  transfer: Transfer | string,
+  options?: Omit<TransferOptions, 'provider'> & {
+    provider?: ethers.providers.JsonRpcProvider
+    erc20LockerAbi?: string
+    signer?: ethers.Signer
+  }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -762,7 +773,7 @@ export async function unlock (
   const ethTokenLocker = new ethers.Contract(
     options.erc20LockerAddress ?? bridgeParams.erc20LockerAddress,
     options.erc20LockerAbi ?? bridgeParams.erc20LockerAbi,
-    provider.getSigner()
+    options.signer ?? provider.getSigner()
   )
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.

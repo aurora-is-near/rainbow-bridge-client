@@ -64,7 +64,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   proof?: Uint8Array
 }
 
-export interface CheckSyncOptions {
+export interface TransferOptions {
   provider?: ethers.providers.Provider
   etherCustodianAddress?: string
   sendToEthereumSyncInterval?: number
@@ -72,6 +72,7 @@ export interface CheckSyncOptions {
   nearAccount?: Account
   ethClientAddress?: string
   ethClientAbi?: string
+  auroraProvider?: ethers.providers.JsonRpcProvider
 }
 
 const transferDraft: TransferDraft = {
@@ -216,16 +217,13 @@ export async function parseBurnReceipt (
  * Recover transfer from a burn tx hash
  * @param auroraBurnTxHash Aurora tx hash containing the token withdrawal
  * @param sender Near account sender of burnTxHash (aurora relayer)
- * @param options Optional arguments.
- * @param options.nearAccount Connected NEAR wallet account to use.
- * @param options.provider Aurora provider to use.
- * @param options.etherCustodianAddress Rainbow bridge ether custodian address.
+ * @param options TransferOptions optional arguments.
  * @returns The recovered transfer object
  */
 export async function recover (
   auroraBurnTxHash: string,
   sender: string = 'todo',
-  options?: CheckSyncOptions & { auroraProvider?: ethers.providers.JsonRpcProvider }
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -335,6 +333,7 @@ export async function recover (
  * @param params.options.auroraChainId Aurora chain id of the bridge.
  * @param params.options.provider Ethereum provider to use.
  * @param params.options.etherExitToEthereumPrecompile Aurora ether exit to Ethereum precompile address.
+ * @param params.options.signer Ethers signer to use.
  * @returns The created transfer object.
  */
 export async function initiate (
@@ -348,6 +347,7 @@ export async function initiate (
       auroraChainId?: number
       provider?: ethers.providers.JsonRpcProvider
       etherExitToEthereumPrecompile?: string
+      signer?: ethers.Signer
     }
   }
 ): Promise<Transfer> {
@@ -359,7 +359,8 @@ export async function initiate (
   const decimals = options.decimals ?? 18
 
   const provider = options.provider ?? getSignerProvider()
-  const sender = options.sender ?? (await provider.getSigner().getAddress()).toLowerCase()
+  const signer = options.signer ?? provider.getSigner()
+  const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
@@ -377,7 +378,9 @@ export async function initiate (
   }
 
   transfer = await burn(transfer, options)
-  await track(transfer)
+
+  if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
+
   return transfer
 }
 
@@ -393,6 +396,7 @@ export async function burn (
     provider?: ethers.providers.JsonRpcProvider
     auroraChainId?: number
     etherExitToEthereumPrecompile?: string
+    signer?: ethers.Signer
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -410,13 +414,27 @@ export async function burn (
 
   const safeReorgHeight = await provider.getBlockNumber() - 20
   const exitToEthereumData = '0x00' + transfer.recipient.slice(2)
-  const txHash = await provider.send('eth_sendTransaction', [{
-    from: transfer.sender,
-    to: options.etherExitToEthereumPrecompile ?? bridgeParams.etherExitToEthereumPrecompile,
-    value: ethers.BigNumber.from(transfer.amount).toHexString(),
-    data: exitToEthereumData,
-    gas: ethers.BigNumber.from(121000).toHexString()
-  }])
+  let txHash
+  if (typeof window !== 'undefined') {
+    // MetaMask
+    txHash = await provider.send('eth_sendTransaction', [{
+      from: transfer.sender,
+      to: options.etherExitToEthereumPrecompile ?? bridgeParams.etherExitToEthereumPrecompile,
+      value: ethers.BigNumber.from(transfer.amount).toHexString(),
+      data: exitToEthereumData,
+      gas: ethers.BigNumber.from(121000).toHexString()
+    }])
+  } else {
+    // Ethers signer
+    const transaction = await options.signer?.sendTransaction({
+      from: transfer.sender,
+      to: options.etherExitToEthereumPrecompile ?? bridgeParams.etherExitToEthereumPrecompile,
+      value: ethers.BigNumber.from(transfer.amount),
+      data: exitToEthereumData,
+      gasLimit: ethers.BigNumber.from(121000)
+    })
+    txHash = transaction!.hash
+  }
   const pendingBurnTx = await provider.getTransaction(txHash)
 
   return {
@@ -607,9 +625,12 @@ export async function checkFinality (
  * on the Near2EthClient.
  */
 export async function checkSync (
-  transfer: Transfer,
-  options?: CheckSyncOptions
+  transfer: Transfer | string,
+  options?: TransferOptions
 ): Promise<Transfer> {
+  if (typeof transfer === 'string') {
+    return await recover(transfer, 'todo', options)
+  }
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
@@ -699,8 +720,12 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
  * NEAR BridgeToken contract.
  */
 export async function unlock (
-  transfer: Transfer,
-  options?: Omit<CheckSyncOptions, 'provider'> & { provider?: ethers.providers.JsonRpcProvider, etherCustodianAbi?: string }
+  transfer: Transfer | string,
+  options?: Omit<TransferOptions, 'provider'> & {
+    provider?: ethers.providers.JsonRpcProvider
+    etherCustodianAbi?: string
+    signer?: ethers.Signer
+  }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -717,7 +742,7 @@ export async function unlock (
   const ethTokenLocker = new ethers.Contract(
     options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
     options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
-    provider.getSigner()
+    options.signer ?? provider.getSigner()
   )
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.

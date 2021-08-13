@@ -43,7 +43,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
 }
-export interface CheckSyncOptions {
+export interface TransferOptions {
   provider?: ethers.providers.JsonRpcProvider
   eNEARAddress?: string
   eNEARAbi?: string
@@ -151,15 +151,12 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
  * Recover transfer from a burn tx hash
  * Track a new transfer at the completedStep = BURN so that it can be unlocked
  * @param burnTxHash Ethereum transaction hash which initiated the transfer.
- * @param options Optional arguments.
- * @param options.provider Ethereum provider to use.
- * @param options.eNEARAddress ERC-20 NEAR on Ethereum address.
- * @param options.eNEARAbi ERC-20 NEAR on Ethereum abi.
+ * @param options TransferOptions optional arguments.
  * @returns The recovered transfer object
  */
 export async function recover (
   burnTxHash: string,
-  options?: CheckSyncOptions
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -177,6 +174,7 @@ export async function recover (
   if (!burnEvent) {
     throw new Error('Unable to process burn transaction event.')
   }
+  // TODO recover and check eNEAR address. (checking receipt.to doesn't work with multisigs)
   const erc20Address = burnEvent.args!.token
   const amount = burnEvent.args!.amount.toString()
   const recipient = burnEvent.args!.accountId
@@ -220,6 +218,7 @@ export async function recover (
  * @param params.options.provider Ethereum provider to use.
  * @param params.options.eNEARAddress ERC-20 NEAR on Ethereum address.
  * @param params.options.eNEARAbi ERC-20 NEAR on Ethereum abi.
+ * @param params.options.signer Ethers signer to use.
  * @returns The created transfer object.
  */
 export async function initiate (
@@ -232,6 +231,7 @@ export async function initiate (
       provider?: ethers.providers.JsonRpcProvider
       eNEARAddress?: string
       eNEARAbi?: string
+      signer?: ethers.Signer
     }
   }
 ): Promise<Transfer> {
@@ -243,7 +243,8 @@ export async function initiate (
   // TODO: call initiate with a formated amount and query decimals when decorate()
   const decimals = 24
   const destinationTokenName = 'NEAR'
-  const sender = options.sender ?? (await provider.getSigner().getAddress()).toLowerCase()
+  const signer = options.signer ?? provider.getSigner()
+  const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
@@ -261,7 +262,8 @@ export async function initiate (
 
   transfer = await burn(transfer, options)
 
-  await track(transfer)
+  if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
+
   return transfer
 }
 
@@ -278,6 +280,7 @@ export async function burn (
     ethChainId?: number
     eNEARAddress?: string
     eNEARAbi?: string
+    signer?: ethers.Signer
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -296,7 +299,7 @@ export async function burn (
   const ethTokenLocker = new ethers.Contract(
     options.eNEARAddress ?? bridgeParams.eNEARAddress,
     options.eNEARAbi ?? bridgeParams.eNEARAbi,
-    provider.getSigner()
+    options.signer ?? provider.getSigner()
   )
 
   // If this tx is dropped and replaced, lower the search boundary
@@ -399,9 +402,12 @@ export async function checkBurn (
 }
 
 export async function checkSync (
-  transfer: Transfer,
-  options?: CheckSyncOptions
+  transfer: Transfer | string,
+  options?: TransferOptions
 ): Promise<Transfer> {
+  if (typeof transfer === 'string') {
+    return await recover(transfer, options)
+  }
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
@@ -478,8 +484,8 @@ export async function checkSync (
  * currently dealt with using URL params.
  */
 export async function unlock (
-  transfer: Transfer,
-  options?: CheckSyncOptions
+  transfer: Transfer | string,
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -493,33 +499,26 @@ export async function unlock (
   // Set url params before this unlock() returns, otherwise there is a chance that checkUnlock() is called before
   // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
   // url param is not there
-  urlParams.set({ unlocking: transfer.id })
+  if (typeof window !== 'undefined') urlParams.set({ unlocking: transfer.id })
 
-  // Calling `nearFungibleTokenFactory.deposit` causes a redirect to NEAR Wallet.
-  //
-  // This adds some info about the current transaction to the URL params, then
-  // returns to mark the transfer as in-progress, and THEN executes the
-  // `deposit` function.
-  //
-  // Since this happens very quickly in human time, a user will not have time
-  // to start two `deposit` calls at the same time, and the `checkUnlock` will be
-  // able to correctly identify the transfer and see if the transaction
-  // succeeded.
-  setTimeout(() => {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nearAccount.functionCall({
-      contractId: options!.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
-      methodName: 'finalise_eth_to_near_transfer',
-      args: proof!,
-      // 200Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
-      gas: new BN('200' + '0'.repeat(12)),
-      attachedDeposit: new BN('100000000000000000000').mul(new BN('600'))
-    })
-  }, 100)
+  // In the browser functionCall will redirect to NEAR wallet.
+  // In Node, tx will be processed
+  // Set the transfer as processing before the NEAR wallet redirect.
+  transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
+
+  const tx = await nearAccount.functionCall({
+    contractId: options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
+    methodName: 'finalise_eth_to_near_transfer',
+    args: proof!,
+    // 200Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
+    gas: new BN('200' + '0'.repeat(12)),
+    attachedDeposit: new BN('100000000000000000000').mul(new BN('600'))
+  })
 
   return {
     ...transfer,
-    status: status.IN_PROGRESS
+    status: status.IN_PROGRESS,
+    unlockHashes: [...transfer.unlockHashes, tx.transaction.hash]
   }
 }
 
