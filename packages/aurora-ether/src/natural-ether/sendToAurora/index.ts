@@ -44,7 +44,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   proof?: Uint8Array
 }
 
-export interface CheckSyncOptions {
+export interface TransferOptions {
   provider?: ethers.providers.JsonRpcProvider
   etherCustodianAddress?: string
   etherCustodianAbi?: string
@@ -152,16 +152,12 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 /**
  * Recover transfer from a lock tx hash
  * @param lockTxHash Ethereum transaction hash which initiated the transfer.
- * @param options Optional arguments.
- * @param options.provider Ethereum provider to use.
- * @param options.etherCustodianAddress Rainbow bridge ether custodian address.
- * @param options.etherCustodianAbi Rainbow bridge ether custodian abi.
- * @param options.auroraEvmAccount nETH bridged ETH account on NEAR (aurora)
+ * @param options TransferOptions optional arguments.
  * @returns The recovered transfer object
  */
 export async function recover (
   lockTxHash: string,
-  options?: CheckSyncOptions
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -231,6 +227,7 @@ export async function recover (
  * @param params.options.provider Ethereum provider to use.
  * @param params.options.etherCustodianAddress Rainbow bridge ether custodian address.
  * @param params.options.etherCustodianAbi Rainbow bridge ether custodian abi.
+ * @param params.options.signer Ethers signer to use.
  * @returns The created transfer object.
  */
 export async function initiate (
@@ -245,6 +242,7 @@ export async function initiate (
       provider?: ethers.providers.JsonRpcProvider
       etherCustodianAddress?: string
       etherCustodianAbi?: string
+      signer?: ethers.Signer
     }
   }
 ): Promise<Transfer> {
@@ -256,8 +254,8 @@ export async function initiate (
   const decimals = options.decimals ?? 18
   const destinationTokenName = 'a' + sourceTokenName
 
-  // TODO enable different recipient and consider multisig case where sender is not the signer
-  const sender = options.sender ?? (await provider.getSigner().getAddress()).toLowerCase()
+  const signer = options.signer ?? provider.getSigner()
+  const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
@@ -276,7 +274,8 @@ export async function initiate (
 
   transfer = await lock(transfer, options)
 
-  await track(transfer)
+  if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
+
   return transfer
 }
 
@@ -293,6 +292,7 @@ export async function lock (
     ethChainId?: number
     etherCustodianAddress?: string
     etherCustodianAbi?: string
+    signer?: ethers.Signer
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -311,7 +311,7 @@ export async function lock (
   const ethTokenLocker = new ethers.Contract(
     options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
     options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
-    provider.getSigner()
+    options.signer ?? provider.getSigner()
   )
 
   // If this tx is dropped and replaced, lower the search boundary
@@ -414,9 +414,12 @@ export async function checkLock (
 }
 
 export async function checkSync (
-  transfer: Transfer,
-  options?: CheckSyncOptions
+  transfer: Transfer | string,
+  options?: TransferOptions
 ): Promise<Transfer> {
+  if (typeof transfer === 'string') {
+    return await recover(transfer, options)
+  }
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()

@@ -901,7 +901,7 @@ __metadata:
     ethereumjs-util: ^7.0.10
     ethers: ^5.4.0
     find-replacement-tx: "workspace:*"
-    near-api-js: "https://github.com/near/near-api-js#fef7f683fca86980f3509987226fbc7f63b455cb"
+    near-api-js: "https://github.com/aurora-is-near/near-api-js#b31f9975b29c69e65c6db2feca2183fac400109e"
     promisfy: ^1.2.0
     rlp: ^2.2.6
     typescript: 4.1.5
@@ -926,7 +926,7 @@ __metadata:
     ethereumjs-util: ^7.0.10
     ethers: ^5.4.0
     find-replacement-tx: "workspace:*"
-    near-api-js: "https://github.com/near/near-api-js#fef7f683fca86980f3509987226fbc7f63b455cb"
+    near-api-js: "https://github.com/aurora-is-near/near-api-js#b31f9975b29c69e65c6db2feca2183fac400109e"
     promisfy: ^1.2.0
     rlp: ^2.2.6
     typescript: 4.1.5
@@ -942,7 +942,7 @@ __metadata:
     bn.js: ^5.1.3
     decimal.js: ^10.2.1
     ethers: ^5.4.0
-    near-api-js: "https://github.com/near/near-api-js#fef7f683fca86980f3509987226fbc7f63b455cb"
+    near-api-js: "https://github.com/aurora-is-near/near-api-js#b31f9975b29c69e65c6db2feca2183fac400109e"
     typescript: 4.1.5
   languageName: unknown
   linkType: soft
@@ -965,7 +965,7 @@ __metadata:
     ethereumjs-util: ^7.0.10
     ethers: ^5.4.0
     find-replacement-tx: "workspace:*"
-    near-api-js: "https://github.com/near/near-api-js#fef7f683fca86980f3509987226fbc7f63b455cb"
+    near-api-js: "https://github.com/aurora-is-near/near-api-js#b31f9975b29c69e65c6db2feca2183fac400109e"
     promisfy: ^1.2.0
     rlp: ^2.2.6
     typescript: 4.1.5
@@ -990,7 +990,7 @@ __metadata:
     ethereumjs-util: ^7.0.10
     ethers: ^5.4.0
     find-replacement-tx: "workspace:*"
-    near-api-js: "https://github.com/near/near-api-js#fef7f683fca86980f3509987226fbc7f63b455cb"
+    near-api-js: "https://github.com/aurora-is-near/near-api-js#b31f9975b29c69e65c6db2feca2183fac400109e"
     promisfy: ^1.2.0
     rlp: ^2.2.6
     typescript: 4.1.5
@@ -1013,7 +1013,7 @@ __metadata:
     ethereumjs-util: ^7.0.10
     ethers: ^5.4.0
     lite-merkle-patricia-tree: "workspace:*"
-    near-api-js: "https://github.com/near/near-api-js#fef7f683fca86980f3509987226fbc7f63b455cb"
+    near-api-js: "https://github.com/aurora-is-near/near-api-js#b31f9975b29c69e65c6db2feca2183fac400109e"
     typescript: 4.1.5
     web3-utils: ^1.3.4
   languageName: unknown
@@ -1902,7 +1902,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"bn.js@npm:5.2.0, bn.js@npm:^5.0.0, bn.js@npm:^5.1.1, bn.js@npm:^5.1.2, bn.js@npm:^5.1.3":
+"bn.js@npm:5.2.0, bn.js@npm:^5.0.0, bn.js@npm:^5.1.1, bn.js@npm:^5.1.2, bn.js@npm:^5.1.3, bn.js@npm:^5.2.0":
   version: 5.2.0
   resolution: "bn.js@npm:5.2.0"
   checksum: 7a73bdbba63013a7f9953fbbd6ea3351e4cf36d6fdbb5adf7969fcd65255b9c04f2994b0132d89d74ffe608a0eb5a48322526bee20c0e03e71e502603b420f63
@@ -1934,15 +1934,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"borsh@npm:^0.4.0":
-  version: 0.4.0
-  resolution: "borsh@npm:0.4.0"
+"borsh@npm:^0.5.0":
+  version: 0.5.0
+  resolution: "borsh@npm:0.5.0"
   dependencies:
-    "@types/bn.js": ^4.11.5
-    bn.js: ^5.0.0
+    bn.js: ^5.2.0
     bs58: ^4.0.0
     text-encoding-utf-8: ^1.0.2
-  checksum: 17a0acd88fb7c1e3f06d5cf22240eda0e789174f91a02ed9e096e7c4d620c179728816417719e8125f2107fcccd0349d3bb08aa3bb10db7b7d99fbf12dba447e
+  checksum: c68051030386365e8568d060fb65d8cbf35f64422c048a097112b32cedcec79b32fd7781380f9d22e8491bb65401289537e52f58d59bdd4804470c5253399ee0
   languageName: node
   linkType: hard
 
@@ -5791,12 +5790,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"near-api-js@https://github.com/near/near-api-js#fef7f683fca86980f3509987226fbc7f63b455cb":
-  version: 0.41.0
-  resolution: "near-api-js@https://github.com/near/near-api-js.git#commit=fef7f683fca86980f3509987226fbc7f63b455cb"
+"near-api-js@https://github.com/aurora-is-near/near-api-js#b31f9975b29c69e65c6db2feca2183fac400109e":
+  version: 0.42.0
+  resolution: "near-api-js@https://github.com/aurora-is-near/near-api-js.git#commit=b31f9975b29c69e65c6db2feca2183fac400109e"
   dependencies:
     bn.js: 5.2.0
-    borsh: ^0.4.0
+    borsh: ^0.5.0
     bs58: ^4.0.0
     depd: ^2.0.0
     error-polyfill: ^0.1.2
@@ -5806,7 +5805,7 @@ __metadata:
     node-fetch: ^2.6.1
     text-encoding-utf-8: ^1.0.2
     tweetnacl: ^1.0.1
-  checksum: f65a8f1cdc52cc32866dd2bd6e292d33c11a6d1af1216acd5b8d31644df5a34da0d57a71f90d9c396170a78b90247d93e316f130f3ccf38679793d26d384dd0b
+  checksum: c0040736b22a0ed00624ccb77c261e04a56d892a52461ee6a76b02218b5b5aad206532021ec16cd6975e2162cddad24c82e549fd3c442a803c4b661710edcfc1
   languageName: node
   linkType: hard
 

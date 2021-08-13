@@ -55,7 +55,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
 }
-export interface CheckSyncOptions {
+export interface TransferOptions {
   provider?: ethers.providers.Provider
   etherCustodianAddress?: string
   sendToEthereumSyncInterval?: number
@@ -63,6 +63,7 @@ export interface CheckSyncOptions {
   nearAccount?: Account
   ethClientAddress?: string
   ethClientAbi?: string
+  auroraEvmAccount?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -168,16 +169,13 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
  * Track a new transfer at the completedStep = BURN so that it can be unlocked
  * @param burnTxHash Near tx hash containing the token withdrawal
  * @param sender Near account sender of burnTxHash
- * @param options Optional arguments.
- * @param options.nearAccount Connected NEAR wallet account to use.
- * @param options.etherCustodianAddress Rainbow bridge ether custodian address.
- * @param options.auroraEvmAccount nETH bridged ETH account on NEAR (aurora)
+ * @param options TransferOptions optional arguments.
  * @returns The recovered transfer object
  */
 export async function recover (
   burnTxHash: string,
   sender: string = 'todo',
-  options?: CheckSyncOptions & { auroraEvmAccount?: string }
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const nearAccount = options.nearAccount ?? await getNearAccount()
@@ -396,11 +394,9 @@ export async function initiate (
   }
 
   // Prevent checkStatus from creating failed transfer when called between track and burn
-  urlParams.set({ withdrawing: 'processing' })
+  if (typeof window !== 'undefined') urlParams.set({ withdrawing: 'processing' })
 
-  transfer = await track(transfer) as Transfer
-
-  await burn(transfer, options)
+  transfer = await burn(transfer, options)
   return transfer
 }
 
@@ -415,56 +411,53 @@ export async function burn (
   // Set url params before this burn() returns, otherwise there is a chance that checkBurn() is called before
   // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
   // url param is not there
-  urlParams.set({ withdrawing: transfer.id })
+  if (typeof window !== 'undefined') urlParams.set({ withdrawing: transfer.id })
 
-  // Calling `BridgeToken.burn` causes a redirect to NEAR Wallet.
-  //
-  // This adds some info about the current transaction to the URL params, then
-  // returns to mark the transfer as in-progress, and THEN executes the
-  // `burn` function.
-  //
-  // Since this happens very quickly in human time, a user will not have time
-  // to start two `deposit` calls at the same time, and the `checkBurn` will be
-  // able to correctly identify the transfer and see if the transaction
-  // succeeded.
-  setTimeout(() => {
+  // In the browser functionCall will redirect to NEAR wallet.
+  // In Node, tx will be processed
+  transfer = { ...transfer, status: status.IN_PROGRESS }
+  // Set the transfer as processing before the NEAR wallet redirect.
+  // When re-trying burn in frontend, burn is called directly by act() so we need to store
+  // in-progress status in localStorage before redirect.
+  if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
+
   // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-    class BorshWithdrawArgs {
-      constructor (args: any) {
-        Object.assign(this, args)
-      }
-    };
-    const withdrawCallArgsSchema = new Map([
-      [BorshWithdrawArgs, {
-        kind: 'struct',
-        fields: [
-          ['recipient_id', [20]],
-          ['amount', 'u128']
-          // TODO
-          // ['fee', 'u128']
-        ]
-      }]
-    ])
-    const args = new BorshWithdrawArgs({
-      recipient_id: ethers.utils.arrayify(ethers.utils.getAddress(transfer.recipient)),
-      amount: transfer.amount.toString()
-      // fee: fee.toString(),
-    })
-    const serializedArgs = serializeBorsh(withdrawCallArgsSchema, args)
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nearAccount.functionCall({
-      contractId: transfer.sourceToken,
-      methodName: 'withdraw',
-      args: serializedArgs,
-      // 100Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
-      gas: new BN('100' + '0'.repeat(12)),
-      attachedDeposit: new BN('1')
-    })
-  }, 100)
+  class BorshWithdrawArgs {
+    constructor (args: any) {
+      Object.assign(this, args)
+    }
+  };
+  const withdrawCallArgsSchema = new Map([
+    [BorshWithdrawArgs, {
+      kind: 'struct',
+      fields: [
+        ['recipient_id', [20]],
+        ['amount', 'u128']
+        // TODO
+        // ['fee', 'u128']
+      ]
+    }]
+  ])
+  const args = new BorshWithdrawArgs({
+    recipient_id: ethers.utils.arrayify(ethers.utils.getAddress(transfer.recipient)),
+    amount: transfer.amount.toString()
+    // fee: fee.toString(),
+  })
+  const serializedArgs = serializeBorsh(withdrawCallArgsSchema, args)
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  const tx = await nearAccount.functionCall({
+    contractId: transfer.sourceToken,
+    methodName: 'withdraw',
+    args: serializedArgs,
+    // 100Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
+    gas: new BN('100' + '0'.repeat(12)),
+    attachedDeposit: new BN('1')
+  })
 
   return {
     ...transfer,
-    status: status.IN_PROGRESS
+    status: status.IN_PROGRESS,
+    burnHashes: [...transfer.burnHashes, tx.transaction.hash]
   }
 }
 
@@ -647,9 +640,12 @@ export async function checkFinality (
  * on the Near2EthClient.
  */
 export async function checkSync (
-  transfer: Transfer,
-  options?: CheckSyncOptions
+  transfer: Transfer | string,
+  options?: TransferOptions
 ): Promise<Transfer> {
+  if (typeof transfer === 'string') {
+    return await recover(transfer, 'todo', options)
+  }
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
@@ -740,8 +736,12 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
  * NEAR BridgeToken contract.
  */
 export async function unlock (
-  transfer: Transfer,
-  options?: Omit<CheckSyncOptions, 'provider'> & { provider?: ethers.providers.JsonRpcProvider, etherCustodianAbi?: string }
+  transfer: Transfer | string,
+  options?: Omit<TransferOptions, 'provider'> & {
+    provider?: ethers.providers.JsonRpcProvider
+    etherCustodianAbi?: string
+    signer?: ethers.Signer
+  }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -757,7 +757,7 @@ export async function unlock (
   const ethTokenLocker = new ethers.Contract(
     options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
     options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
-    provider.getSigner()
+    options.signer ?? provider.getSigner()
   )
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.

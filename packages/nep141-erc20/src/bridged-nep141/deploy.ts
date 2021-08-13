@@ -1,5 +1,6 @@
 import BN from 'bn.js'
 import { Account } from 'near-api-js'
+import { FinalExecutionOutcome } from 'near-api-js/lib/providers'
 import { getNearAccount, getBridgeParams } from '@near-eth/client/dist/utils'
 import { urlParams } from '@near-eth/utils'
 
@@ -46,15 +47,15 @@ export default async function deployBridgeToken (
       nep141Factory?: string
     }
   }
-): Promise<void> {
+): Promise<FinalExecutionOutcome> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const nep141Factory: string = options.nep141Factory ?? bridgeParams.nep141Factory
   const nearAccount = options.nearAccount ?? await getNearAccount()
-  urlParams.set({ bridging: erc20Address })
+  if (typeof window !== 'undefined') urlParams.set({ bridging: erc20Address })
 
   // causes redirect to NEAR Wallet
-  await nearAccount.functionCall({
+  const tx = await nearAccount.functionCall({
     contractId: nep141Factory,
     methodName: 'deploy_bridge_token',
     args: { address: erc20Address.replace('0x', '') },
@@ -73,4 +74,5 @@ export default async function deployBridgeToken (
     // new BN(utils.format.parseNearAmount('3.02'))
     attachedDeposit: new BN('302' + '0'.repeat(22))
   })
+  return tx
 }

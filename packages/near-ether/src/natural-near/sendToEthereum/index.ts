@@ -53,7 +53,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   proof?: Uint8Array
 }
 
-export interface CheckSyncOptions {
+export interface TransferOptions {
   provider?: ethers.providers.Provider
   eNEARAddress?: string
   sendToEthereumSyncInterval?: number
@@ -61,6 +61,7 @@ export interface CheckSyncOptions {
   nearAccount?: Account
   ethClientAddress?: string
   ethClientAbi?: string
+  nativeNEARLockerAddress?: string
 }
 
 class TransferError extends Error {}
@@ -167,18 +168,13 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
  * Recover transfer from a lock tx hash.
  * @param lockTxHash Near tx hash containing the token lock.
  * @param sender Near account sender of lockTxHash.
- * @param params.options Optional arguments.
- * @param params.options.nearAccount Connected NEAR wallet account to use.
- * @param params.options.nativeNEARLockerAddress $NEAR bridge connector address on NEAR.
+ * @param options TransferOptions optional arguments.
  * @returns The created transfer object.
  */
 export async function recover (
   lockTxHash: string,
   sender: string = 'todo',
-  options?: CheckSyncOptions & {
-    nearAccount?: Account
-    nativeNEARLockerAddress?: string
-  }
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -393,11 +389,9 @@ export async function initiate (
     decimals
   }
   // Prevent checkStatus from creating failed transfer when called between track and lock
-  urlParams.set({ locking: 'processing' })
+  if (typeof window !== 'undefined') urlParams.set({ withdrawing: 'processing' })
 
-  transfer = await track(transfer) as Transfer
-
-  await lock(transfer, options)
+  transfer = await lock(transfer, options)
   return transfer
 }
 
@@ -415,24 +409,30 @@ export async function lock (
   const bridgeParams = getBridgeParams()
   const nearAccount = options.nearAccount ?? await getNearAccount()
 
-  urlParams.set({ locking: transfer.id })
+  if (typeof window !== 'undefined') urlParams.set({ locking: transfer.id })
 
-  setTimeout(() => {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nearAccount.functionCall({
-      contractId: options!.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
-      methodName: 'migrate_to_ethereum',
-      args: {
-        eth_recipient: transfer.recipient.replace('0x', '')
-      },
-      gas: new BN('10' + '0'.repeat(12)), // 10TGas
-      attachedDeposit: new BN(transfer.amount)
-    })
-  }, 100)
+  // In the browser functionCall will redirect to NEAR wallet.
+  // In Node, tx will be processed
+  transfer = { ...transfer, status: status.IN_PROGRESS }
+  // Set the transfer as processing before the NEAR wallet redirect.
+  // When re-trying lock in frontend, lock is called directly by act() so we need to store
+  // in-progress status in localStorage before redirect.
+  if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
+
+  const tx = await nearAccount.functionCall({
+    contractId: options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
+    methodName: 'migrate_to_ethereum',
+    args: {
+      eth_recipient: transfer.recipient.replace('0x', '')
+    },
+    gas: new BN('10' + '0'.repeat(12)), // 10TGas
+    attachedDeposit: new BN(transfer.amount)
+  })
 
   return {
     ...transfer,
-    status: status.IN_PROGRESS
+    status: status.IN_PROGRESS,
+    lockHashes: [...transfer.lockHashes, tx.transaction.hash]
   }
 }
 
@@ -622,9 +622,12 @@ export async function checkFinality (
  * on the Near2EthClient.
  */
 export async function checkSync (
-  transfer: Transfer,
-  options?: CheckSyncOptions
+  transfer: Transfer | string,
+  options?: TransferOptions
 ): Promise<Transfer> {
+  if (typeof transfer === 'string') {
+    return await recover(transfer, 'todo', options)
+  }
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
@@ -714,8 +717,12 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
  * NEAR BridgeToken contract.
  */
 export async function mint (
-  transfer: Transfer,
-  options?: Omit<CheckSyncOptions, 'provider'> & { provider?: ethers.providers.JsonRpcProvider, eNEARAbi?: string }
+  transfer: Transfer | string,
+  options?: Omit<TransferOptions, 'provider'> & {
+    provider?: ethers.providers.JsonRpcProvider
+    eNEARAbi?: string
+    signer?: ethers.Signer
+  }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -731,7 +738,7 @@ export async function mint (
   const eNEAR = new ethers.Contract(
     options.eNEARAddress ?? bridgeParams.eNEARAddress,
     options.eNEARAbi ?? bridgeParams.eNEARAbi,
-    provider.getSigner()
+    options.signer ?? provider.getSigner()
   )
 
   // If this tx is dropped and replaced, lower the search boundary

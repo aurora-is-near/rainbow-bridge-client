@@ -55,7 +55,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   proof?: Uint8Array
 }
 
-export interface CheckSyncOptions {
+export interface TransferOptions {
   provider?: ethers.providers.Provider
   erc20LockerAddress?: string
   sendToEthereumSyncInterval?: number
@@ -63,6 +63,8 @@ export interface CheckSyncOptions {
   nearAccount?: Account
   ethClientAddress?: string
   ethClientAbi?: string
+  erc20Abi?: string
+  nep141Factory?: string
 }
 
 class TransferError extends Error {}
@@ -169,14 +171,13 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
  * Recover transfer from a withdraw tx hash
  * @param withdrawTxHash Near tx hash containing the token withdrawal
  * @param sender Near account sender of withdrawTxHash
- * @param options Optional arguments.
- * @param params.options.nearAccount Connected NEAR wallet account to use.
+ * @param options TransferOptions optional arguments.
  * @returns The recovered transfer object
  */
 export async function recover (
   withdrawTxHash: string,
   sender: string = 'todo',
-  options?: CheckSyncOptions
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const nearAccount = options.nearAccount ?? await getNearAccount()
@@ -232,10 +233,10 @@ export async function recover (
   const amount = withdrawEvent.amount.toString()
   const recipient = '0x' + Buffer.from(withdrawEvent.recipient).toString('hex')
   const erc20Address = '0x' + Buffer.from(withdrawEvent.token).toString('hex')
-  const destinationTokenName = await getSymbol({ erc20Address })
-  const decimals = await getDecimals({ erc20Address })
+  const destinationTokenName = await getSymbol({ erc20Address, options })
+  const decimals = await getDecimals({ erc20Address, options })
   const sourceTokenName = 'n' + destinationTokenName
-  const sourceToken = getNep141Address({ erc20Address })
+  const sourceToken = getNep141Address({ erc20Address, options })
 
   const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, sender, sourceToken, nearAccount)
 
@@ -400,11 +401,10 @@ export async function initiate (
   }
 
   // Prevent checkStatus from creating failed transfer when called between track and withdraw
-  urlParams.set({ withdrawing: 'processing' })
+  if (typeof window !== 'undefined') urlParams.set({ withdrawing: 'processing' })
 
-  transfer = await track(transfer) as Transfer
+  transfer = await withdraw(transfer, options)
 
-  await withdraw(transfer, options)
   return transfer
 }
 
@@ -419,36 +419,32 @@ export async function withdraw (
   // Set url params before this withdraw() returns, otherwise there is a chance that checkWithdraw() is called before
   // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
   // url param is not there
-  urlParams.set({ withdrawing: transfer.id })
+  if (typeof window !== 'undefined') urlParams.set({ withdrawing: transfer.id })
 
-  // Calling `BridgeToken.withdraw` causes a redirect to NEAR Wallet.
-  //
-  // This adds some info about the current transaction to the URL params, then
-  // returns to mark the transfer as in-progress, and THEN executes the
-  // `withdraw` function.
-  //
-  // Since this happens very quickly in human time, a user will not have time
-  // to start two `deposit` calls at the same time, and the `checkWithdraw` will be
-  // able to correctly identify the transfer and see if the transaction
-  // succeeded.
-  setTimeout(() => {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    nearAccount.functionCall({
-      contractId: transfer.sourceToken,
-      methodName: 'withdraw',
-      args: {
-        amount: String(transfer.amount),
-        recipient: transfer.recipient.replace('0x', '')
-      },
-      // 100Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
-      gas: new BN('100' + '0'.repeat(12)),
-      attachedDeposit: new BN('1')
-    })
-  }, 100)
+  // In the browser functionCall will redirect to NEAR wallet.
+  // In Node, tx will be processed
+  transfer = { ...transfer, status: status.IN_PROGRESS }
+  // Set the transfer as processing before the NEAR wallet redirect.
+  // When re-trying withdraw in frontend, withdraw is called directly by act() so we need to store
+  // in-progress status in localStorage before redirect.
+  if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
+
+  const tx = await nearAccount.functionCall({
+    contractId: transfer.sourceToken,
+    methodName: 'withdraw',
+    args: {
+      amount: String(transfer.amount),
+      recipient: transfer.recipient.replace('0x', '')
+    },
+    // 100Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
+    gas: new BN('100' + '0'.repeat(12)),
+    attachedDeposit: new BN('1')
+  })
 
   return {
     ...transfer,
-    status: status.IN_PROGRESS
+    status: status.IN_PROGRESS,
+    withdrawHashes: [...transfer.withdrawHashes, tx.transaction.hash]
   }
 }
 
@@ -631,9 +627,12 @@ export async function checkFinality (
  * on the Near2EthClient.
  */
 export async function checkSync (
-  transfer: Transfer,
-  options?: CheckSyncOptions
+  transfer: Transfer | string,
+  options?: TransferOptions
 ): Promise<Transfer> {
+  if (typeof transfer === 'string') {
+    return await recover(transfer, 'todo', options)
+  }
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
@@ -724,8 +723,12 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
  * NEAR BridgeToken contract.
  */
 export async function unlock (
-  transfer: Transfer,
-  options?: Omit<CheckSyncOptions, 'provider'> & { provider?: ethers.providers.JsonRpcProvider, erc20LockerAbi?: string }
+  transfer: Transfer | string,
+  options?: Omit<TransferOptions, 'provider'> & {
+    provider?: ethers.providers.JsonRpcProvider
+    erc20LockerAbi?: string
+    signer?: ethers.Signer
+  }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -741,7 +744,7 @@ export async function unlock (
   const ethTokenLocker = new ethers.Contract(
     options.erc20LockerAddress ?? bridgeParams.erc20LockerAddress,
     options.erc20LockerAbi ?? bridgeParams.erc20LockerAbi,
-    provider.getSigner()
+    options.signer ?? provider.getSigner()
   )
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.

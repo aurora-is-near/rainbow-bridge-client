@@ -52,16 +52,18 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   proof?: Uint8Array
 }
 
-export interface CheckSyncOptions {
+export interface TransferOptions {
   provider?: ethers.providers.JsonRpcProvider
   erc20LockerAddress?: string
   erc20LockerAbi?: string
+  erc20Abi?: string
   sendToNearSyncInterval?: number
   nep141Factory?: string
   nearEventRelayerMargin?: number
   nearAccount?: Account
   maxFindEthProofInterval?: number
   nearClientAccount?: string
+  auroraEvmAccount?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -161,16 +163,12 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 /**
  * Recover transfer from a lock tx hash
  * @param lockTxHash Ethereum transaction hash which initiated the transfer.
- * @param options Optional arguments.
- * @param options.provider Ethereum provider to use.
- * @param options.erc20LockerAddress Rainbow bridge ERC-20 token locker address.
- * @param options.erc20LockerAbi Rainbow bridge ERC-20 token locker abi.
- * @param options.auroraEvmAccount Aurora account on NEAR.
+ * @param options TransferOptions optional arguments.
  * @returns The recovered transfer object
  */
 export async function recover (
   lockTxHash: string,
-  options?: CheckSyncOptions & { auroraEvmAccount?: string }
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -245,6 +243,7 @@ export async function recover (
  * @param params.options.erc20LockerAbi Rainbow bridge ERC-20 token locker abi.
  * @param params.options.erc20Abi Standard ERC-20 token abi.
  * @param options.auroraEvmAccount Aurora account on NEAR.
+ * @param params.options.signer Ethers signer to use.
  * @returns The created transfer object.
  */
 export async function initiate (
@@ -262,6 +261,7 @@ export async function initiate (
       erc20LockerAbi?: string
       erc20Abi?: string
       auroraEvmAccount?: string
+      signer?: ethers.Signer
     }
   }
 ): Promise<Transfer> {
@@ -272,7 +272,8 @@ export async function initiate (
   const destinationTokenName = 'a' + symbol
   const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
 
-  const sender = options.sender ?? (await provider.getSigner().getAddress()).toLowerCase()
+  const signer = options.signer ?? provider.getSigner()
+  const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
@@ -291,7 +292,8 @@ export async function initiate (
 
   transfer = await lock(transfer, options)
 
-  await track(transfer)
+  if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
+
   return transfer
 }
 
@@ -317,6 +319,7 @@ export async function approve (
       ethChainId?: number
       erc20LockerAddress?: string
       erc20Abi?: string
+      signer?: ethers.Signer
     }
   }
 ): Promise<ApprovalInfo> {
@@ -339,7 +342,7 @@ export async function approve (
   const erc20Contract = new ethers.Contract(
     erc20Address,
     options.erc20Abi ?? bridgeParams.erc20Abi,
-    provider.getSigner()
+    options.signer ?? provider.getSigner()
   )
   const pendingApprovalTx = await erc20Contract.approve(
     options.erc20LockerAddress ?? bridgeParams.erc20LockerAddress,
@@ -454,6 +457,7 @@ export async function lock (
     erc20LockerAddress?: string
     erc20LockerAbi?: string
     auroraEvmAccount?: string
+    signer?: ethers.Signer
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -472,7 +476,7 @@ export async function lock (
   const ethTokenLocker = new ethers.Contract(
     options.erc20LockerAddress ?? bridgeParams.erc20LockerAddress,
     options.erc20LockerAbi ?? bridgeParams.erc20LockerAbi,
-    provider.getSigner()
+    options.signer ?? provider.getSigner()
   )
 
   // If this tx is dropped and replaced, lower the search boundary
@@ -576,9 +580,12 @@ export async function checkLock (
 }
 
 export async function checkSync (
-  transfer: Transfer,
-  options?: CheckSyncOptions
+  transfer: Transfer | string,
+  options?: TransferOptions
 ): Promise<Transfer> {
+  if (typeof transfer === 'string') {
+    return await recover(transfer, options)
+  }
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
