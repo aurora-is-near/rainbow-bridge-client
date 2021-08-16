@@ -389,7 +389,7 @@ export async function initiate (
     decimals
   }
   // Prevent checkStatus from creating failed transfer when called between track and lock
-  if (typeof window !== 'undefined') urlParams.set({ withdrawing: 'processing' })
+  if (typeof window !== 'undefined') urlParams.set({ locking: 'processing' })
 
   transfer = await lock(transfer, options)
   return transfer
