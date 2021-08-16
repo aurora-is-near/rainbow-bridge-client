@@ -240,6 +240,11 @@ export async function act (id: string): Promise<void> {
   try {
     await storage.update(await type.act(transfer))
   } catch (error) {
+    console.error(error)
+    if (error.message.includes('Failed to redirect to sign transaction')) {
+      // Increase time to redirect to wallet before recording an error
+      await new Promise(resolve => setTimeout(resolve, 10000))
+    }
     await storage.update(transfer, {
       status: status.FAILED,
       errors: [...transfer.errors, error.message]
