@@ -408,18 +408,6 @@ export async function burn (
 ): Promise<Transfer> {
   options = options ?? {}
   const nearAccount = options.nearAccount ?? await getNearAccount()
-  // Set url params before this burn() returns, otherwise there is a chance that checkBurn() is called before
-  // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
-  // url param is not there
-  if (typeof window !== 'undefined') urlParams.set({ withdrawing: transfer.id })
-
-  // In the browser functionCall will redirect to NEAR wallet.
-  // In Node, tx will be processed
-  transfer = { ...transfer, status: status.IN_PROGRESS }
-  // Set the transfer as processing before the NEAR wallet redirect.
-  // When re-trying burn in frontend, burn is called directly by act() so we need to store
-  // in-progress status in localStorage before redirect.
-  if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
 
   // eslint-disable-next-line @typescript-eslint/no-extraneous-class
   class BorshWithdrawArgs {
@@ -444,7 +432,20 @@ export async function burn (
     // fee: fee.toString(),
   })
   const serializedArgs = serializeBorsh(withdrawCallArgsSchema, args)
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+
+  // Set url params before this burn() returns, otherwise there is a chance that checkBurn() is called before
+  // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
+  // url param is not there
+  if (typeof window !== 'undefined') urlParams.set({ withdrawing: transfer.id })
+
+  // In the browser functionCall will redirect to NEAR wallet.
+  // In Node, tx will be processed
+  transfer = { ...transfer, status: status.IN_PROGRESS }
+  // Set the transfer as processing before the NEAR wallet redirect.
+  // When re-trying burn in frontend, burn is called directly by act() so we need to store
+  // in-progress status in localStorage before redirect.
+  if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
+
   const tx = await nearAccount.functionCall({
     contractId: transfer.sourceToken,
     methodName: 'withdraw',
