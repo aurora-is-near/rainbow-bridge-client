@@ -53,6 +53,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
+  startTime?: string
 }
 
 export interface TransferOptions {
@@ -295,11 +296,15 @@ export async function recover (
 
   const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, sender, sourceToken, nearAccount)
 
+  // @ts-expect-error TODO
+  const txBlock = await nearAccount.connection.provider.block({ blockId: withdrawTx.transaction_outcome.block_hash })
+
   // various attributes stored as arrays, to keep history of retries
   const transfer = {
     ...transferDraft,
 
     id: new Date().toISOString(),
+    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
     amount,
     completedStep: WITHDRAW,
     destinationTokenName,
@@ -634,10 +639,14 @@ export async function checkWithdraw (
   // checkStatus will be able to process it again in the next loop.
   urlParams.clear()
 
+  // @ts-expect-error TODO
+  const txBlock = await nearAccount.connection.provider.block({ blockId: withdrawTx.transaction_outcome.block_hash })
+
   return {
     ...transfer,
     status: status.IN_PROGRESS,
     completedStep: WITHDRAW,
+    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
     withdrawReceiptIds: [...transfer.withdrawReceiptIds, withdrawReceipt.id],
     withdrawReceiptBlockHeights: [...transfer.withdrawReceiptBlockHeights, withdrawReceipt.blockHeight],
     withdrawHashes: [...transfer.withdrawHashes, txHash]

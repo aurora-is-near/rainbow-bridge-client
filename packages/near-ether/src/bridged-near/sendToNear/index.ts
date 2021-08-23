@@ -42,6 +42,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
+  startTime?: string
 }
 export interface TransferOptions {
   provider?: ethers.providers.JsonRpcProvider
@@ -223,10 +224,13 @@ export async function recover (
   const decimals = 24
   const destinationTokenName = 'NEAR'
 
+  const txBlock = await burnEvent.getBlock()
+
   const transfer = {
     ...transferDraft,
 
     id: new Date().toISOString(),
+    startTime: new Date(txBlock.timestamp * 1000).toISOString(),
     amount: amount.toString(),
     completedStep: BURN,
     destinationTokenName,
@@ -424,19 +428,19 @@ export async function checkBurn (
 
   if (burnReceipt.transactionHash !== burnHash) {
     // Record the replacement tx burnHash
-    return {
+    transfer = {
       ...transfer,
-      status: status.IN_PROGRESS,
-      completedStep: BURN,
-      burnHashes: [...transfer.burnHashes, burnReceipt.transactionHash],
-      burnReceipts: [...transfer.burnReceipts, burnReceipt]
+      burnHashes: [...transfer.burnHashes, burnReceipt.transactionHash]
     }
   }
+
+  const txBlock = await provider.getBlock(burnReceipt.blockHash)
 
   return {
     ...transfer,
     status: status.IN_PROGRESS,
     completedStep: BURN,
+    startTime: new Date(txBlock.timestamp * 1000).toISOString(),
     burnReceipts: [...transfer.burnReceipts, burnReceipt]
   }
 }

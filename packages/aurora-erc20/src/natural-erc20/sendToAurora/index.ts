@@ -50,6 +50,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
+  startTime?: string
 }
 
 export interface TransferOptions {
@@ -202,10 +203,13 @@ export async function recover (
   const destinationTokenName = 'a' + sourceTokenName
   const symbol = sourceTokenName
 
+  const txBlock = await lockedEvent.getBlock()
+
   const transfer = {
     ...transferDraft,
 
     id: new Date().toISOString(),
+    startTime: new Date(txBlock.timestamp * 1000).toISOString(),
     amount,
     completedStep: LOCK,
     destinationTokenName,
@@ -571,10 +575,13 @@ export async function checkLock (
     }
   }
 
+  const txBlock = await provider.getBlock(lockReceipt.blockHash)
+
   return {
     ...transfer,
     status: status.IN_PROGRESS,
     completedStep: LOCK,
+    startTime: new Date(txBlock.timestamp * 1000).toISOString(),
     lockReceipts: [...transfer.lockReceipts, lockReceipt]
   }
 }
