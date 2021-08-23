@@ -54,6 +54,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
+  startTime?: string
 }
 export interface TransferOptions {
   provider?: ethers.providers.Provider
@@ -299,11 +300,15 @@ export async function recover (
     nearAccount
   )
 
+  // @ts-expect-error TODO
+  const txBlock = await nearAccount.connection.provider.block({ blockId: burnTx.transaction_outcome.block_hash })
+
   // various attributes stored as arrays, to keep history of retries
   const transfer = {
     ...transferDraft,
 
     id: new Date().toISOString(),
+    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
     amount: amount.toString(),
     completedStep: BURN,
     destinationTokenName,
@@ -645,10 +650,14 @@ export async function checkBurn (
   // checkStatus will be able to process it again in the next loop.
   urlParams.clear()
 
+  // @ts-expect-error TODO
+  const txBlock = await nearAccount.connection.provider.block({ blockId: burnTx.transaction_outcome.block_hash })
+
   return {
     ...transfer,
     status: status.IN_PROGRESS,
     completedStep: BURN,
+    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
     burnReceiptIds: [...transfer.burnReceiptIds, withdrawReceipt.id],
     burnReceiptBlockHeights: [...transfer.burnReceiptBlockHeights, withdrawReceipt.blockHeight],
     burnHashes: [...transfer.burnHashes, txHash]

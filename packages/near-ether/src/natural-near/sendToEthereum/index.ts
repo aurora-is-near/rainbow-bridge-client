@@ -51,6 +51,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
+  startTime?: string
 }
 
 export interface TransferOptions {
@@ -294,11 +295,15 @@ export async function recover (
     nearAccount
   )
 
+  // @ts-expect-error TODO
+  const txBlock = await nearAccount.connection.provider.block({ blockId: lockTx.transaction_outcome.block_hash })
+
   // various attributes stored as arrays, to keep history of retries
   const transfer = {
     ...transferDraft,
 
     id: new Date().toISOString(),
+    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
     amount,
     completedStep: LOCK,
     destinationTokenName,
@@ -626,10 +631,14 @@ export async function checkLock (
   // checkStatus will be able to process it again in the next loop.
   urlParams.clear()
 
+  // @ts-expect-error TODO
+  const txBlock = await nearAccount.connection.provider.block({ blockId: lockTx.transaction_outcome.block_hash })
+
   return {
     ...transfer,
     status: status.IN_PROGRESS,
     completedStep: LOCK,
+    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
     lockReceiptIds: [...transfer.lockReceiptIds, lockReceipt.id],
     lockReceiptBlockHeights: [...transfer.lockReceiptBlockHeights, lockReceipt.blockHeight],
     lockHashes: [...transfer.lockHashes, txHash]

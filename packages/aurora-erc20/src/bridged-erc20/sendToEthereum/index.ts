@@ -64,6 +64,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
+  startTime?: string
 }
 
 export interface TransferOptions {
@@ -305,11 +306,15 @@ export async function recover (
   const symbol = destinationTokenName
   const sourceToken = 'TODO get aurora address'
 
+  // @ts-expect-error TODO
+  const txBlock = await nearAccount.connection.provider.block({ blockId: burnTx.transaction_outcome.block_hash })
+
   // various attributes stored as arrays, to keep history of retries
   const transfer = {
     ...transferDraft,
 
     id: new Date().toISOString(),
+    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
     amount,
     completedStep: BURN,
     destinationTokenName,
@@ -607,10 +612,14 @@ export async function checkBurn (
     throw e
   }
 
+  // @ts-expect-error TODO
+  const txBlock = await nearAccount.connection.provider.block({ blockId: nearBurnTx.transaction_outcome.block_hash })
+
   return {
     ...transfer,
     status: status.IN_PROGRESS,
     completedStep: BURN,
+    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
     burnReceipts: [...transfer.burnReceipts, burnReceipt],
     nearBurnHashes: [...transfer.nearBurnHashes, nearBurnHash],
     nearBurnReceiptIds: [...transfer.nearBurnReceiptIds, nearBurnReceipt.id],
