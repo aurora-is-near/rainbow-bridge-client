@@ -164,6 +164,58 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   }
 }
 
+export async function findAllTransactions (
+  { fromBlock, toBlock, sender, options }: {
+    fromBlock: string
+    toBlock: string
+    sender: string
+    options?: {
+      auroraEvmAccount?: string
+    }
+  }
+): Promise<string[]> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const auroraEvmAccount: string = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
+  const query = `SELECT public.receipts.originated_from_transaction_hash, public.action_receipt_actions.args
+    FROM public.receipts
+    JOIN public.action_receipt_actions
+    ON public.action_receipt_actions.receipt_id = public.receipts.receipt_id
+    WHERE (predecessor_account_id = '${sender}'
+      AND receiver_account_id = '${auroraEvmAccount}'
+      AND included_in_block_timestamp > ${fromBlock}
+      ${toBlock !== 'latest' ? 'AND included_in_block_timestamp < ' + toBlock : ''}
+    )`
+  // TODO: Browser support by calling explorer backend.
+  const Sequelize = require('sequelize')
+  const indexer = new Sequelize('postgres://public_readonly:nearprotocol@35.184.214.98/testnet_explorer')
+  const transactions: [{ originated_from_transaction_hash: string, args: { method_name: string } }] = await indexer.query(query, { type: 'select' })
+  console.log(transactions.filter(tx => tx.args.method_name === 'withdraw'))
+  return transactions.filter(tx => tx.args.method_name === 'withdraw').map(tx => tx.originated_from_transaction_hash)
+}
+
+export async function findAllTransfers (
+  { fromBlock, toBlock, sender, options }: {
+    fromBlock: string
+    toBlock: string
+    sender: string
+    options?: TransferOptions
+  }
+): Promise<Transfer[]> {
+  const burnTransactions = await findAllTransactions({ fromBlock, toBlock, sender, options })
+  const transfers = await Promise.all(burnTransactions.map(async (tx) => {
+    try {
+      return await recover(tx, sender, options)
+    } catch (error) {
+      // Unlike with Ethereum events, the transaction exists even if it failed.
+      // So ignore the transfer if it cannot be recovered
+      console.log('Failed to recover transfer (transaction failed ?): ', tx, error)
+      return null
+    }
+  }))
+  return transfers.filter((transfer: Transfer | null): transfer is Transfer => transfer !== null)
+}
+
 /**
  * Recover transfer from a burn tx hash
  * Track a new transfer at the completedStep = BURN so that it can be unlocked

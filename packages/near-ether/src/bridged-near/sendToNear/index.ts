@@ -147,6 +147,45 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   }
 }
 
+export async function findAllTransactions (
+  { fromBlock, toBlock, sender, options }: {
+    fromBlock: number | string
+    toBlock: number | string
+    sender: string
+    options?: {
+      provider?: ethers.providers.Provider
+      eNEARAddress?: string
+      eNEARAbi?: string
+    }
+  }
+): Promise<string[]> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getEthProvider()
+  const ethTokenLocker = new ethers.Contract(
+    options.eNEARAddress ?? bridgeParams.eNEARAddress,
+    options.eNEARAbi ?? bridgeParams.eNEARAbi,
+    provider
+  )
+  const filter = ethTokenLocker.filters.TransferToNearInitiated!(sender)
+  const events = await ethTokenLocker.queryFilter(filter, fromBlock, toBlock)
+  console.log(events)
+  return events.filter(event => !event.args!.accountId.startsWith('aurora:')).map(event => event.transactionHash)
+}
+
+export async function findAllTransfers (
+  { fromBlock, toBlock, sender, options }: {
+    fromBlock: number | string
+    toBlock: number | string
+    sender: string
+    options?: TransferOptions
+  }
+): Promise<Transfer[]> {
+  const lockTransactions = await findAllTransactions({ fromBlock, toBlock, sender, options })
+  const transfers = await Promise.all(lockTransactions.map(async (tx) => await recover(tx, options)))
+  return transfers
+}
+
 /**
  * Recover transfer from a burn tx hash
  * Track a new transfer at the completedStep = BURN so that it can be unlocked
@@ -175,7 +214,8 @@ export async function recover (
     throw new Error('Unable to process burn transaction event.')
   }
   // TODO recover and check eNEAR address. (checking receipt.to doesn't work with multisigs)
-  const erc20Address = burnEvent.args!.token
+  // const erc20Address = burnEvent.args!.token
+  const erc20Address = options.eNEARAddress ?? bridgeParams.eNEARAddress
   const amount = burnEvent.args!.amount.toString()
   const recipient = burnEvent.args!.accountId
   const sender = burnEvent.args!.sender
