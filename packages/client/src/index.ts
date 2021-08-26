@@ -6,7 +6,8 @@ import {
   DecoratedTransfer,
   Step,
   UnsavedTransfer,
-  CustomTransferTypes
+  CustomTransferTypes,
+  Transfers
 } from './types'
 
 export { onChange } from './storage'
@@ -186,6 +187,31 @@ async function checkPendingTransferRemovals (): Promise<void> {
   transfersToRemove.splice(0, transfersToRemove.length)
 }
 
+let replacementTransfers: Transfer[] = []
+
+export function replaceTransfers (transfers: Transfer[]): void {
+  replacementTransfers = transfers
+}
+
+export function getReplacementTransfers (): Transfer[] {
+  return replacementTransfers
+}
+
+/**
+ * Replace all transfers with the replacementTransfers
+ */
+async function checkPendingTransferSync (): Promise<void> {
+  if (replacementTransfers.length === 0) return
+  console.log('Replacing local transfers with: ', replacementTransfers)
+  const transfers: Transfers = {}
+  replacementTransfers.forEach(transfer => {
+    transfers[transfer.id] = transfer
+  })
+
+  await storage.replaceAll(transfers)
+  replacementTransfers = []
+}
+
 /*
  * Check statuses of all inProgress transfers, and update them accordingly.
  *
@@ -200,6 +226,7 @@ export async function checkStatusAll (
   }
 
   await checkPendingTransferRemovals()
+  await checkPendingTransferSync()
 
   const inProgress = await get({
     filter: t => t.status === status.IN_PROGRESS

@@ -166,10 +166,11 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 }
 
 export async function findAllTransactions (
-  { fromBlock, toBlock, sender, options }: {
+  { fromBlock, toBlock, sender, callIndexer, options }: {
     fromBlock: string
     toBlock: string
     sender: string
+    callIndexer: (query: string) => [{ originated_from_transaction_hash: string, args: { method_name: string } }]
     options?: {
       auroraEvmAccount?: string
     }
@@ -187,23 +188,25 @@ export async function findAllTransactions (
       AND included_in_block_timestamp > ${fromBlock}
       ${toBlock !== 'latest' ? 'AND included_in_block_timestamp < ' + toBlock : ''}
     )`
-  // TODO: Browser support by calling explorer backend.
+  /*
   const Sequelize = require('sequelize')
   const indexer = new Sequelize('postgres://public_readonly:nearprotocol@35.184.214.98/testnet_explorer')
   const transactions: [{ originated_from_transaction_hash: string, args: { method_name: string } }] = await indexer.query(query, { type: 'select' })
-  console.log(transactions.filter(tx => tx.args.method_name === 'withdraw'))
+  */
+  const transactions = await callIndexer(query)
   return transactions.filter(tx => tx.args.method_name === 'withdraw').map(tx => tx.originated_from_transaction_hash)
 }
 
 export async function findAllTransfers (
-  { fromBlock, toBlock, sender, options }: {
+  { fromBlock, toBlock, sender, callIndexer, options }: {
     fromBlock: string
     toBlock: string
     sender: string
+    callIndexer: (query: string) => [{ originated_from_transaction_hash: string, args: { method_name: string } }]
     options?: TransferOptions
   }
 ): Promise<Transfer[]> {
-  const burnTransactions = await findAllTransactions({ fromBlock, toBlock, sender, options })
+  const burnTransactions = await findAllTransactions({ fromBlock, toBlock, sender, callIndexer, options })
   const transfers = await Promise.all(burnTransactions.map(async (tx) => {
     try {
       return await recover(tx, sender, options)

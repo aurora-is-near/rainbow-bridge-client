@@ -100,6 +100,11 @@ export async function clear (id: string): Promise<void> {
   await localStorageSet(STORAGE_KEY, transfers)
 }
 
+export async function replaceAll (transfers: Transfers): Promise<Transfers> {
+  await localStorageSet(STORAGE_KEY, transfers)
+  return transfers
+}
+
 /**
  * Add a function to be called any time the data in storage is updated
  * @param fn Function to add

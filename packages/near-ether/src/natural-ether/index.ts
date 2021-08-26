@@ -1,2 +1,6 @@
-export { initiate as sendToNear } from './sendToNear'
-export { recover } from './sendToNear'
+export {
+  initiate as sendToNear,
+  recover,
+  findAllTransactions,
+  findAllTransfers
+} from './sendToNear'
