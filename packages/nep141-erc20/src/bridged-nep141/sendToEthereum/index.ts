@@ -169,11 +169,12 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 }
 
 export async function findAllTransactions (
-  { fromBlock, toBlock, sender, erc20Address, options }: {
+  { fromBlock, toBlock, sender, erc20Address, callIndexer, options }: {
     fromBlock: string
     toBlock: string
     sender: string
     erc20Address: string
+    callIndexer: (query: string) => [{ originated_from_transaction_hash: string, args: { method_name: string } }]
     options?: {
       nep141Factory?: string
       nep141Address?: string
@@ -192,24 +193,26 @@ export async function findAllTransactions (
       AND included_in_block_timestamp > ${fromBlock}
       ${toBlock !== 'latest' ? 'AND included_in_block_timestamp < ' + toBlock : ''}
     )`
-  // TODO: Browser support by calling explorer backend.
+  /*
   const Sequelize = require('sequelize')
   const indexer = new Sequelize('postgres://public_readonly:nearprotocol@35.184.214.98/testnet_explorer')
   const transactions: [{ originated_from_transaction_hash: string, args: { method_name: string } }] = await indexer.query(query, { type: 'select' })
-  console.log(transactions.filter(tx => tx.args.method_name === 'withdraw'))
+  */
+  const transactions = await callIndexer(query)
   return transactions.filter(tx => tx.args.method_name === 'withdraw').map(tx => tx.originated_from_transaction_hash)
 }
 
 export async function findAllTransfers (
-  { fromBlock, toBlock, sender, erc20Address, options }: {
+  { fromBlock, toBlock, sender, erc20Address, callIndexer, options }: {
     fromBlock: string
     toBlock: string
     sender: string
     erc20Address: string
+    callIndexer: (query: string) => [{ originated_from_transaction_hash: string, args: { method_name: string } }]
     options?: TransferOptions
   }
 ): Promise<Transfer[]> {
-  const burnTransactions = await findAllTransactions({ fromBlock, toBlock, sender, erc20Address, options })
+  const burnTransactions = await findAllTransactions({ fromBlock, toBlock, sender, erc20Address, callIndexer, options })
   const transfers = await Promise.all(burnTransactions.map(async (tx) => {
     try {
       return await recover(tx, sender, options)

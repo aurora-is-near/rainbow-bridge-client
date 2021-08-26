@@ -172,7 +172,6 @@ export async function findAllTransactions (
   )
   const filter = ethTokenLocker.filters.Deposited!(sender)
   const events = await ethTokenLocker.queryFilter(filter, fromBlock, toBlock)
-  console.log(events)
   return events.filter(event => !event.args!.recipient.startsWith('aurora:')).map(event => event.transactionHash)
 }
 
