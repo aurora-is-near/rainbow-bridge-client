@@ -10,7 +10,7 @@ import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { track } from '@near-eth/client'
-import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof } from '@near-eth/utils'
+import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof, buildIndexerTxQuery } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import getNep141Address from '../getAddress'
@@ -184,21 +184,9 @@ export async function findAllTransactions (
   options = options ?? {}
   const nep141Address = options.nep141Address ?? getNep141Address({ erc20Address, options })
 
-  const query = `SELECT public.receipts.originated_from_transaction_hash, public.action_receipt_actions.args
-    FROM public.receipts
-    JOIN public.action_receipt_actions
-    ON public.action_receipt_actions.receipt_id = public.receipts.receipt_id
-    WHERE (predecessor_account_id = '${sender}'
-      AND receiver_account_id = '${nep141Address}'
-      AND included_in_block_timestamp > ${fromBlock}
-      ${toBlock !== 'latest' ? 'AND included_in_block_timestamp < ' + toBlock : ''}
-    )`
-  /*
-  const Sequelize = require('sequelize')
-  const indexer = new Sequelize('postgres://public_readonly:nearprotocol@35.184.214.98/testnet_explorer')
-  const transactions: [{ originated_from_transaction_hash: string, args: { method_name: string } }] = await indexer.query(query, { type: 'select' })
-  */
-  const transactions = await callIndexer(query)
+  const transactions = await callIndexer(buildIndexerTxQuery(
+    { fromBlock, toBlock, predecessorAccountId: sender, receiverAccountId: nep141Address }
+  ))
   return transactions.filter(tx => tx.args.method_name === 'withdraw').map(tx => tx.originated_from_transaction_hash)
 }
 
