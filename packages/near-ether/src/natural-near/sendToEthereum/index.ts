@@ -10,7 +10,7 @@ import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { track } from '@near-eth/client'
-import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof } from '@near-eth/utils'
+import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof, buildIndexerTxQuery } from '@near-eth/utils'
 import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 
@@ -179,22 +179,9 @@ export async function findAllTransactions (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const nativeNEARLockerAddress: string = options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress
-  const query = `SELECT public.receipts.originated_from_transaction_hash, public.action_receipt_actions.args
-    FROM public.receipts
-    JOIN public.action_receipt_actions
-    ON public.action_receipt_actions.receipt_id = public.receipts.receipt_id
-    WHERE (predecessor_account_id = '${sender}'
-      AND receiver_account_id = '${nativeNEARLockerAddress}'
-      AND included_in_block_timestamp > ${fromBlock}
-      ${toBlock !== 'latest' ? 'AND included_in_block_timestamp < ' + toBlock : ''}
-    )`
-  // TODO: Browser support by calling explorer backend.
-  /*
-  const Sequelize = require('sequelize')
-  const indexer = new Sequelize('postgres://public_readonly:nearprotocol@35.184.214.98/testnet_explorer')
-  const transactions: [{ originated_from_transaction_hash: string, args: { method_name: string } }] = await indexer.query(query, { type: 'select' })
-  */
-  const transactions = await callIndexer(query)
+  const transactions = await callIndexer(buildIndexerTxQuery(
+    { fromBlock, toBlock, predecessorAccountId: sender, receiverAccountId: nativeNEARLockerAddress }
+  ))
   return transactions.filter(tx => tx.args.method_name === 'migrate_to_ethereum').map(tx => tx.originated_from_transaction_hash)
 }
 
