@@ -162,6 +162,19 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   }
 }
 
+/**
+ * Find all lock transactions sending `erc20Address` tokens to NEAR.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.fromBlock Ethereum block number.
+ * @param params.toBlock 'latest' | Ethereum block number.
+ * @param params.sender Ethereum address.
+ * @param params.erc20Address Token address.
+ * @param params.options Optional arguments.
+ * @param params.options.provider Ethereum provider to use.
+ * @param params.options.erc20LockerAddress Rainbow bridge ERC-20 token locker address.
+ * @param params.options.erc20LockerAbi Rainbow bridge ERC-20 token locker abi.
+ * @returns Array of Ethereum transaction hashes.
+ */
 export async function findAllTransactions (
   { fromBlock, toBlock, sender, erc20Address, options }: {
     fromBlock: number | string
@@ -188,6 +201,16 @@ export async function findAllTransactions (
   return events.filter(event => !event.args!.accountId.startsWith('aurora:')).map(event => event.transactionHash)
 }
 
+/**
+ * Recover all transfers sending `erc20Address` tokens to Near.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.fromBlock Ethereum block number.
+ * @param params.toBlock 'latest' | Ethereum block number.
+ * @param params.sender Ethereum address.
+ * @param params.erc20Address Token address.
+ * @param params.options TransferOptions.
+ * @returns Array of recovered transfers.
+ */
 export async function findAllTransfers (
   { fromBlock, toBlock, sender, erc20Address, options }: {
     fromBlock: number | string
