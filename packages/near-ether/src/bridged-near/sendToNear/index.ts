@@ -148,6 +148,18 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   }
 }
 
+/**
+ * Find all burn transactions sending wNEAR back to NEAR.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.fromBlock Ethereum block number.
+ * @param params.toBlock 'latest' | Ethereum block number.
+ * @param params.sender Ethereum address.
+ * @param params.options Optional arguments.
+ * @param params.options.provider Ethereum provider to use.
+ * @param params.options.eNEARAddress ERC-20 NEAR on Ethereum address.
+ * @param params.options.eNEARAbi ERC-20 NEAR on Ethereum abi.
+ * @returns Array of Ethereum transaction hashes.
+ */
 export async function findAllTransactions (
   { fromBlock, toBlock, sender, options }: {
     fromBlock: number | string
@@ -173,6 +185,15 @@ export async function findAllTransactions (
   return events.filter(event => !event.args!.accountId.startsWith('aurora:')).map(event => event.transactionHash)
 }
 
+/**
+ * Recover all transfers sending wNEAR back to Near.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.fromBlock Ethereum block number.
+ * @param params.toBlock 'latest' | Ethereum block number.
+ * @param params.sender Ethereum address.
+ * @param params.options TransferOptions.
+ * @returns Array of recovered transfers.
+ */
 export async function findAllTransfers (
   { fromBlock, toBlock, sender, options }: {
     fromBlock: number | string

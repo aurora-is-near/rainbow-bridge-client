@@ -150,6 +150,18 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   }
 }
 
+/**
+ * Find all lock transactions sending ETH to NEAR.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.fromBlock Ethereum block number.
+ * @param params.toBlock 'latest' | Ethereum block number.
+ * @param params.sender Ethereum address.
+ * @param params.options Optional arguments.
+ * @param params.options.provider Ethereum provider to use.
+ * @param params.options.etherCustodianAddress Rainbow bridge ether custodian address.
+ * @param params.options.etherCustodianAbi Rainbow bridge ether custodian abi.
+ * @returns Array of Ethereum transaction hashes.
+ */
 export async function findAllTransactions (
   { fromBlock, toBlock, sender, options }: {
     fromBlock: number | string
@@ -175,6 +187,15 @@ export async function findAllTransactions (
   return events.filter(event => !event.args!.recipient.startsWith('aurora:')).map(event => event.transactionHash)
 }
 
+/**
+ * Recover all transfers sending ETH to Near.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.fromBlock Ethereum block number.
+ * @param params.toBlock 'latest' | Ethereum block number.
+ * @param params.sender Ethereum address.
+ * @param params.options TransferOptions.
+ * @returns Array of recovered transfers.
+ */
 export async function findAllTransfers (
   { fromBlock, toBlock, sender, options }: {
     fromBlock: number | string

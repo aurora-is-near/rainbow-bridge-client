@@ -165,6 +165,18 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   }
 }
 
+/**
+ * Find all burn transactions sending nETH back to Ethereum.
+ * Any WAMP library can be used to query the indexer or near explorer backend via the `callIndexer` callback.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.fromBlock NEAR block timestamp.
+ * @param params.toBlock 'latest' | NEAR block timestamp.
+ * @param params.sender NEAR account id.
+ * @param params.callIndexer Function making the query to indexer.
+ * @param params.options Optional arguments.
+ * @param options.auroraEvmAccount nETH bridged ETH account on NEAR (aurora)
+ * @returns Array of NEAR transaction hashes.
+ */
 export async function findAllTransactions (
   { fromBlock, toBlock, sender, callIndexer, options }: {
     fromBlock: string
@@ -185,6 +197,17 @@ export async function findAllTransactions (
   return transactions.filter(tx => tx.args.method_name === 'withdraw').map(tx => tx.originated_from_transaction_hash)
 }
 
+/**
+ * Recover all transfers sending nETH back to Ethereum.
+ * Any WAMP library can be used to query the indexer or near explorer backend via the `callIndexer` callback.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.fromBlock NEAR block timestamp.
+ * @param params.toBlock 'latest' | NEAR block timestamp.
+ * @param params.sender NEAR account id.
+ * @param params.callIndexer Function making the query to indexer.
+ * @param params.options TransferOptions.
+ * @returns Array of recovered transfers.
+ */
 export async function findAllTransfers (
   { fromBlock, toBlock, sender, callIndexer, options }: {
     fromBlock: string

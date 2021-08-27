@@ -1,3 +1,13 @@
+/**
+ * Build the SQL query for getting transactions from indexer.
+ * https://github.com/near/near-indexer-for-explorer/blob/master/docs/near-indexer-for-explorer-db.png
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.fromBlock NEAR block timestamp.
+ * @param params.toBlock 'latest' | NEAR block timestamp.
+ * @param params.predecessorAccountId NEAR account id.
+ * @param params.receiverAccountId NEAR account id.
+ * @returns The formated SQL query.
+ */
 export function buildIndexerTxQuery (
   { fromBlock, toBlock, predecessorAccountId, receiverAccountId }: {
     fromBlock: string

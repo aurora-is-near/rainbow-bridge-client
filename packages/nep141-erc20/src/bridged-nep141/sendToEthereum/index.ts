@@ -168,6 +168,20 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   }
 }
 
+/**
+ * Find all withdraw (burn) transactions sending nep141Address tokens from NEAR to Ethereum.
+ * Any WAMP library can be used to query the indexer or near explorer backend via the `callIndexer` callback.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.fromBlock NEAR block timestamp.
+ * @param params.toBlock 'latest' | NEAR block timestamp.
+ * @param params.sender NEAR account id.
+ * @param params.erc20Address Token address on Ethereum.
+ * @param params.callIndexer Function making the query to indexer.
+ * @param params.options Optional arguments.
+ * @param params.options.nep141Factory ERC-20 connector factory to determine the NEAR address.
+ * @param params.options.nep141Address Token address on NEAR.
+ * @returns Array of NEAR transaction hashes.
+ */
 export async function findAllTransactions (
   { fromBlock, toBlock, sender, erc20Address, callIndexer, options }: {
     fromBlock: string
@@ -190,6 +204,18 @@ export async function findAllTransactions (
   return transactions.filter(tx => tx.args.method_name === 'withdraw').map(tx => tx.originated_from_transaction_hash)
 }
 
+/**
+ * Recover all transfers sending nep141Address tokens from NEAR to Ethereum.
+ * Any WAMP library can be used to query the indexer or near explorer backend via the `callIndexer` callback.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.fromBlock NEAR block timestamp.
+ * @param params.toBlock 'latest' | NEAR block timestamp.
+ * @param params.sender NEAR account id.
+ * @param params.erc20Address Token address on Ethereum.
+ * @param params.callIndexer Function making the query to indexer.
+ * @param params.options TransferOptions.
+ * @returns Array of recovered transfers.
+ */
 export async function findAllTransfers (
   { fromBlock, toBlock, sender, erc20Address, callIndexer, options }: {
     fromBlock: string
