@@ -1,3 +1,36 @@
+# [2.0.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v1.6.0...v2.0.0) (2021-08-27)
+
+
+### Bug Fixes
+
+* Backwards compatibility ongoing transfers. ([58dbb3a](https://github.com/aurora-is-near/rainbow-bridge-client/commit/58dbb3a4d7aeaeba030e58ff545cd66d6cafeef5))
+* Catch possibly slow NEAR Wallet redirect. ([270642b](https://github.com/aurora-is-near/rainbow-bridge-client/commit/270642b984a700d066666ae33b06825016165946))
+* Fix get_erc20_from_nep141 with new api. ([9d77085](https://github.com/aurora-is-near/rainbow-bridge-client/commit/9d77085c99bfc558502c52af7af359f0aa989cb2))
+* Fix recover transfer from aurora. ([cf7ef5c](https://github.com/aurora-is-near/rainbow-bridge-client/commit/cf7ef5c17978d541b2fab5e2c5f4425f20d9762c))
+* Improve initiate options for flexibility. ([0186c42](https://github.com/aurora-is-near/rainbow-bridge-client/commit/0186c42f906d692e574d49c56b239bc1fed4ff8a))
+* Improve recover/finalize options. ([64a33c3](https://github.com/aurora-is-near/rainbow-bridge-client/commit/64a33c373f3414cc74b2d2a5a210aee40d565e25))
+* Record recovered tx hash. ([166bc08](https://github.com/aurora-is-near/rainbow-bridge-client/commit/166bc08cabb29ccd414b70b4005033f198f448b2))
+* Track right before near functionCall. ([21ef48e](https://github.com/aurora-is-near/rainbow-bridge-client/commit/21ef48e78edc3a76085ed14a60091ce2e010dcf8))
+
+
+### Features
+
+* Add bridgeParams to client. ([c30637a](https://github.com/aurora-is-near/rainbow-bridge-client/commit/c30637a379454a5bfd9547ad5bf51b70ba69dab2))
+* Add findAllTransfers in near-ether. ([b9f9ecb](https://github.com/aurora-is-near/rainbow-bridge-client/commit/b9f9ecb618bc6cd44396c46d54ff6676fb349dcb))
+* Add findAllTransfers in nep141-erc20. ([393ead6](https://github.com/aurora-is-near/rainbow-bridge-client/commit/393ead6d90bf820f16031bfb2beeb4dd3c9c17ce))
+* Add node.js support. ([ed1c3ea](https://github.com/aurora-is-near/rainbow-bridge-client/commit/ed1c3ea2183f38a775166314224c9af8ccb60f2b))
+* FindAllTransfers browser support. ([aca833f](https://github.com/aurora-is-near/rainbow-bridge-client/commit/aca833f8fa798572385ff24e323673b249ad9de9))
+* New aurora-ether, aurora-erc20 api. ([c3153c1](https://github.com/aurora-is-near/rainbow-bridge-client/commit/c3153c139a834eb447b79593e1e03a6dfd585c0b))
+* New near-ether api. ([1de52f3](https://github.com/aurora-is-near/rainbow-bridge-client/commit/1de52f32813b4e5a2a8114c26c690855afcf0604))
+* New nep141-erc20/bridged-nep141 api. ([4e28ff3](https://github.com/aurora-is-near/rainbow-bridge-client/commit/4e28ff318903a60dd9a6b90debbebff8d3636700))
+* New nep141-erc20/natural-erc20 api. ([cd288ce](https://github.com/aurora-is-near/rainbow-bridge-client/commit/cd288ce6befc984851924b42333b974e5a6b337a))
+* Optional `sender` in transfer from NEAR. ([b2ad5a4](https://github.com/aurora-is-near/rainbow-bridge-client/commit/b2ad5a4d5a8db7ea812ca1fa1a13d1b69dec3f21))
+* Record `startTime` of transfer. ([8e11962](https://github.com/aurora-is-near/rainbow-bridge-client/commit/8e1196207f218aa1ad6c80946d00e5ad5183fb4a))
+* Refactor `buildIndexerTxQuery` to `utils`. ([4054d57](https://github.com/aurora-is-near/rainbow-bridge-client/commit/4054d57cab92b3cb1a7669124bb92a7dd07114dc))
+* Remove APPROVE from transfer steps. ([d7f834e](https://github.com/aurora-is-near/rainbow-bridge-client/commit/d7f834ef32bebc096dd53f4cf20d55b74339c74a))
+
+
+
 # [1.6.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v1.5.1...v1.6.0) (2021-07-23)
 
 
