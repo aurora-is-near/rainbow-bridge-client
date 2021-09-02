@@ -544,13 +544,14 @@ export async function checkWithdraw (
   // NOTE: when a single tx is executed, transactionHashes is equal to that hash
   const txHash = urlParams.get('transactionHashes') as string | null
   const errorCode = urlParams.get('errorCode') as string | null
+  const clearParams = ['withdrawing', 'transactionHashes', 'errorCode', 'errorMessage']
   if (!id && !txHash) {
     // The user closed the tab and never rejected or approved the tx from Near wallet.
     // This doesn't protect agains the user broadcasting a tx and closing the tab before
     // redirect. So the dapp has no way of knowing the status of that transaction.
     // Set status to FAILED so that it can be retried
     const newError = `A withdraw transaction was initiated but could not be verified.
-      If a transaction was sent from your account, please make sure to 'Restore transfer' and finalize it.`
+      Click 'rescan the blockchain' to check if a transfer was made.`
     console.error(newError)
     return {
       ...transfer,
@@ -565,7 +566,6 @@ export async function checkWithdraw (
   if (id !== transfer.id) {
     // Another withdraw transaction cannot be in progress, ie if checkWithdraw is called on
     // an in process withdraw then the transfer ids must be equal or the url callback is invalid.
-    urlParams.clear()
     const newError = `Couldn't determine transaction outcome.
       Got transfer id '${id} in URL, expected '${transfer.id}`
     console.error(newError)
@@ -578,7 +578,7 @@ export async function checkWithdraw (
   if (errorCode) {
     // If errorCode, then the redirect succeded but the tx was rejected/failed
     // so clear url params
-    urlParams.clear()
+    urlParams.clear(...clearParams)
     const newError = 'Error from wallet: ' + errorCode
     console.error(newError)
     return {
@@ -596,7 +596,7 @@ export async function checkWithdraw (
     return transfer
   }
   if (txHash.includes(',')) {
-    urlParams.clear()
+    urlParams.clear(...clearParams)
     const newError = 'Error from wallet: expected single txHash, got: ' + txHash
     console.error(newError)
     return {
@@ -623,7 +623,7 @@ export async function checkWithdraw (
   // Check status of tx broadcasted by wallet
   // @ts-expect-error : wallet returns errorCode
   if (withdrawTx.status.Failure) {
-    urlParams.clear()
+    urlParams.clear(...clearParams)
     const error = `NEAR transaction failed: ${txHash}`
     console.error(error)
     return {
@@ -639,7 +639,7 @@ export async function checkWithdraw (
     withdrawReceipt = await parseWithdrawReceipt(withdrawTx, transfer.sender, transfer.sourceToken, nearAccount)
   } catch (e) {
     if (e instanceof TransferError) {
-      urlParams.clear()
+      urlParams.clear(...clearParams)
       return {
         ...transfer,
         errors: [...transfer.errors, e.message],
@@ -654,7 +654,7 @@ export async function checkWithdraw (
 
   // Clear urlParams at the end so that if the provider connection throws,
   // checkStatus will be able to process it again in the next loop.
-  urlParams.clear()
+  urlParams.clear(...clearParams)
 
   // @ts-expect-error TODO
   const txBlock = await nearAccount.connection.provider.block({ blockId: withdrawTx.transaction_outcome.block_hash })
