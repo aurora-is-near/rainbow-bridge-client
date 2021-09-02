@@ -613,13 +613,14 @@ export async function checkMint (
   // NOTE: when a single tx is executed, transactionHashes is equal to that hash
   const txHash = urlParams.get('transactionHashes') as string | null
   const errorCode = urlParams.get('errorCode') as string | null
+  const clearParams = ['minting', 'transactionHashes', 'errorCode', 'errorMessage']
   if (!id && !txHash) {
     // The user closed the tab and never rejected or approved the tx from Near wallet.
     // This doesn't protect agains the user broadcasting a tx and closing the tab before
     // redirect. So the dapp has no way of knowing the status of that transaction.
     // Set status to FAILED so that it can be retried
     const newError = `A deposit transaction was initiated but could not be verified.
-      If no transaction was sent from your account, please retry.`
+      Click 'rescan the blockchain' to check if a transfer was made.`
     console.error(newError)
     return {
       ...transfer,
@@ -636,7 +637,6 @@ export async function checkMint (
   if (id !== transfer.id) {
     // Another minting transaction cannot be in progress, ie if checkMint is called on
     // an in progess mint then the transfer ids must be equal or the url callback is invalid.
-    urlParams.clear()
     const newError = `Couldn't determine transaction outcome.
       Got transfer id '${id} in URL, expected '${transfer.id}`
     console.error(newError)
@@ -649,7 +649,7 @@ export async function checkMint (
   if (errorCode) {
     // If errorCode, then the redirect succeded but the tx was rejected/failed
     // so clear url params
-    urlParams.clear()
+    urlParams.clear(...clearParams)
     const newError = 'Error from wallet: ' + errorCode
     console.error(newError)
     return {
@@ -667,7 +667,7 @@ export async function checkMint (
     return transfer
   }
   if (txHash.includes(',')) {
-    urlParams.clear()
+    urlParams.clear(...clearParams)
     const newError = 'Error from wallet: expected single txHash, got: ' + txHash
     console.error(newError)
     return {
@@ -692,7 +692,7 @@ export async function checkMint (
   // Check status of tx broadcasted by wallet
   // @ts-expect-error : wallet returns errorCode
   if (mintTx.status.Failure) {
-    urlParams.clear()
+    urlParams.clear(...clearParams)
     const error = `NEAR transaction failed: ${txHash}`
     console.error(error)
     return {
@@ -705,7 +705,7 @@ export async function checkMint (
 
   // Clear urlParams at the end so that if the provider connection throws,
   // checkStatus will be able to process it again in the next loop.
-  urlParams.clear()
+  urlParams.clear(...clearParams)
 
   return {
     ...transfer,
