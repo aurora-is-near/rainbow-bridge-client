@@ -397,6 +397,34 @@ code][example] (implemented in vanilla/no-framework JavaScript).
   [example]: https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/30d2bca74e6c6c3128504c025b44e55b2fb4dac6/src/html/transfers.html#L452
 
 
+Transfer history
+================
+
+Transfer statuses are recorded in the browser local storage so the information will be lost when users change browser or delete storage.
+It is possible to find an account's transfer history using `findAllTransfers` or a combination of `findAllTransactions` and `recover` for more flexibility.
+
+Ethereum -> NEAR transfers are found using bridge token lock/burn events queried at an Ethereum archive node.
+
+NEAR -> Ethereum transfers are found using the NEAR indexer.
+
+```js
+import { findAllTransactions, recover } from '@near-eth/nep141-erc20/dist/bridged-nep141/sendToEthereum'
+const transactions = await findAllTransactions({
+  fromBlock: process.env.nearAutoSyncFromBlock,
+  toBlock: 'latest',
+  sender: userAccountId,
+  erc20Address,
+  callIndexer: async (query) => await wampSession.call(`com.nearprotocol.mainnet.explorer.select:INDEXER_BACKEND`, [query])
+})
+// Using `findAllTransactions` enables filtering transfers already completed to optimise the number of queries.
+// `findAllTransfers` will query and build proofs for all transfers from scratch.
+const transfers = await Promise.all(transactions.map(async tx => await recover(tx)))
+```
+
+The user of this library should specify the `callIndexer` callback with the preferred way of connecting to NEAR Indexer.
+Browsers should connect to a backend providing Indexer data or can use a WAMP session to query the indexer via NEAR Explorer backend. Node.js applications can connect directly to the Indexer with Sequelize.
+
+
 Author a custom connector library
 =================================
 
