@@ -495,6 +495,7 @@ export async function checkBurn (
       'Wrong eth network for checkLock, expected: %s, got: %s',
       expectedChainId, ethChainId
     )
+    return transfer
   }
   // Ethers formats the receipts and removes nearTransactionHash
   let burnReceipt = await provider.send('eth_getTransactionReceipt', [burnHash])

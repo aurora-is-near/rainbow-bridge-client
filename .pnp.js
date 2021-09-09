@@ -31,6 +31,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         "reference": "workspace:packages/aurora-ether"
       },
       {
+        "name": "@near-eth/aurora-nep141",
+        "reference": "workspace:packages/aurora-nep141"
+      },
+      {
         "name": "@near-eth/client",
         "reference": "workspace:packages/client"
       },
@@ -60,6 +64,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
     "fallbackExclusionList": [
       ["@near-eth/aurora-erc20", ["workspace:packages/aurora-erc20"]],
       ["@near-eth/aurora-ether", ["workspace:packages/aurora-ether"]],
+      ["@near-eth/aurora-nep141", ["workspace:packages/aurora-nep141"]],
       ["@near-eth/client", ["workspace:packages/client"]],
       ["@near-eth/near-ether", ["workspace:packages/near-ether"]],
       ["@near-eth/nep141-erc20", ["workspace:packages/nep141-erc20"]],
@@ -1167,6 +1172,33 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageLocation": "./packages/aurora-ether/",
           "packageDependencies": [
             ["@near-eth/aurora-ether", "workspace:packages/aurora-ether"],
+            ["@commitlint/cli", "npm:13.0.0"],
+            ["@commitlint/config-conventional", "npm:13.0.0"],
+            ["@commitlint/travis-cli", "npm:13.0.0"],
+            ["@near-eth/client", "workspace:packages/client"],
+            ["@near-eth/utils", "workspace:packages/utils"],
+            ["@types/bn.js", "npm:5.1.0"],
+            ["@types/bs58", "npm:4.0.1"],
+            ["@types/node", "npm:14.17.5"],
+            ["@yarnpkg/pnpify", "virtual:d6e270ced375feae8aa67e695e8f6605fb9bdb5436bd33ea71c586d53ece0ac57c48d636803398a59ac1d977701119730da4426f2c7cb4803b7ff452c934acf5#npm:2.4.0"],
+            ["bn.js", "npm:5.2.0"],
+            ["bs58", "npm:4.0.1"],
+            ["ethereumjs-util", "npm:7.1.0"],
+            ["ethers", "npm:5.4.6"],
+            ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
+            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=b31f9975b29c69e65c6db2feca2183fac400109e"],
+            ["promisfy", "npm:1.2.0"],
+            ["rlp", "npm:2.2.6"],
+            ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
+          ],
+          "linkType": "SOFT",
+        }]
+      ]],
+      ["@near-eth/aurora-nep141", [
+        ["workspace:packages/aurora-nep141", {
+          "packageLocation": "./packages/aurora-nep141/",
+          "packageDependencies": [
+            ["@near-eth/aurora-nep141", "workspace:packages/aurora-nep141"],
             ["@commitlint/cli", "npm:13.0.0"],
             ["@commitlint/config-conventional", "npm:13.0.0"],
             ["@commitlint/travis-cli", "npm:13.0.0"],
