@@ -132,7 +132,18 @@ export async function act (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
     case null: return await lock(transfer)
     case LOCK: return await checkSync(transfer)
-    case SYNC: return await mint(transfer)
+    case SYNC:
+      try {
+        return await mint(transfer)
+      } catch (error) {
+        console.error(error)
+        if (error.message.includes('Failed to redirect to sign transaction')) {
+          // Increase time to redirect to wallet before recording an error
+          await new Promise(resolve => setTimeout(resolve, 10000))
+        }
+        if (typeof window !== 'undefined') urlParams.clear('minting')
+        throw error
+      }
     default: throw new Error(`Don't know how to act on transfer: ${transfer.id}`)
   }
 }
@@ -565,15 +576,12 @@ export async function mint (
   if (transfer.status !== status.ACTION_NEEDED) return transfer
   const proof = transfer.proof
 
-  // Set url params before this mint() returns, otherwise there is a chance that checkMint() is called before
-  // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
-  // url param is not there
+  // NOTE:
+  // checkStatus should wait for NEAR wallet redirect if it didn't happen yet.
+  // On page load the dapp should clear urlParams if transactionHashes or errorCode are not present:
+  // this will allow checkStatus to handle the transfer as failed because the NEAR transaction could not be processed.
   if (typeof window !== 'undefined') urlParams.set({ minting: transfer.id })
-
-  // In the browser functionCall will redirect to NEAR wallet.
-  // In Node, tx will be processed
-  // Set the transfer as processing before the NEAR wallet redirect.
-  transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
+  if (typeof window !== 'undefined') transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
 
   const tx = await nearAccount.functionCall({
     contractId: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
@@ -614,7 +622,7 @@ export async function checkMint (
   const txHash = urlParams.get('transactionHashes') as string | null
   const errorCode = urlParams.get('errorCode') as string | null
   const clearParams = ['minting', 'transactionHashes', 'errorCode', 'errorMessage']
-  if (!id && !txHash) {
+  if (!id) {
     // The user closed the tab and never rejected or approved the tx from Near wallet.
     // This doesn't protect agains the user broadcasting a tx and closing the tab before
     // redirect. So the dapp has no way of knowing the status of that transaction.
@@ -627,12 +635,6 @@ export async function checkMint (
       status: status.FAILED,
       errors: [...transfer.errors, newError]
     }
-  }
-  if (!id) {
-    // checkstatus managed to call checkMint withing the 100ms before wallet redirect
-    // so id is not yet set
-    console.log('Waiting for Near wallet redirect to sign mint')
-    return transfer
   }
   if (id !== transfer.id) {
     // Another minting transaction cannot be in progress, ie if checkMint is called on

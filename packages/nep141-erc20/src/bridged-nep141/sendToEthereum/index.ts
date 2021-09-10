@@ -9,7 +9,7 @@ import {
 import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
-import { track } from '@near-eth/client'
+import { track, untrack } from '@near-eth/client'
 import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof, buildIndexerTxQuery } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
@@ -147,7 +147,18 @@ export const i18n = {
  */
 export async function act (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
-    case null: return await withdraw(transfer)
+    case null:
+      try {
+        return await withdraw(transfer)
+      } catch (error) {
+        console.error(error)
+        if (error.message.includes('Failed to redirect to sign transaction')) {
+          // Increase time to redirect to wallet before recording an error
+          await new Promise(resolve => setTimeout(resolve, 10000))
+        }
+        if (typeof window !== 'undefined') urlParams.clear('withdrawing')
+        throw error
+      }
     case AWAIT_FINALITY: return await checkSync(transfer)
     case SYNC: return await unlock(transfer)
     default: throw new Error(`Don't know how to act on transfer: ${JSON.stringify(transfer)}`)
@@ -477,10 +488,21 @@ export async function initiate (
     decimals
   }
 
-  // Prevent checkStatus from creating failed transfer when called between track and withdraw
-  if (typeof window !== 'undefined') urlParams.set({ withdrawing: 'processing' })
-
-  transfer = await withdraw(transfer, options)
+  try {
+    transfer = await withdraw(transfer, options)
+  } catch (error) {
+    if (error.message.includes('Failed to redirect to sign transaction')) {
+      // Increase time to redirect to wallet before alerting an error
+      await new Promise(resolve => setTimeout(resolve, 10000))
+    }
+    if (typeof window !== 'undefined' && urlParams.get('withdrawing')) {
+      // If the urlParam is set then the transfer was tracked so delete it.
+      await untrack(urlParams.get('withdrawing') as string)
+      urlParams.clear('withdrawing')
+    }
+    // Throw the error to be handled by frontend
+    throw error
+  }
 
   return transfer
 }
@@ -493,18 +515,13 @@ export async function withdraw (
 ): Promise<Transfer> {
   options = options ?? {}
   const nearAccount = options.nearAccount ?? await getNearAccount()
-  // Set url params before this withdraw() returns, otherwise there is a chance that checkWithdraw() is called before
-  // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
-  // url param is not there
-  if (typeof window !== 'undefined') urlParams.set({ withdrawing: transfer.id })
 
-  // In the browser functionCall will redirect to NEAR wallet.
-  // In Node, tx will be processed
-  transfer = { ...transfer, status: status.IN_PROGRESS }
-  // Set the transfer as processing before the NEAR wallet redirect.
-  // When re-trying withdraw in frontend, withdraw is called directly by act() so we need to store
-  // in-progress status in localStorage before redirect.
-  if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
+  // NOTE:
+  // checkStatus should wait for NEAR wallet redirect if it didn't happen yet.
+  // On page load the dapp should clear urlParams if transactionHashes or errorCode are not present:
+  // this will allow checkStatus to handle the transfer as failed because the NEAR transaction could not be processed.
+  if (typeof window !== 'undefined') urlParams.set({ withdrawing: transfer.id })
+  if (typeof window !== 'undefined') transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
 
   const tx = await nearAccount.functionCall({
     contractId: transfer.sourceToken,
@@ -545,7 +562,7 @@ export async function checkWithdraw (
   const txHash = urlParams.get('transactionHashes') as string | null
   const errorCode = urlParams.get('errorCode') as string | null
   const clearParams = ['withdrawing', 'transactionHashes', 'errorCode', 'errorMessage']
-  if (!id && !txHash) {
+  if (!id) {
     // The user closed the tab and never rejected or approved the tx from Near wallet.
     // This doesn't protect agains the user broadcasting a tx and closing the tab before
     // redirect. So the dapp has no way of knowing the status of that transaction.
@@ -558,10 +575,6 @@ export async function checkWithdraw (
       status: status.FAILED,
       errors: [...transfer.errors, newError]
     }
-  }
-  if (!id || id === 'processing') {
-    console.log('Waiting for Near wallet redirect to sign withdraw')
-    return transfer
   }
   if (id !== transfer.id) {
     // Another withdraw transaction cannot be in progress, ie if checkWithdraw is called on
@@ -652,18 +665,19 @@ export async function checkWithdraw (
     throw e
   }
 
+  // @ts-expect-error TODO
+  const txBlock = await nearAccount.connection.provider.block({ blockId: withdrawTx.transaction_outcome.block_hash })
+  const startTime = new Date(txBlock.header.timestamp / 10 ** 6).toISOString()
+
   // Clear urlParams at the end so that if the provider connection throws,
   // checkStatus will be able to process it again in the next loop.
   urlParams.clear(...clearParams)
-
-  // @ts-expect-error TODO
-  const txBlock = await nearAccount.connection.provider.block({ blockId: withdrawTx.transaction_outcome.block_hash })
 
   return {
     ...transfer,
     status: status.IN_PROGRESS,
     completedStep: WITHDRAW,
-    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
+    startTime,
     withdrawReceiptIds: [...transfer.withdrawReceiptIds, withdrawReceipt.id],
     withdrawReceiptBlockHeights: [...transfer.withdrawReceiptBlockHeights, withdrawReceipt.blockHeight],
     withdrawHashes: [...transfer.withdrawHashes, txHash]

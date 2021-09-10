@@ -1,7 +1,7 @@
 import BN from 'bn.js'
 import { ethers } from 'ethers'
 import { transactions, Account, utils } from 'near-api-js'
-import { getBridgeParams, track } from '@near-eth/client'
+import { getBridgeParams, track, untrack } from '@near-eth/client'
 import { TransactionInfo, TransferStatus } from '@near-eth/client/dist/types'
 import * as status from '@near-eth/client/dist/statuses'
 import { getNearAccount } from '@near-eth/client/dist/utils'
@@ -73,10 +73,20 @@ export const i18n = {
 export async function act (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
     case null:
-      if (transfer.sourceToken === 'NEAR') {
-        return await lockNear(transfer)
-      } else {
-        return await lock(transfer)
+      try {
+        if (transfer.sourceToken === 'NEAR') {
+          return await lockNear(transfer)
+        } else {
+          return await lock(transfer)
+        }
+      } catch (error) {
+        console.error(error)
+        if (error.message.includes('Failed to redirect to sign transaction')) {
+          // Increase time to redirect to wallet before recording an error
+          await new Promise(resolve => setTimeout(resolve, 10000))
+        }
+        if (typeof window !== 'undefined') urlParams.clear('locking')
+        throw error
       }
     default: throw new Error(`Don't know how to act on transfer: ${JSON.stringify(transfer)}`)
   }
@@ -136,13 +146,14 @@ export async function checkLock (
 
   // @ts-expect-error TODO
   const txBlock = await nearAccount.connection.provider.block({ blockId: withdrawTx.transaction_outcome.block_hash })
+  const startTime = new Date(txBlock.header.timestamp / 10 ** 6).toISOString()
 
   urlParams.clear(...clearParams)
   return {
     ...transfer,
     status: status.COMPLETE,
     completedStep: LOCK,
-    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
+    startTime,
     lockHashes: [...transfer.lockHashes, txHash]
   }
 }
@@ -182,8 +193,21 @@ export async function sendToAurora (
     sender,
     recipient
   }
-  transfer = await lock(transfer, options)
-
+  try {
+    transfer = await lock(transfer, options)
+  } catch (error) {
+    if (error.message.includes('Failed to redirect to sign transaction')) {
+      // Increase time to redirect to wallet before alerting an error
+      await new Promise(resolve => setTimeout(resolve, 10000))
+    }
+    if (typeof window !== 'undefined' && urlParams.get('locking')) {
+      // If the urlParam is set then the transfer was tracked so delete it.
+      await untrack(urlParams.get('locking') as string)
+      urlParams.clear('locking')
+    }
+    // Throw the error to be handled by frontend
+    throw error
+  }
   return transfer
 }
 
@@ -203,14 +227,12 @@ export async function lock (
   // <relayer_id>:<fee(32 bytes)><eth_address_receiver(20 bytes)>
   const msgPrefix = transfer.sourceToken === auroraEvmAccount ? transfer.sender + ':' + '0'.repeat(64) : ''
 
-  // When re-trying withdraw in frontend, withdraw is called directly by act() so we need to store
-  // in-progress status in localStorage before redirect.
-  transfer = { ...transfer, status: status.IN_PROGRESS }
-
-  // Prevent checkStatus from creating failed transfer when called between track and withdraw
-  // `track` does not override the transfer.id
+  // NOTE:
+  // checkStatus should wait for NEAR wallet redirect if it didn't happen yet.
+  // On page load the dapp should clear urlParams if transactionHashes or errorCode are not present:
+  // this will allow checkStatus to handle the transfer as failed because the NEAR transaction could not be processed.
   if (typeof window !== 'undefined') urlParams.set({ locking: transfer.id })
-  if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
+  if (typeof window !== 'undefined') transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
 
   // If function call error, the transfer will be pending until the transaction id is cleared
   // and the transfer is set to FAILED by checkStatus.
@@ -265,7 +287,21 @@ export async function wrapAndSendNearToAurora (
     sender,
     recipient
   }
-  transfer = await lockNear(transfer, options)
+  try {
+    transfer = await lockNear(transfer, options)
+  } catch (error) {
+    if (error.message.includes('Failed to redirect to sign transaction')) {
+      // Increase time to redirect to wallet before alerting an error
+      await new Promise(resolve => setTimeout(resolve, 10000))
+    }
+    if (typeof window !== 'undefined' && urlParams.get('locking')) {
+      // If the urlParam is set then the transfer was tracked so delete it.
+      await untrack(urlParams.get('locking') as string)
+      urlParams.clear('locking')
+    }
+    // Throw the error to be handled by frontend
+    throw error
+  }
 
   return transfer
 }
@@ -322,14 +358,13 @@ export async function lockNear (
     new BN('70' + '0'.repeat(12)),
     new BN('1')
   ))
-  // When re-trying withdraw in frontend, withdraw is called directly by act() so we need to store
-  // in-progress status in localStorage before redirect.
-  transfer = { ...transfer, status: status.IN_PROGRESS }
 
-  // Prevent checkStatus from creating failed transfer when called between track and withdraw
+  // NOTE:
+  // checkStatus should wait for NEAR wallet redirect if it didn't happen yet.
+  // On page load the dapp should clear urlParams if transactionHashes or errorCode are not present:
+  // this will allow checkStatus to handle the transfer as failed because the NEAR transaction could not be processed.
   if (typeof window !== 'undefined') urlParams.set({ locking: transfer.id })
-  // `track` does not override the transfer.id
-  if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
+  if (typeof window !== 'undefined') transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
 
   // If function call error, the transfer will be pending until the transaction id is cleared
   // and the transfer is set to FAILED by checkStatus.

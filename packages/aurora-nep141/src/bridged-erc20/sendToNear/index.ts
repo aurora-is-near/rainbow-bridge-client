@@ -105,7 +105,6 @@ export async function checkBurn (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getAuroraProvider()
-  // TODO find replacement tx
   const ethChainId = (await provider.getNetwork()).chainId
   const expectedChainId = options.auroraChainId ?? bridgeParams.auroraChainId
   if (ethChainId !== expectedChainId) {
@@ -116,6 +115,7 @@ export async function checkBurn (
     )
     return transfer
   }
+  // TODO find replacement tx
   const receipt = await provider.getTransactionReceipt(last(transfer.burnHashes))
   if (!receipt) return transfer
   if (!receipt.status || receipt.status !== 1) {
@@ -136,7 +136,6 @@ export async function checkBurn (
   }
 }
 
-// export async function sendToNear (erc20Address, amount, decimals, name) {
 export async function sendToNear (
   { nep141Address, amount, recipient, options }: {
     nep141Address: string
@@ -237,7 +236,6 @@ export async function burn (
   }
 }
 
-// export async function withdrawEthToNear (amount) {
 export async function sendEthToNear (
   { amount, recipient, options }: {
     amount: string | ethers.BigNumber
