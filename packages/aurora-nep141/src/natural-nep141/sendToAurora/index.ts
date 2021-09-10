@@ -1,6 +1,6 @@
 import BN from 'bn.js'
 import { ethers } from 'ethers'
-import { transactions, Account } from 'near-api-js'
+import { transactions, Account, utils } from 'near-api-js'
 import { getBridgeParams, track } from '@near-eth/client'
 import { TransactionInfo, TransferStatus } from '@near-eth/client/dist/types'
 import * as status from '@near-eth/client/dist/statuses'
@@ -10,6 +10,8 @@ import { urlParams } from '@near-eth/utils'
 export const SOURCE_NETWORK = 'near'
 export const DESTINATION_NETWORK = 'aurora'
 export const TRANSFER_TYPE = '@near-eth/aurora-nep141/natural-nep141/sendToAurora'
+
+const LOCK = 'lock-natural-nep141-to-aurora'
 
 export interface TransferDraft extends TransferStatus {
   type: string
@@ -81,9 +83,23 @@ export async function act (transfer: Transfer): Promise<Transfer> {
 }
 
 export async function checkStatus (transfer: Transfer): Promise<Transfer> {
+  switch (transfer.completedStep) {
+    case null: return await checkLock(transfer)
+    default: throw new Error(`Don't know how to checkStatus for transfer ${transfer.id}`)
+  }
+}
+
+export async function checkLock (
+  transfer: Transfer,
+  options?: {
+    nearAccount?: Account
+  }
+): Promise<Transfer> {
+  options = options ?? {}
   const id = urlParams.get('locking') as string
   const txHash = urlParams.get('transactionHashes') as string | null
   const errorCode = urlParams.get('errorCode') as string | null
+  const clearParams = ['locking', 'transactionHashes', 'errorCode', 'errorMessage']
   if (!id) {
     // The user closed the tab and never rejected or approved the tx from Near wallet.
     // This doesn't protect against the user broadcasting a tx and closing the tab before
@@ -103,15 +119,32 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
     return { ...transfer, status: status.FAILED, errors: [`Failed: ${newError}`] }
   }
   if (errorCode) {
-    urlParams.clear('errorCode', 'errorMessage', 'locking')
+    urlParams.clear(...clearParams)
     return { ...transfer, status: status.FAILED, errors: [`Failed: ${errorCode}`] }
   }
-  if (txHash) {
-    urlParams.clear('transactionHashes', 'locking')
-    return { ...transfer, status: status.COMPLETE, lockHashes: [txHash] }
+  if (!txHash) {
+    console.log('Waiting for Near wallet redirect to sign lock')
+    return transfer
   }
-  console.log('Waiting for Near wallet redirect to sign lock')
-  return transfer
+  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const decodedTxHash = utils.serialize.base_decode(txHash)
+  const withdrawTx = await nearAccount.connection.provider.txStatus(
+    // use transfer.sender instead of nearAccount.accountId so that a withdraw
+    // tx hash can be recovered even if it is not made by the logged in account
+    decodedTxHash, transfer.sender
+  )
+
+  // @ts-expect-error TODO
+  const txBlock = await nearAccount.connection.provider.block({ blockId: withdrawTx.transaction_outcome.block_hash })
+
+  urlParams.clear(...clearParams)
+  return {
+    ...transfer,
+    status: status.COMPLETE,
+    completedStep: LOCK,
+    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
+    lockHashes: [...transfer.lockHashes, txHash]
+  }
 }
 
 export async function sendToAurora (
@@ -179,7 +212,7 @@ export async function lock (
   if (typeof window !== 'undefined') urlParams.set({ locking: transfer.id })
   if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
 
-  // If function call error, the transfer will be pending until the transaction id id cleared
+  // If function call error, the transfer will be pending until the transaction id is cleared
   // and the transfer is set to FAILED by checkStatus.
   const tx = await nearAccount.functionCall({
     contractId: transfer.sourceToken,
@@ -298,7 +331,7 @@ export async function lockNear (
   // `track` does not override the transfer.id
   if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
 
-  // If function call error, the transfer will be pending until the transaction id id cleared
+  // If function call error, the transfer will be pending until the transaction id is cleared
   // and the transfer is set to FAILED by checkStatus.
   // @ts-expect-error
   const tx = await nearAccount.signAndSendTransaction(wNearNep141, actions)

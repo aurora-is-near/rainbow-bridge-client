@@ -10,6 +10,8 @@ export const SOURCE_NETWORK = 'aurora'
 export const DESTINATION_NETWORK = 'near'
 export const TRANSFER_TYPE = '@near-eth/aurora-nep141/bridged-erc20/sendToNear'
 
+const BURN = 'burn-bridged-erc20-to-near'
+
 export interface TransferDraft extends TransferStatus {
   type: string
   burnHashes: string[]
@@ -128,6 +130,7 @@ export async function checkBurn (
   return {
     ...transfer,
     status: status.COMPLETE,
+    completedStep: BURN,
     startTime: new Date(txBlock.timestamp * 1000).toISOString(),
     burnReceipts: [...transfer.burnReceipts, receipt]
   }
@@ -230,7 +233,7 @@ export async function burn (
       data: tx.data,
       safeReorgHeight
     },
-    burnHashes: [tx.hash]
+    burnHashes: [...transfer.burnHashes, tx.hash]
   }
 }
 
@@ -323,7 +326,7 @@ export async function burnEth (
       data: tx.data,
       safeReorgHeight
     },
-    burnHashes: [tx.hash]
+    burnHashes: [...transfer.burnHashes, tx.hash]
   }
 }
 
