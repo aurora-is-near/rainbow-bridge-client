@@ -271,11 +271,6 @@ export async function act (id: string): Promise<void> {
   try {
     await storage.update(await type.act(transfer))
   } catch (error) {
-    console.error(error)
-    if (error.message.includes('Failed to redirect to sign transaction')) {
-      // Increase time to redirect to wallet before recording an error
-      await new Promise(resolve => setTimeout(resolve, 10000))
-    }
     await storage.update(transfer, {
       status: status.FAILED,
       errors: [...transfer.errors, error.message]
@@ -304,6 +299,32 @@ export async function track (transferRaw: UnsavedTransfer): Promise<Transfer> {
   const transfer = { id, ...transferRaw }
   await storage.add(transfer)
   return transfer
+}
+
+/**
+ * Delete a transfer from the set of cached local transfers.
+ * Unlike `remove` which removes at the next checkStatus loop, untrack
+ * returns when the transfer is removed.
+ *
+ * @param transferId
+ */
+export async function untrack (transferId: string): Promise<void> {
+  const transfer = storage.get(transferId)
+  if (!transfer) {
+    console.warn(`Transfer not tracked: ${transferId}`)
+    return
+  }
+  if (transfer.status !== status.IN_PROGRESS) {
+    // IN-PROGRESS transfers should be cleared by checkStatus
+    await storage.clear(transferId)
+  } else {
+    remove(transferId)
+    while (transfersToRemove.length !== 0) {
+      console.log('waiting ', transfersToRemove)
+      // Wait for checkStatus to remove the transfer
+      await new Promise(resolve => setTimeout(resolve, 2000))
+    }
+  }
 }
 
 // Check the status of a single transfer.

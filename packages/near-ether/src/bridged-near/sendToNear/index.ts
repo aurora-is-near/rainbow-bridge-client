@@ -130,7 +130,18 @@ export async function act (transfer: Transfer): Promise<Transfer> {
   switch (transfer.completedStep) {
     case null: return await burn(transfer)
     case BURN: return await checkSync(transfer)
-    case SYNC: return await unlock(transfer)
+    case SYNC:
+      try {
+        return await unlock(transfer)
+      } catch (error) {
+        console.error(error)
+        if (error.message.includes('Failed to redirect to sign transaction')) {
+          // Increase time to redirect to wallet before recording an error
+          await new Promise(resolve => setTimeout(resolve, 10000))
+        }
+        if (typeof window !== 'undefined') urlParams.clear('unlocking')
+        throw error
+      }
     default: throw new Error(`Don't know how to act on transfer: ${transfer.id}`)
   }
 }
@@ -560,15 +571,12 @@ export async function unlock (
   if (transfer.status !== status.ACTION_NEEDED) return transfer
   const proof = transfer.proof
 
-  // Set url params before this unlock() returns, otherwise there is a chance that checkUnlock() is called before
-  // the wallet redirect and the transfer errors because the status is IN_PROGRESS but the expected
-  // url param is not there
+  // NOTE:
+  // checkStatus should wait for NEAR wallet redirect if it didn't happen yet.
+  // On page load the dapp should clear urlParams if transactionHashes or errorCode are not present:
+  // this will allow checkStatus to handle the transfer as failed because the NEAR transaction could not be processed.
   if (typeof window !== 'undefined') urlParams.set({ unlocking: transfer.id })
-
-  // In the browser functionCall will redirect to NEAR wallet.
-  // In Node, tx will be processed
-  // Set the transfer as processing before the NEAR wallet redirect.
-  transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
+  if (typeof window !== 'undefined') transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
 
   const tx = await nearAccount.functionCall({
     contractId: options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
@@ -606,7 +614,7 @@ export async function checkUnlock (
   const txHash = urlParams.get('transactionHashes') as string | null
   const errorCode = urlParams.get('errorCode') as string | null
   const clearParams = ['unlocking', 'transactionHashes', 'errorCode', 'errorMessage']
-  if (!id && !txHash) {
+  if (!id) {
     // The user closed the tab and never rejected or approved the tx from Near wallet.
     // This doesn't protect agains the user broadcasting a tx and closing the tab before
     // redirect. So the dapp has no way of knowing the status of that transaction.
@@ -619,12 +627,6 @@ export async function checkUnlock (
       status: status.FAILED,
       errors: [...transfer.errors, newError]
     }
-  }
-  if (!id) {
-    // checkstatus managed to call checkUnlock withing the 100ms before wallet redirect
-    // so id is not yet set
-    console.log('Waiting for Near wallet redirect to sign unlock')
-    return transfer
   }
   if (id !== transfer.id) {
     // Another unlocking transaction cannot be in progress, ie if checkUnlock is called on
