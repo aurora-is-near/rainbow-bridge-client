@@ -3,6 +3,7 @@ import { Account } from 'near-api-js'
 import { getAuroraProvider, getSignerProvider, getBridgeParams, track } from '@near-eth/client'
 import { TransactionInfo, TransferStatus } from '@near-eth/client/dist/types'
 import * as status from '@near-eth/client/dist/statuses'
+import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 import { getAuroraErc20Address } from '../getAddress'
 import { getMetadata } from '../../natural-nep141'
 
@@ -115,15 +116,49 @@ export async function checkBurn (
     )
     return transfer
   }
-  // TODO find replacement tx
-  const receipt = await provider.getTransactionReceipt(last(transfer.burnHashes))
+  const burnHash = last(transfer.burnHashes)
+  let receipt: ethers.providers.TransactionReceipt = await provider.getTransactionReceipt(burnHash)
+  // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
+  if (!receipt) {
+    if (!transfer.ethCache) return transfer
+    try {
+      const tx = {
+        nonce: transfer.ethCache.nonce,
+        from: transfer.ethCache.from,
+        to: transfer.ethCache.to,
+        data: transfer.ethCache.data
+      }
+      const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx)
+      if (!foundTx) return transfer
+      receipt = await provider.getTransactionReceipt(foundTx.hash)
+    } catch (error) {
+      console.error(error)
+      if (error instanceof TxValidationError) {
+        return {
+          ...transfer,
+          errors: [...transfer.errors, error.message],
+          status: status.FAILED
+        }
+      }
+      throw error
+    }
+  }
+
   if (!receipt) return transfer
-  if (!receipt.status || receipt.status !== 1) {
+
+  if (!receipt.status) {
     return {
       ...transfer,
       status: status.FAILED,
       burnReceipts: [...transfer.burnReceipts, receipt],
       errors: [...transfer.errors, 'Execution failed']
+    }
+  }
+  if (receipt.transactionHash !== burnHash) {
+    // Record the replacement tx burnHash
+    transfer = {
+      ...transfer,
+      burnHashes: [...transfer.burnHashes, receipt.transactionHash]
     }
   }
   const txBlock = await provider.getBlock(receipt.blockHash)

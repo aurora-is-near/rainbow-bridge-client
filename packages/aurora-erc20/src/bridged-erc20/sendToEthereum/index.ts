@@ -502,40 +502,17 @@ export async function checkBurn (
 
   // If no receipt, check that the transaction hasn't been replaced (speedup or canceled)
   if (!burnReceipt) {
-    return transfer // TODO remove when speed up available on Aurora
-    // eslint-disable-next-line no-unreachable
     if (!transfer.ethCache) return transfer
     try {
       const tx = {
-        // @ts-expect-error
         nonce: transfer.ethCache.nonce,
-        // @ts-expect-error
         from: transfer.ethCache.from,
-        // TODO check data is valid when Aurora rpc is complete and contains tx.data (currently "0x")
-        // @ts-expect-error
         data: transfer.ethCache.data,
-        // @ts-expect-error
         to: transfer.ethCache.to
       }
-      /*
-      const event = {
-        name: 'Transfer', // TODO
-        abi: process.env.auroraErc20AbiText,
-        address: transfer.sourceToken,
-        validate: ({ returnValues: { from, to, value } }) => {
-          return (
-            from.toLowerCase() === transfer.sender.toLowerCase() &&
-            to === 0 && // TODO address(0)
-            value === transfer.amount
-          )
-        }
-      }
-      */
-      // @ts-expect-error
       const foundTx = await findReplacementTx(provider, transfer.ethCache.safeReorgHeight, tx)
       if (!foundTx) return transfer
       // Ethers formats the receipts and removes nearTransactionHash
-      // @ts-expect-error
       burnReceipt = await provider.send('eth_getTransactionReceipt', [foundTx.hash])
     } catch (error) {
       console.error(error)
