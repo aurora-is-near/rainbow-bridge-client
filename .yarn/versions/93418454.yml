@@ -1,0 +1,5 @@
+releases:
+  "@near-eth/aurora-nep141": minor
+
+declined:
+  - rainbow-bridge-client-monorepo

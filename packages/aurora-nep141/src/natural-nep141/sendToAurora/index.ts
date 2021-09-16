@@ -5,7 +5,8 @@ import { getBridgeParams, track, untrack } from '@near-eth/client'
 import { TransactionInfo, TransferStatus } from '@near-eth/client/dist/types'
 import * as status from '@near-eth/client/dist/statuses'
 import { getNearAccount } from '@near-eth/client/dist/utils'
-import { urlParams } from '@near-eth/utils'
+import { urlParams, buildIndexerTxQuery } from '@near-eth/utils'
+import getMetadata from '../getMetadata'
 
 export const SOURCE_NETWORK = 'near'
 export const DESTINATION_NETWORK = 'aurora'
@@ -16,7 +17,6 @@ const LOCK = 'lock-natural-nep141-to-aurora'
 export interface TransferDraft extends TransferStatus {
   type: string
   lockHashes: string[]
-  lockReceiptIds: string[]
 }
 
 export interface Transfer extends TransactionInfo, TransferDraft {
@@ -45,8 +45,7 @@ const transferDraft: TransferDraft = {
   type: TRANSFER_TYPE,
 
   // Attributes specific to natural-erc20-to-nep141 transfers
-  lockHashes: [],
-  lockReceiptIds: []
+  lockHashes: []
 }
 
 export const i18n = {
@@ -97,6 +96,90 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
     case null: return await checkLock(transfer)
     default: throw new Error(`Don't know how to checkStatus for transfer ${transfer.id}`)
   }
+}
+
+/**
+ * Find all transfers sending nep141Address tokens from NEAR to Aurora.
+ * Any WAMP library can be used to query the indexer or NEAR explorer backend via the `callIndexer` callback.
+ * Unlike with the rainbow bridge transfers, we must get the transfer info from transaction arguments instead of a
+ * receipt id so the query must be made per token with the `nep141Address` argument.
+ * @param params Uses Named Arguments pattern, please pass arguments as object
+ * @param params.fromBlock NEAR block timestamp.
+ * @param params.toBlock 'latest' | NEAR block timestamp.
+ * @param params.sender NEAR account id.
+ * @param params.nep141Address Token address on NEAR.
+ * @param params.callIndexer Function making the query to indexer.
+ * @param params.options Optional arguments.
+ * @param params.options.auroraEvmAccount Aurora account on NEAR.
+ * @returns Array of NEAR transaction hashes.
+ */
+export async function findAllTransfers (
+  { fromBlock, toBlock, sender, nep141Address, callIndexer, options }: {
+    fromBlock: string
+    toBlock: string
+    sender: string
+    nep141Address: string
+    callIndexer: (query: string) => [{
+      originated_from_transaction_hash: string
+      args: { method_name: string, args_json: { msg: string, amount: string, receiver_id: string } }
+    }]
+    options?: {
+      auroraEvmAccount?: string
+      nearAccount?: Account
+    }
+  }
+): Promise<Transfer[]> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const auroraEvmAccount = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
+  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const transactions = await callIndexer(buildIndexerTxQuery(
+    { fromBlock, toBlock, predecessorAccountId: sender, receiverAccountId: nep141Address }
+  ))
+  const regex = nep141Address === auroraEvmAccount ? new RegExp(`^${sender}:${'0'.repeat(64)}[a-f0-9]{40}$`) : /^[a-f0-9]{40}$/
+  const metadata = nep141Address === auroraEvmAccount ? { decimals: 18, symbol: 'nETH' } : await getMetadata({ nep141Address, options })
+  const transfers = await Promise.all(transactions
+    .filter(tx => tx.args.method_name === 'ft_transfer_call')
+    .filter(tx => tx.args.args_json.receiver_id === auroraEvmAccount && regex.test(tx.args.args_json.msg))
+    .map(async (tx): Promise<Transfer> => {
+      const lockTx = await nearAccount.connection.provider.txStatus(
+        tx.originated_from_transaction_hash, sender
+      )
+      let successValue
+      try {
+        // If the successValue equals the amount we know the transfer was successful
+        // @ts-expect-error TODO
+        successValue = Buffer.from(lockTx.status.SuccessValue, 'base64').toString()
+        successValue = successValue.slice(1, successValue.length - 1)
+      } catch (e) {
+        console.log('Found a failed transaction: ', e)
+        successValue = '0'
+      }
+      // @ts-expect-error TODO
+      const txBlock = await nearAccount.connection.provider.block({ blockId: lockTx.transaction_outcome.block_hash })
+      const startTime = new Date(txBlock.header.timestamp / 10 ** 6).toISOString()
+      const amount = tx.args.args_json.amount.toString()
+      const msg = tx.args.args_json.msg
+      const recipient = nep141Address === auroraEvmAccount ? '0x' + msg.slice(msg.length - 40) : '0x' + msg
+      return {
+        type: TRANSFER_TYPE,
+        id: new Date().toISOString(),
+        amount,
+        decimals: metadata.decimals,
+        symbol: metadata.symbol,
+        sourceToken: nep141Address,
+        sourceTokenName: metadata.symbol,
+        destinationTokenName: 'a' + metadata.symbol,
+        sender,
+        recipient,
+        status: amount === successValue ? status.COMPLETE : status.FAILED,
+        completedStep: LOCK,
+        errors: [],
+        startTime,
+        lockHashes: [tx.originated_from_transaction_hash]
+      }
+    }))
+  return transfers
 }
 
 export async function checkLock (
