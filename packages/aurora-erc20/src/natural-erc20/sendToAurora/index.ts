@@ -630,7 +630,8 @@ export async function checkSync (
     const proofAlreadyUsed = await nearAccount.viewFunction(
       options.nep141Factory ?? bridgeParams.nep141Factory,
       'is_used_proof',
-      Buffer.from(proof)
+      Buffer.from(proof),
+      { stringify: (args) => args }
     )
     if (proofAlreadyUsed) {
       // TODO: find the event relayer tx hash

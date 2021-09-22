@@ -305,7 +305,7 @@ export async function recover (
   ])
   const withdrawEvent = deserializeBorsh(
     SCHEMA, WithdrawEvent, Buffer.from(successValue, 'base64')
-  )
+  ) as { amount: BN, recipient_id: Uint8Array, eth_custodian_address: Uint8Array}
 
   const amount = withdrawEvent.amount.toString()
   const recipient = '0x' + Buffer.from(withdrawEvent.recipient_id).toString('hex')

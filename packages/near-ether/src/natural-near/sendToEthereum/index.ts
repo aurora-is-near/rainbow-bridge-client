@@ -305,7 +305,7 @@ export async function recover (
   ])
   const lockEvent = deserializeBorsh(
     SCHEMA, LockEvent, Buffer.from(successValue, 'base64')
-  )
+  ) as { amount: BN, recipient: Uint8Array }
 
   const amount = lockEvent.amount.toString()
   const recipient = '0x' + Buffer.from(lockEvent.recipient).toString('hex')

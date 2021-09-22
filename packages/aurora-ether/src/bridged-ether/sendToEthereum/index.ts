@@ -2,6 +2,7 @@ import { borshifyOutcomeProof, nearOnEthSyncHeight, findNearProof } from '@near-
 import { ethers } from 'ethers'
 import bs58 from 'bs58'
 import { utils, Account } from 'near-api-js'
+import BN from 'bn.js'
 import {
   deserialize as deserializeBorsh
 } from 'near-api-js/lib/utils/serialize'
@@ -272,7 +273,7 @@ export async function recover (
   const withdrawResult = burnTx.receipts_outcome[1].outcome.status.SuccessValue
   const burnEvent = deserializeBorsh(
     SCHEMA, BurnEvent, Buffer.from(withdrawResult, 'base64')
-  )
+  ) as { amount: BN, recipient_id: Uint8Array, eth_custodian_address: Uint8Array}
 
   const amount = burnEvent.amount.toString()
   const recipient = '0x' + Buffer.from(burnEvent.recipient_id).toString('hex')

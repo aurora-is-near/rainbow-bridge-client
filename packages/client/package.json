@@ -18,7 +18,7 @@
     "bn.js": "^5.1.3",
     "decimal.js": "^10.2.1",
     "ethers": "^5.4.6",
-    "near-api-js": "https://github.com/aurora-is-near/near-api-js#b31f9975b29c69e65c6db2feca2183fac400109e"
+    "near-api-js": "https://github.com/aurora-is-near/near-api-js#2a63db0016a59d031b58033f3ee50942dab4f5f7"
   },
   "browserslist": [
     "since 2017-04"

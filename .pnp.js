@@ -1159,7 +1159,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.0"],
             ["ethers", "npm:5.4.6"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=b31f9975b29c69e65c6db2feca2183fac400109e"],
+            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
@@ -1186,7 +1186,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.0"],
             ["ethers", "npm:5.4.6"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=b31f9975b29c69e65c6db2feca2183fac400109e"],
+            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
@@ -1213,7 +1213,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.0"],
             ["ethers", "npm:5.4.6"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=b31f9975b29c69e65c6db2feca2183fac400109e"],
+            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
@@ -1231,7 +1231,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["bn.js", "npm:5.2.0"],
             ["decimal.js", "npm:10.3.1"],
             ["ethers", "npm:5.4.6"],
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=b31f9975b29c69e65c6db2feca2183fac400109e"],
+            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
           ],
           "linkType": "SOFT",
@@ -1256,7 +1256,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.0"],
             ["ethers", "npm:5.4.6"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=b31f9975b29c69e65c6db2feca2183fac400109e"],
+            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
@@ -1283,7 +1283,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.0"],
             ["ethers", "npm:5.4.6"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=b31f9975b29c69e65c6db2feca2183fac400109e"],
+            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
@@ -1308,7 +1308,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.0"],
             ["ethers", "npm:5.4.1"],
             ["lite-merkle-patricia-tree", "workspace:packages/lite-merkle-patricia-tree"],
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=b31f9975b29c69e65c6db2feca2183fac400109e"],
+            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
             ["web3-utils", "npm:1.4.0"]
           ],
@@ -2427,10 +2427,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["borsh", [
-        ["npm:0.5.0", {
-          "packageLocation": "./.yarn/cache/borsh-npm-0.5.0-f84acb4458-c680510303.zip/node_modules/borsh/",
+        ["npm:0.6.0", {
+          "packageLocation": "./.yarn/cache/borsh-npm-0.6.0-6778871c77-250fd3f7db.zip/node_modules/borsh/",
           "packageDependencies": [
-            ["borsh", "npm:0.5.0"],
+            ["borsh", "npm:0.6.0"],
             ["bn.js", "npm:5.2.0"],
             ["bs58", "npm:4.0.1"],
             ["text-encoding-utf-8", "npm:1.0.2"]
@@ -6865,12 +6865,12 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["near-api-js", [
-        ["https://github.com/aurora-is-near/near-api-js.git#commit=b31f9975b29c69e65c6db2feca2183fac400109e", {
-          "packageLocation": "./.yarn/cache/near-api-js-https-c61be98739-c0040736b2.zip/node_modules/near-api-js/",
+        ["https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7", {
+          "packageLocation": "./.yarn/cache/near-api-js-https-18fd678978-40c9e6e464.zip/node_modules/near-api-js/",
           "packageDependencies": [
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=b31f9975b29c69e65c6db2feca2183fac400109e"],
+            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
             ["bn.js", "npm:5.2.0"],
-            ["borsh", "npm:0.5.0"],
+            ["borsh", "npm:0.6.0"],
             ["bs58", "npm:4.0.1"],
             ["depd", "npm:2.0.0"],
             ["error-polyfill", "npm:0.1.2"],
