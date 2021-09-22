@@ -60,6 +60,9 @@ export async function findEthProof (
     'eth_getBlockByNumber',
     [ethers.utils.hexValue(receipt.blockNumber), true]
   )
+  if (process.env.tempGoerliGethFix === '1') {
+    block.miner = '0x0000000000000000000000000000000000000000'
+  }
   const tree = await buildTree(provider, block)
   const proof = await extractProof(
     block,
