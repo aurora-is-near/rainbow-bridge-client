@@ -372,7 +372,8 @@ export async function parseWithdrawReceipt (
 
   if (receiptIds.length !== 1) {
     throw new TransferError(
-      `Withdrawal expects only one receipt, got ${receiptIds.length as number}.
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      `Withdrawal expects only one receipt, got ${receiptIds.length}.
       Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
     )
   }
