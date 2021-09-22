@@ -186,11 +186,11 @@ export async function recover (
     throw new Error('Failed to parse recipient in protocol message')
   }
   const amount = lockedEvent.args!.amount.toString()
-  const sourceTokenName = 'ETH'
-  const sourceToken = sourceTokenName
-  const decimals = 18
-  const destinationTokenName = 'a' + sourceTokenName
   const symbol = 'ETH'
+  const sourceToken = symbol
+  const sourceTokenName = symbol
+  const destinationTokenName = 'a' + symbol
+  const decimals = 18
 
   const txBlock = await lockedEvent.getBlock()
 
@@ -252,11 +252,11 @@ export async function initiate (
 ): Promise<Transfer> {
   options = options ?? {}
   const provider = options.provider ?? getSignerProvider()
-  const sourceTokenName = options.symbol ?? 'ETH'
-  const sourceToken = sourceTokenName
-  const symbol = sourceTokenName
+  const symbol = options.symbol ?? 'ETH'
+  const sourceToken = symbol
+  const sourceTokenName = symbol
   const decimals = options.decimals ?? 18
-  const destinationTokenName = 'a' + sourceTokenName
+  const destinationTokenName = 'a' + symbol
 
   const signer = options.signer ?? provider.getSigner()
   const sender = options.sender ?? (await signer.getAddress()).toLowerCase()

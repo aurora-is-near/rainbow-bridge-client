@@ -300,10 +300,10 @@ export async function recover (
   const amount = burnEvent.amount.toString()
   const recipient = '0x' + Buffer.from(burnEvent.recipient).toString('hex')
   const erc20Address = '0x' + Buffer.from(burnEvent.token).toString('hex')
-  const destinationTokenName = await getSymbol({ erc20Address, options })
+  const symbol = await getSymbol({ erc20Address, options })
   const decimals = await getDecimals({ erc20Address, options })
-  const sourceTokenName = 'a' + destinationTokenName
-  const symbol = destinationTokenName
+  const sourceTokenName = 'a' + symbol
+  const destinationTokenName = symbol
   const sourceToken = 'TODO get aurora address'
 
   // @ts-expect-error TODO

@@ -198,10 +198,10 @@ export async function recover (
   if (!/^([A-Fa-f0-9]{40})$/.test(auroraRecipient)) {
     throw new Error('Failed to parse recipient in protocol message')
   }
-  const sourceTokenName: string = await getSymbol({ erc20Address, options: { provider } })
+  const symbol: string = await getSymbol({ erc20Address, options: { provider } })
   const decimals = await getDecimals({ erc20Address, options: { provider } })
-  const destinationTokenName = 'a' + sourceTokenName
-  const symbol = sourceTokenName
+  const destinationTokenName = 'a' + symbol
+  const sourceTokenName = symbol
 
   const txBlock = await lockedEvent.getBlock()
 

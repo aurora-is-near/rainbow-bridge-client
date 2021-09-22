@@ -39,6 +39,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   recipient: string
   sender: string
   sourceTokenName: string
+  symbol: string
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
@@ -249,11 +250,11 @@ export async function recover (
   const sender = lockedEvent.args!.sender
   const recipient = lockedEvent.args!.recipient
   const amount = lockedEvent.args!.amount.toString()
-  const sourceTokenName = 'ETH'
-  const sourceToken = 'ETH'
-  const decimals = 18
-  const destinationTokenName = 'n' + sourceTokenName
   const symbol = 'ETH'
+  const sourceTokenName = symbol
+  const sourceToken = symbol
+  const destinationTokenName = 'n' + symbol
+  const decimals = 18
 
   const txBlock = await lockedEvent.getBlock()
 
@@ -315,10 +316,11 @@ export async function initiate (
 ): Promise<Transfer> {
   options = options ?? {}
   const provider = options.provider ?? getSignerProvider()
-  const sourceTokenName = options.symbol ?? 'ETH'
-  const sourceToken = sourceTokenName
+  const symbol = options.symbol ?? 'ETH'
+  const sourceTokenName = symbol
+  const sourceToken = symbol
+  const destinationTokenName = 'n' + symbol
   const decimals = options.decimals ?? 18
-  const destinationTokenName = 'n' + sourceTokenName
   const signer = options.signer ?? provider.getSigner()
   const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
 
@@ -332,6 +334,7 @@ export async function initiate (
     recipient,
     sender,
     sourceTokenName,
+    symbol,
     sourceToken,
     decimals
   }

@@ -49,6 +49,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   destinationTokenName: string
   recipient: string
   sender: string
+  symbol: string
   sourceTokenName: string
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
@@ -317,10 +318,11 @@ export async function recover (
   const amount = withdrawEvent.amount.toString()
   const recipient = '0x' + Buffer.from(withdrawEvent.recipient).toString('hex')
   const erc20Address = '0x' + Buffer.from(withdrawEvent.token).toString('hex')
-  const destinationTokenName = await getSymbol({ erc20Address, options })
-  const decimals = await getDecimals({ erc20Address, options })
-  const sourceTokenName = 'n' + destinationTokenName
+  const symbol = await getSymbol({ erc20Address, options })
+  const destinationTokenName = symbol
+  const sourceTokenName = 'n' + symbol
   const sourceToken = getNep141Address({ erc20Address, options })
+  const decimals = await getDecimals({ erc20Address, options })
 
   const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, sender, sourceToken, nearAccount)
 
@@ -340,6 +342,7 @@ export async function recover (
     sender,
     sourceToken,
     sourceTokenName,
+    symbol,
     decimals,
 
     withdrawHashes: [withdrawTxHash],
@@ -467,10 +470,11 @@ export async function initiate (
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const destinationTokenName = options.symbol ?? await getSymbol({ erc20Address, options })
-  const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
-  const sourceTokenName = 'n' + destinationTokenName
+  const symbol = options.symbol ?? await getSymbol({ erc20Address, options })
+  const destinationTokenName = symbol
+  const sourceTokenName = 'n' + symbol
   const sourceToken = options.nep141Address ?? getNep141Address({ erc20Address, options })
+  const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
   const nearAccount = options.nearAccount ?? await getNearAccount()
   const sender = options.sender ?? nearAccount.accountId
 
@@ -485,6 +489,7 @@ export async function initiate (
     sender,
     sourceToken,
     sourceTokenName,
+    symbol,
     decimals
   }
 

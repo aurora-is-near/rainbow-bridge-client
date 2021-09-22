@@ -45,6 +45,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   destinationTokenName: string
   recipient: string
   sender: string
+  symbol: string
   sourceTokenName: string
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
@@ -266,9 +267,10 @@ export async function recover (
   const amount = lockedEvent.args!.amount.toString()
   const recipient = lockedEvent.args!.accountId
   const sender = lockedEvent.args!.sender
-  const sourceTokenName: string = await getSymbol({ erc20Address, options })
+  const symbol: string = await getSymbol({ erc20Address, options })
+  const sourceTokenName = symbol
+  const destinationTokenName = 'n' + symbol
   const decimals = await getDecimals({ erc20Address, options })
-  const destinationTokenName = 'n' + sourceTokenName
 
   const txBlock = await lockedEvent.getBlock()
 
@@ -284,6 +286,7 @@ export async function recover (
     sender,
     sourceToken: erc20Address,
     sourceTokenName,
+    symbol,
     decimals,
     status: status.IN_PROGRESS,
 
@@ -349,9 +352,10 @@ export async function initiate (
     )
   }
 
-  const sourceTokenName: string = options.symbol ?? await getSymbol({ erc20Address, options })
+  const symbol: string = options.symbol ?? await getSymbol({ erc20Address, options })
+  const sourceTokenName = symbol
+  const destinationTokenName = 'n' + symbol
   const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
-  const destinationTokenName = 'n' + sourceTokenName
   const signer = options.signer ?? provider.getSigner()
   const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
 
@@ -366,6 +370,7 @@ export async function initiate (
     sender,
     sourceToken: erc20Address,
     sourceTokenName,
+    symbol,
     decimals
   }
 
