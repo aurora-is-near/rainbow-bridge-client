@@ -48,6 +48,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   recipient: string
   sender: string
   sourceTokenName: string
+  symbol: string
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
@@ -308,10 +309,11 @@ export async function recover (
 
   const amount = lockEvent.amount.toString()
   const recipient = '0x' + Buffer.from(lockEvent.recipient).toString('hex')
-  const destinationTokenName = 'NEAR'
+  const symbol = 'NEAR'
+  const destinationTokenName = symbol
+  const sourceTokenName = symbol
+  const sourceToken = symbol
   const decimals = 24
-  const sourceTokenName = 'NEAR'
-  const sourceToken = 'NEAR'
 
   const lockReceipt = await parseLockReceipt(
     lockTx,
@@ -335,6 +337,7 @@ export async function recover (
     recipient,
     sender,
     sourceTokenName,
+    symbol,
     sourceToken,
     decimals,
 
@@ -450,10 +453,11 @@ export async function initiate (
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const destinationTokenName = 'NEAR'
+  const symbol = 'NEAR'
+  const destinationTokenName = symbol
+  const sourceTokenName = symbol
+  const sourceToken = symbol
   const decimals = 24
-  const sourceTokenName = 'NEAR'
-  const sourceToken = 'NEAR'
   const nearAccount = options.nearAccount ?? await getNearAccount()
   const sender = options.sender ?? nearAccount.accountId
 
@@ -467,6 +471,7 @@ export async function initiate (
     recipient,
     sender,
     sourceTokenName,
+    symbol,
     sourceToken,
     decimals
   }

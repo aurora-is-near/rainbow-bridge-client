@@ -39,6 +39,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   recipient: string
   sender: string
   sourceTokenName: string
+  symbol: string
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
@@ -251,9 +252,10 @@ export async function recover (
   const amount = burnEvent.args!.amount.toString()
   const recipient = burnEvent.args!.accountId
   const sender = burnEvent.args!.sender
-  const sourceTokenName = 'NEAR'
+  const symbol = 'NEAR'
+  const sourceTokenName = symbol
   const decimals = 24
-  const destinationTokenName = 'NEAR'
+  const destinationTokenName = symbol
 
   const txBlock = await burnEvent.getBlock()
 
@@ -269,6 +271,7 @@ export async function recover (
     sender,
     sourceToken: erc20Address,
     sourceTokenName,
+    symbol,
     decimals,
     status: status.IN_PROGRESS,
 
@@ -313,11 +316,10 @@ export async function initiate (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getSignerProvider()
-  // TODO: move to core 'decorate'; get both from contracts
-  const sourceTokenName = 'NEAR'
-  // TODO: call initiate with a formated amount and query decimals when decorate()
+  const symbol = 'NEAR'
+  const sourceTokenName = symbol
+  const destinationTokenName = symbol
   const decimals = 24
-  const destinationTokenName = 'NEAR'
   const signer = options.signer ?? provider.getSigner()
   const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
 
@@ -331,6 +333,7 @@ export async function initiate (
     recipient,
     sender,
     sourceToken: options.eNEARAddress ?? bridgeParams.eNEARAddress,
+    symbol,
     sourceTokenName,
     decimals
   }

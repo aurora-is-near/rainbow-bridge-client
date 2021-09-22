@@ -51,6 +51,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   recipient: string
   sender: string
   sourceTokenName: string
+  symbol: string
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
@@ -313,10 +314,11 @@ export async function recover (
   if (etherCustodian !== etherCustodianAddress.toLowerCase()) {
     throw new Error('Failed to verify ETH custodian address.')
   }
-  const destinationTokenName = 'ETH'
+  const symbol = 'ETH'
+  const destinationTokenName = symbol
+  const sourceTokenName = 'n' + symbol
+  const sourceToken = symbol
   const decimals = 18
-  const sourceTokenName = 'n' + destinationTokenName
-  const sourceToken = sourceTokenName
 
   const withdrawReceipt = await parseWithdrawReceipt(
     burnTx,
@@ -339,6 +341,7 @@ export async function recover (
     destinationTokenName,
     recipient,
     sender,
+    symbol,
     sourceTokenName,
     sourceToken,
     decimals,
@@ -454,9 +457,10 @@ export async function initiate (
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const destinationTokenName = 'ETH'
   const decimals = 18
-  const sourceTokenName = 'n' + destinationTokenName
+  const symbol = 'ETH'
+  const destinationTokenName = symbol
+  const sourceTokenName = 'n' + symbol
   const sourceToken = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
   const nearAccount = options.nearAccount ?? await getNearAccount()
   const sender = options.sender ?? nearAccount.accountId
@@ -472,6 +476,7 @@ export async function initiate (
     sender,
     sourceToken,
     sourceTokenName,
+    symbol,
     decimals
   }
 
