@@ -27,7 +27,7 @@
     "ethereumjs-util": "^7.0.10",
     "ethers": "^5.4.6",
     "find-replacement-tx": "workspace:*",
-    "near-api-js": "https://github.com/aurora-is-near/near-api-js#b31f9975b29c69e65c6db2feca2183fac400109e",
+    "near-api-js": "https://github.com/aurora-is-near/near-api-js#2a63db0016a59d031b58033f3ee50942dab4f5f7",
     "promisfy": "^1.2.0",
     "rlp": "^2.2.6"
   },

@@ -30,7 +30,7 @@ export async function getErc20FromNep141 (
     auroraEvmAccount,
     'get_erc20_from_nep141',
     Buffer.from(serializedArgs),
-    { parse: (result) => Buffer.from(result).toString('hex') }
+    { parse: (result) => Buffer.from(result).toString('hex'), stringify: (args) => args }
   )
   return '0x' + address
 }
@@ -46,7 +46,7 @@ export async function getNep141FromErc20 (
     auroraEvmAccount,
     'get_nep141_from_erc20',
     Buffer.from(auroraErc20Address.toLowerCase().slice(2), 'hex'),
-    { parse: (result) => Buffer.from(result).toString('utf-8') }
+    { parse: (result) => Buffer.from(result).toString('utf-8'), stringify: (args) => args }
   )
   return address
 }

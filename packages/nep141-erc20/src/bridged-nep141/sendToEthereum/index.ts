@@ -313,7 +313,7 @@ export async function recover (
   ])
   const withdrawEvent = deserializeBorsh(
     SCHEMA, WithdrawEvent, Buffer.from(successValue, 'base64')
-  )
+  ) as { amount: BN, token: Uint8Array, recipient: Uint8Array}
 
   const amount = withdrawEvent.amount.toString()
   const recipient = '0x' + Buffer.from(withdrawEvent.recipient).toString('hex')
@@ -372,7 +372,7 @@ export async function parseWithdrawReceipt (
 
   if (receiptIds.length !== 1) {
     throw new TransferError(
-      `Withdrawal expects only one receipt, got ${receiptIds.length}.
+      `Withdrawal expects only one receipt, got ${receiptIds.length as number}.
       Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
     )
   }

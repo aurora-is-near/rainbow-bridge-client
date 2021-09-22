@@ -1,6 +1,7 @@
 import { borshifyOutcomeProof, nearOnEthSyncHeight, findNearProof } from '@near-eth/utils'
 import { ethers } from 'ethers'
 import bs58 from 'bs58'
+import BN from 'bn.js'
 import {
   deserialize as deserializeBorsh
 } from 'near-api-js/lib/utils/serialize'
@@ -295,7 +296,7 @@ export async function recover (
   ])
   const burnEvent = deserializeBorsh(
     SCHEMA, BurnEvent, Buffer.from(successValue, 'base64')
-  )
+  ) as { amount: BN, token: Uint8Array, recipient: Uint8Array }
 
   const amount = burnEvent.amount.toString()
   const recipient = '0x' + Buffer.from(burnEvent.recipient).toString('hex')

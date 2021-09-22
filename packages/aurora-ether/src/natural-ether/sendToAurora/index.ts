@@ -465,7 +465,7 @@ export async function checkSync (
       options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
       'is_used_proof',
       Buffer.from(proof),
-      { parse: res => Boolean(res[0]) }
+      { parse: res => Boolean(res[0]), stringify: (args) => args }
     )
     if (proofAlreadyUsed) {
       // TODO: find the event relayer tx hash
