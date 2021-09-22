@@ -282,7 +282,7 @@ export async function sendEthToNear (
       ethChainId?: number
       provider?: ethers.providers.JsonRpcProvider
       signer?: ethers.Signer
-      exitToNearPrecompile?: string
+      etherExitToNearPrecompile?: string
     }
   }
 ): Promise<Transfer> {
@@ -320,7 +320,7 @@ export async function burnEth (
   options?: {
     provider?: ethers.providers.JsonRpcProvider
     auroraChainId?: number
-    exitToNearPrecompile?: string
+    etherExitToNearPrecompile?: string
     signer?: ethers.Signer
   }
 ): Promise<Transfer> {
@@ -337,12 +337,12 @@ export async function burnEth (
     )
   }
 
-  const exitToNearPrecompile = options.exitToNearPrecompile ?? bridgeParams.exitToNearPrecompile // '0xe9217bc70b7ed1f598ddd3199e80b093fa71124f'
+  const etherExitToNearPrecompile = options.etherExitToNearPrecompile ?? bridgeParams.etherExitToNearPrecompile // '0xe9217bc70b7ed1f598ddd3199e80b093fa71124f'
   const exitToNearData = '0x00' + Buffer.from(transfer.recipient).toString('hex')
   const safeReorgHeight = await provider.getBlockNumber() - 20
   const txHash = await provider.send('eth_sendTransaction', [{
     from: transfer.sender,
-    to: exitToNearPrecompile,
+    to: etherExitToNearPrecompile,
     value: ethers.BigNumber.from(transfer.amount).toHexString(),
     data: exitToNearData,
     gas: ethers.BigNumber.from(121000).toHexString()
