@@ -1,3 +1,27 @@
+# [2.1.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.0.0...v2.1.0) (2021-09-23)
+
+
+### Bug Fixes
+
+* Add symbol to Ethereum<>NEAR transfers. ([1ea4231](https://github.com/aurora-is-near/rainbow-bridge-client/commit/1ea4231239f0a14dd5b3a5b05ca20175f328ede2))
+* Clear only necessary urlParams in checkStatus. ([42ffe61](https://github.com/aurora-is-near/rainbow-bridge-client/commit/42ffe61fa64c882cb675411b7e449219de87c6f9))
+* Fix temp geth issue to build goerli proofs. ([a558793](https://github.com/aurora-is-near/rainbow-bridge-client/commit/a558793ae3deb04e4079307b69a60b58169eac5d))
+* Improve aurora-nep141 checkStatus. ([b6afe63](https://github.com/aurora-is-near/rainbow-bridge-client/commit/b6afe6388dfc0792d1f885030214984cadd2afcd))
+* Query getMetadata in Near -> Aurora transfer. ([fa607a6](https://github.com/aurora-is-near/rainbow-bridge-client/commit/fa607a60c5edec33ffec4cc993f0e27ea096ccd7))
+* Rename etherExitToNearPrecompile. ([3ada12a](https://github.com/aurora-is-near/rainbow-bridge-client/commit/3ada12a50592ccf4f568881b02f529749d08a1f6))
+* Simplify and improve NEAR wallet error handling. ([7d0be36](https://github.com/aurora-is-near/rainbow-bridge-client/commit/7d0be36dc4933bab6b6e2546c890a99047d1696a))
+* Update ethers to fix find-replacement-tx. ([2686ce7](https://github.com/aurora-is-near/rainbow-bridge-client/commit/2686ce784a56c31f199eb625928a696828abf79d))
+* Update naj broken upstream github commit. ([1aeb898](https://github.com/aurora-is-near/rainbow-bridge-client/commit/1aeb8987a335a440c4a045cb46905447157b4705))
+* Use find-replacement-tx for aurora tx also. ([57986bf](https://github.com/aurora-is-near/rainbow-bridge-client/commit/57986bfbb1faa8635ecdfe368dc5fbc6519dedb8))
+
+
+### Features
+
+* Add aurora-nep141. ([f8ec94e](https://github.com/aurora-is-near/rainbow-bridge-client/commit/f8ec94e606d7fb2db4a3b0f9ca3e601ffde8b598))
+* Add findAllTransfers for NEAR -> Aurora. ([db282fd](https://github.com/aurora-is-near/rainbow-bridge-client/commit/db282fdcd1378ad93f156c38f871a7a7aa8d5a6b))
+
+
+
 # [2.0.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v1.6.0...v2.0.0) (2021-08-27)
 
 
