@@ -1,6 +1,8 @@
 import { ethers } from 'ethers'
-import { getEthProvider, getBridgeParams } from '@near-eth/client/dist/utils'
-import { erc20 } from '@near-eth/utils'
+import { Account } from 'near-api-js'
+import { getEthProvider, getBridgeParams, getNearAccount } from '@near-eth/client/dist/utils'
+import { erc20, nep141 } from '@near-eth/utils'
+import getNep141Address from '../bridged-nep141/getAddress'
 
 const erc20Decimals: {[key: string]: number} = {}
 export async function getDecimals (
@@ -32,22 +34,43 @@ export async function getDecimals (
 }
 
 const erc20Icons: {[key: string]: any} = {}
-async function getIcon (address: string): Promise<any> {
-  if (erc20Icons[address] !== undefined) return erc20Icons[address]
+async function getIcon (
+  { erc20Address, options }: {
+    erc20Address: string
+    options?: {
+      nearAccount?: Account
+      nep141Address?: string
+      nep141Factory?: string
+    }
+  }
+): Promise<any> {
+  if (erc20Icons[erc20Address] !== undefined) return erc20Icons[erc20Address]
+  options = options ?? {}
 
-  // Checksum address needed to fetch token icons.
-  const url = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${
-    ethers.utils.getAddress(address)
-  }/logo.png`
+  let icon
+  try {
+    const nearAccount = options.nearAccount ?? await getNearAccount()
+    const nep141Address = options.nep141Address ?? getNep141Address({ erc20Address, options })
+    const metadata = await nep141.getMetadata({ nep141Address, nearAccount })
+    icon = metadata.icon
+  } catch (error) {
+    console.warn(error)
+  }
+  if (!icon) {
+    // Checksum address needed to fetch token icons.
+    const url = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/${
+      ethers.utils.getAddress(erc20Address)
+    }/logo.png`
 
-  erc20Icons[address] = await new Promise(resolve => {
-    const img = new Image()
-    img.onload = () => resolve(url)
-    img.onerror = () => resolve(null)
-    img.src = url
-  })
-
-  return erc20Icons[address]
+    icon = await new Promise(resolve => {
+      const img = new Image()
+      img.onload = () => resolve(url)
+      img.onerror = () => resolve(null)
+      img.src = url
+    })
+  }
+  erc20Icons[erc20Address] = icon
+  return icon
 }
 
 const erc20Symbols: {[key: string]: string} = {}
@@ -96,12 +119,15 @@ export default async function getMetadata (
     options?: {
       provider?: ethers.providers.Provider
       erc20Abi?: string
+      nearAccount?: Account
+      nep141Address?: string
+      nep141Factory?: string
     }
   }
 ): Promise<{erc20Address: string, decimals: number, icon: any, symbol: string}> {
   const [decimals, icon, symbol] = await Promise.all([
     getDecimals({ erc20Address, options }),
-    getIcon(erc20Address),
+    getIcon({ erc20Address, options }),
     getSymbol({ erc20Address, options })
   ])
   return {
