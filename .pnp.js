@@ -1159,7 +1159,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.0"],
             ["ethers", "npm:5.4.6"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
+            ["near-api-js", "npm:0.43.0"],
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
@@ -1186,7 +1186,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.0"],
             ["ethers", "npm:5.4.6"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
+            ["near-api-js", "npm:0.43.0"],
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
@@ -1213,7 +1213,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.0"],
             ["ethers", "npm:5.4.6"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
+            ["near-api-js", "npm:0.43.0"],
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
@@ -1231,7 +1231,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["bn.js", "npm:5.2.0"],
             ["decimal.js", "npm:10.3.1"],
             ["ethers", "npm:5.4.6"],
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
+            ["near-api-js", "npm:0.43.0"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
           ],
           "linkType": "SOFT",
@@ -1256,7 +1256,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.0"],
             ["ethers", "npm:5.4.6"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
+            ["near-api-js", "npm:0.43.0"],
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
@@ -1283,7 +1283,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.0"],
             ["ethers", "npm:5.4.6"],
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
+            ["near-api-js", "npm:0.43.0"],
             ["promisfy", "npm:1.2.0"],
             ["rlp", "npm:2.2.6"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"]
@@ -1308,7 +1308,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.0"],
             ["ethers", "npm:5.4.1"],
             ["lite-merkle-patricia-tree", "workspace:packages/lite-merkle-patricia-tree"],
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
+            ["near-api-js", "npm:0.43.0"],
             ["typescript", "patch:typescript@npm%3A4.1.5#builtin<compat/typescript>::version=4.1.5&hash=cc6730"],
             ["web3-utils", "npm:1.4.0"]
           ],
@@ -3777,13 +3777,13 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["error-polyfill", [
-        ["npm:0.1.2", {
-          "packageLocation": "./.yarn/cache/error-polyfill-npm-0.1.2-45dce62cf6-3ecd66996c.zip/node_modules/error-polyfill/",
+        ["npm:0.1.3", {
+          "packageLocation": "./.yarn/cache/error-polyfill-npm-0.1.3-26e8b0cb7c-b539b2c7cd.zip/node_modules/error-polyfill/",
           "packageDependencies": [
-            ["error-polyfill", "npm:0.1.2"],
+            ["error-polyfill", "npm:0.1.3"],
             ["capability", "npm:0.2.5"],
             ["o3", "npm:1.0.3"],
-            ["u3", "npm:0.1.0"]
+            ["u3", "npm:0.1.1"]
           ],
           "linkType": "HARD",
         }]
@@ -6865,15 +6865,15 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["near-api-js", [
-        ["https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7", {
-          "packageLocation": "./.yarn/cache/near-api-js-https-18fd678978-40c9e6e464.zip/node_modules/near-api-js/",
+        ["npm:0.43.0", {
+          "packageLocation": "./.yarn/cache/near-api-js-npm-0.43.0-1d8cef89f1-e52d99414c.zip/node_modules/near-api-js/",
           "packageDependencies": [
-            ["near-api-js", "https://github.com/aurora-is-near/near-api-js.git#commit=2a63db0016a59d031b58033f3ee50942dab4f5f7"],
+            ["near-api-js", "npm:0.43.0"],
             ["bn.js", "npm:5.2.0"],
             ["borsh", "npm:0.6.0"],
             ["bs58", "npm:4.0.1"],
             ["depd", "npm:2.0.0"],
-            ["error-polyfill", "npm:0.1.2"],
+            ["error-polyfill", "npm:0.1.3"],
             ["http-errors", "npm:1.8.0"],
             ["js-sha256", "npm:0.9.0"],
             ["mustache", "npm:4.2.0"],
@@ -9126,10 +9126,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]
       ]],
       ["u3", [
-        ["npm:0.1.0", {
-          "packageLocation": "./.yarn/cache/u3-npm-0.1.0-3b6d776a05-54476fdb5c.zip/node_modules/u3/",
+        ["npm:0.1.1", {
+          "packageLocation": "./.yarn/cache/u3-npm-0.1.1-49c018b6b5-308cafb8fa.zip/node_modules/u3/",
           "packageDependencies": [
-            ["u3", "npm:0.1.0"]
+            ["u3", "npm:0.1.1"]
           ],
           "linkType": "HARD",
         }]
