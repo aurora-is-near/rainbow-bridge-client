@@ -630,8 +630,8 @@ export async function checkMint (
     // This doesn't protect agains the user broadcasting a tx and closing the tab before
     // redirect. So the dapp has no way of knowing the status of that transaction.
     // Set status to FAILED so that it can be retried
-    const newError = `A deposit transaction was initiated but could not be verified.
-      Click 'rescan the blockchain' to check if a transfer was made.`
+    const newError = `A finalization transaction was initiated but could not be verified.
+      Click 'Retry' to make sure the transfer is finalized.`
     console.error(newError)
     return {
       ...transfer,

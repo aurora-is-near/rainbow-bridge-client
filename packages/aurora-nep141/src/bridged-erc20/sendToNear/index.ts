@@ -151,7 +151,7 @@ export async function checkBurn (
       ...transfer,
       status: status.FAILED,
       burnReceipts: [...transfer.burnReceipts, receipt],
-      errors: [...transfer.errors, 'Execution failed']
+      errors: [...transfer.errors, 'Transaction failed']
     }
   }
   if (receipt.transactionHash !== burnHash) {
