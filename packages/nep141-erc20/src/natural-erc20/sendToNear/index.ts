@@ -1,6 +1,6 @@
 import BN from 'bn.js'
 import { ethers } from 'ethers'
-import { track, get } from '@near-eth/client'
+import { track } from '@near-eth/client'
 import { utils, Account } from 'near-api-js'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
@@ -340,18 +340,6 @@ export async function initiate (
 ): Promise<Transfer> {
   options = options ?? {}
   const provider = options.provider ?? getSignerProvider()
-
-  const [conflictingTransfer] = await get({
-    filter: ({ sourceToken, completedStep }) =>
-      sourceToken === erc20Address &&
-      (!completedStep || completedStep === null)
-  })
-  if (conflictingTransfer) {
-    throw new Error(
-      'Another transfer is already in progress, please complete the "Start transfer" step and try again.'
-    )
-  }
-
   const symbol: string = options.symbol ?? await getSymbol({ erc20Address, options })
   const sourceTokenName = symbol
   const destinationTokenName = 'n' + symbol
@@ -417,17 +405,6 @@ export async function approve (
     // Webapp should prevent the user from confirming if the wrong network is selected
     throw new Error(
       `Wrong eth network for approve, expected: ${expectedChainId}, got: ${ethChainId}`
-    )
-  }
-
-  const [conflictingTransfer] = await get({
-    filter: ({ sourceToken, completedStep }) =>
-      sourceToken === erc20Address &&
-      (!completedStep || completedStep === null)
-  })
-  if (conflictingTransfer) {
-    throw new Error(
-      'Another transfer is already in progress, please complete the "Start transfer" step and try again.'
     )
   }
 
