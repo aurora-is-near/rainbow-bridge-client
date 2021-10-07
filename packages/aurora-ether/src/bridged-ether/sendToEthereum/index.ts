@@ -69,6 +69,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
 export interface TransferOptions {
   provider?: ethers.providers.Provider
   etherCustodianAddress?: string
+  etherCustodianAbi?: string
   sendToEthereumSyncInterval?: number
   ethChainId?: number
   nearAccount?: Account
@@ -670,7 +671,12 @@ export async function checkSync (
       options.ethClientAddress ?? bridgeParams.ethClientAddress,
       options.ethClientAbi ?? bridgeParams.ethClientAbi
     )
-    if (await proofAlreadyUsed(provider, proof, options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress)) {
+    if (await proofAlreadyUsed(
+      provider,
+      proof,
+      options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
+      options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi
+    )) {
       // TODO find the unlockTxHash
       return {
         ...transfer,
@@ -701,14 +707,14 @@ export async function checkSync (
 /**
  * Check if a NEAR outcome receipt_id has already been used to finalize a transfer to Ethereum.
  */
-export async function proofAlreadyUsed (provider: ethers.providers.Provider, proof: any, etherCustodianAddress: string): Promise<boolean> {
-  const usedProofsKey: string = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
-  // The usedProofs_ mapping is the 4th variable defined in the contract storage.
-  const usedProofsMappingPosition = '0'.repeat(63) + '3'
-  const storageIndex = ethers.utils.keccak256('0x' + usedProofsKey + usedProofsMappingPosition)
-  // eth_getStorageAt docs: https://eth.wiki/json-rpc/API
-  const proofIsUsed = await provider.getStorageAt(etherCustodianAddress, storageIndex)
-  return Number(proofIsUsed) === 1
+export async function proofAlreadyUsed (provider: ethers.providers.Provider, proof: any, etherCustodianAddress: string, etherCustodianAbi: string): Promise<boolean> {
+  const ethTokenLocker = new ethers.Contract(
+    etherCustodianAddress,
+    etherCustodianAbi,
+    provider
+  )
+  const proofIsUsed = await ethTokenLocker.usedEvents_('0x' + bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex'))
+  return proofIsUsed
 }
 
 /**
@@ -720,7 +726,6 @@ export async function unlock (
   transfer: Transfer | string,
   options?: Omit<TransferOptions, 'provider'> & {
     provider?: ethers.providers.JsonRpcProvider
-    etherCustodianAbi?: string
     signer?: ethers.Signer
   }
 ): Promise<Transfer> {
@@ -729,7 +734,7 @@ export async function unlock (
   const provider = options.provider ?? getSignerProvider()
 
   // Build burn proof
-  transfer = await checkSync(transfer, options)
+  transfer = await checkSync(transfer, { ...options, provider })
   if (transfer.status !== status.ACTION_NEEDED) return transfer
   const proof = transfer.proof
 

@@ -58,6 +58,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
 export interface TransferOptions {
   provider?: ethers.providers.Provider
   eNEARAddress?: string
+  eNEARAbi?: string
   sendToEthereumSyncInterval?: number
   ethChainId?: number
   nearAccount?: Account
@@ -766,7 +767,12 @@ export async function checkSync (
       options.ethClientAddress ?? bridgeParams.ethClientAddress,
       options.ethClientAbi ?? bridgeParams.ethClientAbi
     )
-    if (await proofAlreadyUsed(provider, proof, options.eNEARAddress ?? bridgeParams.eNEARAddress)) {
+    if (await proofAlreadyUsed(
+      provider,
+      proof,
+      options.eNEARAddress ?? bridgeParams.eNEARAddress,
+      options.eNEARAbi ?? bridgeParams.eNEARAbi
+    )) {
       // TODO find the unlockTxHash
       return {
         ...transfer,
@@ -797,14 +803,14 @@ export async function checkSync (
 /**
  * Check if a NEAR outcome receipt_id has already been used to finalize a transfer to Ethereum.
  */
-export async function proofAlreadyUsed (provider: ethers.providers.Provider, proof: any, eNEARAddress: string): Promise<boolean> {
-  const usedProofsKey: string = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex')
-  // The usedProofs_ mapping is the 9th variable defined in the contract storage.
-  const usedProofsMappingPosition = '0'.repeat(63) + '8'
-  const storageIndex = ethers.utils.keccak256('0x' + usedProofsKey + usedProofsMappingPosition)
-  // eth_getStorageAt docs: https://eth.wiki/json-rpc/API
-  const proofIsUsed = await provider.getStorageAt(eNEARAddress, storageIndex)
-  return Number(proofIsUsed) === 1
+export async function proofAlreadyUsed (provider: ethers.providers.Provider, proof: any, eNEARAddress: string, eNEARAbi: string): Promise<boolean> {
+  const eNEAR = new ethers.Contract(
+    eNEARAddress,
+    eNEARAbi,
+    provider
+  )
+  const proofIsUsed = await eNEAR.usedProofs('0x' + bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]).toString('hex'))
+  return proofIsUsed
 }
 
 /**
@@ -816,7 +822,6 @@ export async function mint (
   transfer: Transfer | string,
   options?: Omit<TransferOptions, 'provider'> & {
     provider?: ethers.providers.JsonRpcProvider
-    eNEARAbi?: string
     signer?: ethers.Signer
   }
 ): Promise<Transfer> {
@@ -825,7 +830,7 @@ export async function mint (
   const provider = options.provider ?? getSignerProvider()
 
   // Build lock proof
-  transfer = await checkSync(transfer, options)
+  transfer = await checkSync(transfer, { ...options, provider })
   if (transfer.status !== status.ACTION_NEEDED) return transfer
   const proof = transfer.proof
 
