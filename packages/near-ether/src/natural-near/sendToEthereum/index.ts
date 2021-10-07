@@ -740,13 +740,11 @@ export async function checkSync (
     return transfer
   }
   const ethChainId = (await provider.getNetwork()).chainId
-  const expectedChainId = options.ethChainId ?? bridgeParams.ethChainId
+  const expectedChainId: number = options.ethChainId ?? bridgeParams.ethChainId
   if (ethChainId !== expectedChainId) {
-    console.log(
-      'Wrong eth network for checkSync, expected: %s, got: %s',
-      expectedChainId, ethChainId
+    throw new Error(
+      `Wrong eth network for checkSync, expected: ${expectedChainId}, got: ${ethChainId}`
     )
-    return transfer
   }
 
   const lockReceiptBlockHeight = last(transfer.lockReceiptBlockHeights)
@@ -870,13 +868,11 @@ export async function checkMint (
   const provider = options.provider ?? getEthProvider()
 
   const ethChainId = (await provider.getNetwork()).chainId
-  const expectedChainId = options.ethChainId ?? bridgeParams.ethChainId
+  const expectedChainId: number = options.ethChainId ?? bridgeParams.ethChainId
   if (ethChainId !== expectedChainId) {
-    console.log(
-      'Wrong eth network for checkMint, expected: %s, got: %s',
-      expectedChainId, ethChainId
+    throw new Error(
+      `Wrong eth network for checkMint, expected: ${expectedChainId}, got: ${ethChainId}`
     )
-    return transfer
   }
 
   const mintHash = last(transfer.mintHashes)

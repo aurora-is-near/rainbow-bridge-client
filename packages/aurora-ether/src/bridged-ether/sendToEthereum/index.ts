@@ -414,7 +414,7 @@ export async function burn (
   if (ethChainId !== expectedChainId) {
     // Webapp should prevent the user from confirming if the wrong network is selected
     throw new Error(
-      `Wrong eth network for burn, expected: ${expectedChainId}, got: ${ethChainId}`
+      `Wrong aurora network for burn, expected: ${expectedChainId}, got: ${ethChainId}`
     )
   }
 
@@ -476,10 +476,9 @@ export async function checkBurn (
   const ethChainId: number = (await provider.getNetwork()).chainId
   const expectedChainId: number = options.auroraChainId ?? bridgeParams.auroraChainId
   if (ethChainId !== expectedChainId) {
-    console.log(
-      `Wrong eth network for checkBurn, expected: ${expectedChainId}, got: ${ethChainId}`
+    throw new Error(
+      `Wrong aurora network for checkBurn, expected: ${expectedChainId}, got: ${ethChainId}`
     )
-    return transfer
   }
   // Ethers formats the receipts and removes nearTransactionHash
   let burnReceipt = await provider.send('eth_getTransactionReceipt', [burnHash])
@@ -645,13 +644,11 @@ export async function checkSync (
     return transfer
   }
   const ethChainId = (await provider.getNetwork()).chainId
-  const expectedChainId = options.ethChainId ?? bridgeParams.ethChainId
+  const expectedChainId: number = options.ethChainId ?? bridgeParams.ethChainId
   if (ethChainId !== expectedChainId) {
-    console.log(
-      'Wrong eth network for checkSync, expected: %s, got: %s',
-      expectedChainId, ethChainId
+    throw new Error(
+      `Wrong eth network for checkSync, expected: ${expectedChainId}, got: ${ethChainId}`
     )
-    return transfer
   }
 
   const burnBlockHeight = last(transfer.nearBurnReceiptBlockHeights)
@@ -775,13 +772,11 @@ export async function checkUnlock (
   const provider = options.provider ?? getEthProvider()
 
   const ethChainId = (await provider.getNetwork()).chainId
-  const expectedChainId = options.ethChainId ?? bridgeParams.ethChainId
+  const expectedChainId: number = options.ethChainId ?? bridgeParams.ethChainId
   if (ethChainId !== expectedChainId) {
-    console.log(
-      'Wrong eth network for checkUnlock, expected: %s, got: %s',
-      expectedChainId, ethChainId
+    throw new Error(
+      `Wrong eth network for checkUnlock, expected: ${expectedChainId}, got: ${ethChainId}`
     )
-    return transfer
   }
 
   const unlockHash = last(transfer.unlockHashes)
