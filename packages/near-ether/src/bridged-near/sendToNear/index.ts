@@ -412,13 +412,11 @@ export async function checkBurn (
 
   const burnHash = last(transfer.burnHashes)
   const ethChainId = (await provider.getNetwork()).chainId
-  const expectedChainId = options.ethChainId ?? bridgeParams.ethChainId
+  const expectedChainId: number = options.ethChainId ?? bridgeParams.ethChainId
   if (ethChainId !== expectedChainId) {
-    console.log(
-      'Wrong eth network for checkBurn, expected: %s, got: %s',
-      expectedChainId, ethChainId
+    throw new Error(
+      `Wrong eth network for checkBurn, expected: ${expectedChainId}, got: ${ethChainId}`
     )
-    return transfer
   }
   let burnReceipt: ethers.providers.TransactionReceipt = await provider.getTransactionReceipt(burnHash)
 

@@ -107,14 +107,11 @@ export async function checkBurn (
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getAuroraProvider()
   const ethChainId = (await provider.getNetwork()).chainId
-  const expectedChainId = options.auroraChainId ?? bridgeParams.auroraChainId
+  const expectedChainId: number = options.auroraChainId ?? bridgeParams.auroraChainId
   if (ethChainId !== expectedChainId) {
-    // Webapp should prevent the user from confirming if the wrong network is selected
-    console.log(
-      'Wrong aurora network for checkBurn, expected: %s, got: %s',
-      expectedChainId, ethChainId
+    throw new Error(
+      `Wrong aurora network for checkBurn, expected: ${expectedChainId}, got: ${ethChainId}`
     )
-    return transfer
   }
   const burnHash = last(transfer.burnHashes)
   let receipt: ethers.providers.TransactionReceipt = await provider.getTransactionReceipt(burnHash)

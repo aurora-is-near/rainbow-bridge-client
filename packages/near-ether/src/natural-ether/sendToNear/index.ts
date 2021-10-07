@@ -416,13 +416,11 @@ export async function checkLock (
 
   const lockHash = last(transfer.lockHashes)
   const ethChainId = (await provider.getNetwork()).chainId
-  const expectedChainId = options.ethChainId ?? bridgeParams.ethChainId
+  const expectedChainId: number = options.ethChainId ?? bridgeParams.ethChainId
   if (ethChainId !== expectedChainId) {
-    console.log(
-      'Wrong eth network for checkLock, expected: %s, got: %s',
-      expectedChainId, ethChainId
+    throw new Error(
+      `Wrong eth network for checkLock, expected: ${expectedChainId}, got: ${ethChainId}`
     )
-    return transfer
   }
   let lockReceipt: ethers.providers.TransactionReceipt = await provider.getTransactionReceipt(lockHash)
 
