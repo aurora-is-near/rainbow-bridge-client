@@ -1,3 +1,4 @@
 export {
-  sendToNear
+  sendToNear,
+  findAllTransfers
 } from './sendToNear'

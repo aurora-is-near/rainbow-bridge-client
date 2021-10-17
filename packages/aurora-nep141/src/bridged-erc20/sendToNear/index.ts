@@ -91,6 +91,70 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   }
 }
 
+export async function findAllTransfers (
+  { fromBlock, toBlock, sender, nep141Address, options }: {
+    fromBlock: number | string
+    toBlock: number | string
+    sender: string
+    nep141Address: string
+    options?: {
+      provider?: ethers.providers.Provider
+      auroraErc20Address?: string
+      auroraErc20Abi?: string
+      auroraEvmAccount?: string
+      nearAccount?: Account
+    }
+  }
+): Promise<Transfer[]> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getAuroraProvider()
+  const auroraErc20Address = options.auroraErc20Address ?? await getAuroraErc20Address(
+    { nep141Address, options }
+  ) as string
+  const auroraErc20 = new ethers.Contract(
+    auroraErc20Address,
+    options.auroraErc20Abi ?? bridgeParams.auroraErc20Abi,
+    provider
+  )
+  const filterBurns = auroraErc20.filters.Transfer!(sender, '0x0000000000000000000000000000000000000000')
+  const events = await auroraErc20.queryFilter(filterBurns, fromBlock, toBlock)
+  const receipts = await Promise.all(events.map(async (event) => await provider.getTransactionReceipt(event.transactionHash)))
+  // Keep only transfers from Aurora to NEAR.
+  const transferReceipts = receipts.filter(
+    (receipt) => receipt.logs.length === 2 && receipt.logs[1]!.topics[0] === '0x5a91b8bc9c1981673db8fb226dbd8fcdd0c23f45cd28abb31403a5392f6dd0c7'
+  )
+  const metadata = await getMetadata({ nep141Address, options })
+  const symbol = metadata.symbol
+  const sourceTokenName = symbol
+  const destinationTokenName = symbol
+  const decimals = metadata.decimals
+
+  const transfers = await Promise.all(transferReceipts.map(async (r) => {
+    const txBlock = await provider.getBlock(r.blockHash)
+    const transfer = {
+      id: Math.random().toString().slice(2),
+      type: TRANSFER_TYPE,
+      status: status.COMPLETE,
+      completedStep: BURN,
+      startTime: new Date(txBlock.timestamp * 1000).toISOString(),
+      errors: [],
+      amount: ethers.BigNumber.from(r.logs[1]!.data).toString(),
+      decimals,
+      symbol,
+      sourceToken: auroraErc20Address,
+      sourceTokenName,
+      destinationTokenName,
+      sender,
+      recipient: `NEAR account hash: ' + ${r.logs[1]!.topics[3]!}`,
+      burnHashes: [r.transactionHash],
+      burnReceipts: []
+    }
+    return transfer
+  }))
+  return transfers
+}
+
 export async function checkBurn (
   transfer: Transfer,
   options?: {

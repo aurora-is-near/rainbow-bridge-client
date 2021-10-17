@@ -216,6 +216,47 @@ export async function parseBurnReceipt (
   return { id: burnReceiptId, blockHeight: receiptBlockHeight }
 }
 
+export async function findAllTransactions (
+  { fromBlock, toBlock, sender, options }: {
+    fromBlock: number | string
+    toBlock: number | string
+    sender: string
+    options?: {
+      provider?: ethers.providers.Provider
+      etherExitToEthereumPrecompile?: string
+    }
+  }
+): Promise<string[]> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getAuroraProvider()
+
+  const filter = {
+    address: options.etherExitToEthereumPrecompile ?? bridgeParams.etherExitToEthereumPrecompile,
+    fromBlock,
+    toBlock,
+    topics: [
+      '0xd046c2bb01a5622bc4b9696332391d87491373762eeac0831c48400e2d5a5f07',
+      ethers.utils.hexZeroPad(sender, 32)
+    ]
+  }
+  const logs = await provider.getLogs(filter)
+  return logs.map(l => l.transactionHash)
+}
+
+export async function findAllTransfers (
+  { fromBlock, toBlock, sender, options }: {
+    fromBlock: number | string
+    toBlock: number | string
+    sender: string
+    options?: TransferOptions
+  }
+): Promise<Transfer[]> {
+  const burnTransactions = await findAllTransactions({ fromBlock, toBlock, sender, options })
+  const transfers = await Promise.all(burnTransactions.map(async (tx) => await recover(tx, sender, options)))
+  return transfers
+}
+
 /**
  * Recover transfer from a burn tx hash
  * @param auroraBurnTxHash Aurora tx hash containing the token withdrawal

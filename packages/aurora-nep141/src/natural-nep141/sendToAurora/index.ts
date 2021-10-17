@@ -138,11 +138,11 @@ export async function findAllTransfers (
   ))
   const regex = nep141Address === auroraEvmAccount ? new RegExp(`^${sender}:${'0'.repeat(64)}[a-f0-9]{40}$`) : /^[a-f0-9]{40}$/
   // TODO also use getMetadata for aurora (nETH) when available
-  const metadata = nep141Address === auroraEvmAccount ? { decimals: 18, symbol: 'nETH' } : await getMetadata({ nep141Address, options })
+  const metadata = nep141Address === auroraEvmAccount ? { decimals: 18, symbol: 'ETH' } : await getMetadata({ nep141Address, options })
   const transfers = await Promise.all(transactions
     .filter(tx => tx.args.method_name === 'ft_transfer_call')
     .filter(tx => tx.args.args_json.receiver_id === auroraEvmAccount && regex.test(tx.args.args_json.msg))
-    .map(async (tx): Promise<Transfer> => {
+    .map(async (tx): Promise<null | Transfer> => {
       const lockTx = await nearAccount.connection.provider.txStatus(
         tx.originated_from_transaction_hash, sender
       )
@@ -162,6 +162,7 @@ export async function findAllTransfers (
       const amount = tx.args.args_json.amount.toString()
       const msg = tx.args.args_json.msg
       const recipient = nep141Address === auroraEvmAccount ? '0x' + msg.slice(msg.length - 40) : '0x' + msg
+      if (amount !== successValue) return null
       return {
         type: TRANSFER_TYPE,
         id: new Date().toISOString(),
@@ -173,14 +174,14 @@ export async function findAllTransfers (
         destinationTokenName: 'a' + metadata.symbol,
         sender,
         recipient,
-        status: amount === successValue ? status.COMPLETE : status.FAILED,
+        status: status.COMPLETE,
         completedStep: LOCK,
         errors: [],
         startTime,
         lockHashes: [tx.originated_from_transaction_hash]
       }
     }))
-  return transfers
+  return transfers.filter((transfer: Transfer | null): transfer is Transfer => transfer !== null)
 }
 
 export async function checkLock (

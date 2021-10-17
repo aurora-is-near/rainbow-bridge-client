@@ -318,7 +318,7 @@ export async function recover (
   const symbol = 'ETH'
   const destinationTokenName = symbol
   const sourceTokenName = 'n' + symbol
-  const sourceToken = symbol
+  const sourceToken = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
   const decimals = 18
 
   const withdrawReceipt = await parseWithdrawReceipt(

@@ -1,2 +1,6 @@
-export { initiate as sendToAurora } from './sendToAurora'
-export { recover } from './sendToAurora'
+export {
+  initiate as sendToAurora,
+  recover,
+  findAllTransactions,
+  findAllTransfers
+} from './sendToAurora'
