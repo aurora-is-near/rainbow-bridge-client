@@ -118,10 +118,10 @@ export async function findAllTransfers (
     const txBlock = await provider.getBlock(log.blockHash)
     const transfer = {
       id: Math.random().toString().slice(2),
+      startTime: new Date(txBlock.timestamp * 1000).toISOString(),
       type: TRANSFER_TYPE,
       status: status.COMPLETE,
       completedStep: BURN,
-      startTime: new Date(txBlock.timestamp * 1000).toISOString(),
       errors: [],
       amount: ethers.BigNumber.from(log.data).toString(),
       decimals: 18,
@@ -238,7 +238,8 @@ export async function sendToNear (
 
   let transfer: Transfer = {
     ...transferDraft,
-    id: new Date().toISOString(),
+    id: Math.random().toString().slice(2),
+    startTime: new Date().toISOString(),
     amount: amount.toString(),
     symbol,
     sourceToken,
