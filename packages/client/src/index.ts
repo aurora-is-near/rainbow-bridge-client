@@ -31,7 +31,7 @@ function getCustomTransferType (transfer: Transfer): ConnectorLib | undefined {
  * Get the connector library for the given transfer's type
  * @param transfer Transfer object
  */
-function getTransferType (transfer: Transfer): ConnectorLib {
+export function getTransferType (transfer: Transfer): ConnectorLib {
   // TODO: find a way to `require(transfer.type)`
   const customTransferType = getCustomTransferType(transfer)
   if (customTransferType) return customTransferType
@@ -61,6 +61,8 @@ function getTransferType (transfer: Transfer): ConnectorLib {
         return require('@near-eth/aurora-nep141/dist/natural-nep141/sendToAurora')
       case '@near-eth/aurora-nep141/bridged-erc20/sendToNear':
         return require('@near-eth/aurora-nep141/dist/bridged-erc20/sendToNear')
+      case '@near-eth/aurora-nep141/bridged-ether/sendToNear':
+        return require('@near-eth/aurora-nep141/dist/bridged-ether/sendToNear')
       default:
         throw new Error(`Unregistered library for transfer with type=${transfer.type}`)
     }
@@ -86,9 +88,9 @@ function getTransferType (transfer: Transfer): ConnectorLib {
  *
  * @returns array of transfers
  */
-export async function get (
+export function get (
   { filter }: { filter?: (t: Transfer) => boolean } = {}
-): Promise<Transfer[]> {
+): Transfer[] {
   let transfers = storage.getAll()
   if (filter !== undefined) transfers = transfers.filter(filter)
   return transfers
