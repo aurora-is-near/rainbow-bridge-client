@@ -1,17 +1,14 @@
 import { ethers } from 'ethers'
-import { Account } from 'near-api-js'
 import { getAuroraProvider, getSignerProvider, getBridgeParams, track } from '@near-eth/client'
 import { TransactionInfo, TransferStatus } from '@near-eth/client/dist/types'
 import * as status from '@near-eth/client/dist/statuses'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
-import { getAuroraErc20Address } from '../getAddress'
-import { getMetadata } from '../../natural-nep141'
 
 export const SOURCE_NETWORK = 'aurora'
 export const DESTINATION_NETWORK = 'near'
-export const TRANSFER_TYPE = '@near-eth/aurora-nep141/bridged-erc20/sendToNear'
+export const TRANSFER_TYPE = '@near-eth/aurora-nep141/bridged-ether/sendToNear'
 
-const BURN = 'burn-bridged-erc20-to-near'
+const BURN = 'burn-bridged-ether-to-near'
 
 export interface TransferDraft extends TransferStatus {
   type: string
@@ -38,7 +35,7 @@ const transferDraft: TransferDraft = {
   errors: [],
   // recipient,
   // sender,
-  // sourceToken: erc20Address,
+  // sourceToken: 'ETH,
   // sourceTokenName,
   // decimals,
   status: status.IN_PROGRESS,
@@ -164,8 +161,7 @@ export async function checkBurn (
 }
 
 export async function sendToNear (
-  { nep141Address, amount, recipient, options }: {
-    nep141Address: string
+  { amount, recipient, options }: {
     amount: string | ethers.BigNumber
     recipient: string
     options?: {
@@ -174,38 +170,30 @@ export async function sendToNear (
       sender?: string
       ethChainId?: number
       provider?: ethers.providers.JsonRpcProvider
-      auroraErc20Abi?: string
-      auroraErc20Address?: string
       signer?: ethers.Signer
-      nearAccount?: Account
-      auroraEvmAccount?: string
+      etherExitToNearPrecompile?: string
     }
   }
 ): Promise<Transfer> {
   options = options ?? {}
   const provider = options.provider ?? getSignerProvider()
-  let metadata = { symbol: nep141Address.slice(0, 5) + '...', decimals: 0 }
-  if (!options.symbol || !options.decimals) {
-    metadata = await getMetadata({ nep141Address, options })
-  }
-  const symbol: string = options.symbol ?? metadata.symbol
+  const symbol = options.symbol ?? 'ETH'
   const sourceTokenName = symbol
   const destinationTokenName = symbol
-  const decimals = options.decimals ?? metadata.decimals
+  const sourceToken = symbol
+  const decimals = options.decimals ?? 18
   const signer = options.signer ?? provider.getSigner()
   const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
-  const auroraErc20Address = options.auroraErc20Address ?? await getAuroraErc20Address({ nep141Address, options })
-  if (!auroraErc20Address) throw new Error(`Token not bridged: ${nep141Address}`)
 
   let transfer: Transfer = {
     ...transferDraft,
     id: new Date().toISOString(),
     amount: amount.toString(),
-    decimals,
     symbol,
-    sourceToken: auroraErc20Address,
+    sourceToken,
     sourceTokenName,
     destinationTokenName,
+    decimals,
     sender,
     recipient
   }
@@ -221,7 +209,7 @@ export async function burn (
   options?: {
     provider?: ethers.providers.JsonRpcProvider
     auroraChainId?: number
-    auroraErc20Abi?: string
+    etherExitToNearPrecompile?: string
     signer?: ethers.Signer
   }
 ): Promise<Transfer> {
@@ -238,23 +226,24 @@ export async function burn (
     )
   }
 
-  const erc20Contract = new ethers.Contract(
-    transfer.sourceToken,
-    options.auroraErc20Abi ?? bridgeParams.auroraErc20Abi,
-    options.signer ?? provider.getSigner()
-  )
+  const etherExitToNearPrecompile = options.etherExitToNearPrecompile ?? bridgeParams.etherExitToNearPrecompile // '0xe9217bc70b7ed1f598ddd3199e80b093fa71124f'
+  const exitToNearData = '0x00' + Buffer.from(transfer.recipient).toString('hex')
   const safeReorgHeight = await provider.getBlockNumber() - 20
-  const tx = await erc20Contract.withdrawToNear(
-    Buffer.from(transfer.recipient),
-    transfer.amount,
-    { gasLimit: 100000 }
-  )
+  const txHash = await provider.send('eth_sendTransaction', [{
+    from: transfer.sender,
+    to: etherExitToNearPrecompile,
+    value: ethers.BigNumber.from(transfer.amount).toHexString(),
+    data: exitToNearData,
+    gas: ethers.BigNumber.from(121000).toHexString()
+  }])
+  const tx = await provider.getTransaction(txHash)
+
   return {
     ...transfer,
     status: status.IN_PROGRESS,
     ethCache: {
       from: tx.from,
-      to: tx.to,
+      to: tx.to!,
       nonce: tx.nonce,
       data: tx.data,
       safeReorgHeight
