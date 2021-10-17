@@ -297,7 +297,7 @@ export async function clear (id: string): Promise<void> {
  * @returns {@link Transfer} transfer with an 'id'
  */
 export async function track (transferRaw: UnsavedTransfer): Promise<Transfer> {
-  const id = new Date().toISOString()
+  const id = Math.random().toString().slice(2)
   const transfer = { id, ...transferRaw }
   await storage.add(transfer)
   return transfer

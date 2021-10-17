@@ -34,6 +34,7 @@ export interface TransferDraft extends TransferStatus {
 
 export interface Transfer extends TransferDraft, TransactionInfo {
   id: string
+  startTime: string
   decimals: number
   destinationTokenName: string
   recipient: string
@@ -43,7 +44,6 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
-  startTime?: string
 }
 
 export interface TransferOptions {
@@ -261,7 +261,7 @@ export async function recover (
   const transfer = {
     ...transferDraft,
 
-    id: new Date().toISOString(),
+    id: Math.random().toString().slice(2),
     startTime: new Date(txBlock.timestamp * 1000).toISOString(),
     amount,
     completedStep: LOCK,
@@ -328,7 +328,8 @@ export async function initiate (
   let transfer = {
     ...transferDraft,
 
-    id: new Date().toISOString(),
+    id: Math.random().toString().slice(2),
+    startTime: new Date().toISOString(),
     amount: amount.toString(),
     destinationTokenName,
     recipient,

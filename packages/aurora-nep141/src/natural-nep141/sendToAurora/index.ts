@@ -21,13 +21,13 @@ export interface TransferDraft extends TransferStatus {
 
 export interface Transfer extends TransactionInfo, TransferDraft {
   id: string
+  startTime: string
   decimals: number
   destinationTokenName: string
   recipient: string
   sender: string
   sourceTokenName: string
   symbol: string
-  startTime?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -158,14 +158,14 @@ export async function findAllTransfers (
       }
       // @ts-expect-error TODO
       const txBlock = await nearAccount.connection.provider.block({ blockId: lockTx.transaction_outcome.block_hash })
-      const startTime = new Date(txBlock.header.timestamp / 10 ** 6).toISOString()
       const amount = tx.args.args_json.amount.toString()
       const msg = tx.args.args_json.msg
       const recipient = nep141Address === auroraEvmAccount ? '0x' + msg.slice(msg.length - 40) : '0x' + msg
       if (amount !== successValue) return null
       return {
         type: TRANSFER_TYPE,
-        id: new Date().toISOString(),
+        id: Math.random().toString().slice(2),
+        startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
         amount,
         decimals: metadata.decimals,
         symbol: metadata.symbol,
@@ -177,7 +177,6 @@ export async function findAllTransfers (
         status: status.COMPLETE,
         completedStep: LOCK,
         errors: [],
-        startTime,
         lockHashes: [tx.originated_from_transaction_hash]
       }
     }))
@@ -272,7 +271,8 @@ export async function sendToAurora (
 
   let transfer = {
     ...transferDraft,
-    id: new Date().toISOString(),
+    id: Math.random().toString().slice(2),
+    startTime: new Date().toISOString(),
     amount: amount.toString(),
     decimals,
     symbol,
@@ -366,7 +366,8 @@ export async function wrapAndSendNearToAurora (
 
   let transfer: Transfer = {
     ...transferDraft,
-    id: new Date().toISOString(),
+    id: Math.random().toString().slice(2),
+    startTime: new Date().toISOString(),
     amount: amount.toString(),
     decimals: 24,
     symbol,
