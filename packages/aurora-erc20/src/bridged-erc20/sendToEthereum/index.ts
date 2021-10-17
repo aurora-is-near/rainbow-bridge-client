@@ -227,6 +227,55 @@ export async function parseBurnReceipt (
   return { id: burnReceiptId, blockHeight: receiptBlockHeight }
 }
 
+export async function findAllTransactions (
+  { fromBlock, toBlock, sender, erc20Address, options }: {
+    fromBlock: number | string
+    toBlock: number | string
+    sender: string
+    erc20Address: string
+    options?: {
+      provider?: ethers.providers.Provider
+      auroraErc20Address?: string
+      auroraErc20Abi?: string
+      auroraEvmAccount?: string
+    }
+  }
+): Promise<string[]> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getAuroraProvider()
+  const auroraErc20Address = options.auroraErc20Address ?? await getAuroraErc20Address(
+    { erc20Address, options }
+  )
+  const auroraErc20 = new ethers.Contract(
+    auroraErc20Address,
+    options.auroraErc20Abi ?? bridgeParams.auroraErc20Abi,
+    provider
+  )
+  const filterBurns = auroraErc20.filters.Transfer!(sender, '0x0000000000000000000000000000000000000000')
+  const events = await auroraErc20.queryFilter(filterBurns, fromBlock, toBlock)
+  const receipts = await Promise.all(events.map(async (event) => await provider.getTransactionReceipt(event.transactionHash)))
+  // Keep only transfers from Aurora to Ethereum.
+  const transferReceipts = receipts.filter((receipt) => receipt.logs.length === 2 &&
+    receipt.logs[1]!.topics[0] === '0xd046c2bb01a5622bc4b9696332391d87491373762eeac0831c48400e2d5a5f07'
+  )
+  return transferReceipts.map(r => r.transactionHash)
+}
+
+export async function findAllTransfers (
+  { fromBlock, toBlock, sender, erc20Address, options }: {
+    fromBlock: number | string
+    toBlock: number | string
+    sender: string
+    erc20Address: string
+    options?: TransferOptions
+  }
+): Promise<Transfer[]> {
+  const burnTransactions = await findAllTransactions({ fromBlock, toBlock, sender, erc20Address, options })
+  const transfers = await Promise.all(burnTransactions.map(async (tx) => await recover(tx, sender, options)))
+  return transfers
+}
+
 /**
  * Recover transfer from a burn tx hash
  * @param auroraBurnTxHash Aurora tx hash containing the token withdrawal
@@ -306,7 +355,7 @@ export async function recover (
   const decimals = await getDecimals({ erc20Address, options })
   const sourceTokenName = 'a' + symbol
   const destinationTokenName = symbol
-  const sourceToken = 'TODO get aurora address'
+  const sourceToken = auroraBurnReceipt.logs[0].address.toLowerCase()
 
   // @ts-expect-error TODO
   const txBlock = await nearAccount.connection.provider.block({ blockId: burnTx.transaction_outcome.block_hash })

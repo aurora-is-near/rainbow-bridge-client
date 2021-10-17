@@ -88,6 +88,57 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   }
 }
 
+export async function findAllTransfers (
+  { fromBlock, toBlock, sender, options }: {
+    fromBlock: number | string
+    toBlock: number | string
+    sender: string
+    options?: {
+      provider?: ethers.providers.Provider
+      etherExitToNearPrecompile?: string
+    }
+  }
+): Promise<Transfer[]> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getAuroraProvider()
+
+  const filter = {
+    address: options.etherExitToNearPrecompile ?? bridgeParams.etherExitToNearPrecompile,
+    fromBlock,
+    toBlock,
+    topics: [
+      '0x5a91b8bc9c1981673db8fb226dbd8fcdd0c23f45cd28abb31403a5392f6dd0c7',
+      ethers.utils.hexZeroPad(sender, 32)
+    ]
+  }
+  const logs = await provider.getLogs(filter)
+
+  const transfers = await Promise.all(logs.map(async (log) => {
+    const txBlock = await provider.getBlock(log.blockHash)
+    const transfer = {
+      id: Math.random().toString().slice(2),
+      type: TRANSFER_TYPE,
+      status: status.COMPLETE,
+      completedStep: BURN,
+      startTime: new Date(txBlock.timestamp * 1000).toISOString(),
+      errors: [],
+      amount: ethers.BigNumber.from(log.data).toString(),
+      decimals: 18,
+      symbol: 'ETH',
+      sourceToken: 'ETH',
+      sourceTokenName: 'ETH',
+      destinationTokenName: 'ETH',
+      sender,
+      recipient: `NEAR account hash: ' + ${log.topics[3]!}`,
+      burnHashes: [log.transactionHash],
+      burnReceipts: []
+    }
+    return transfer
+  }))
+  return transfers
+}
+
 export async function checkBurn (
   transfer: Transfer,
   options?: {

@@ -150,6 +150,46 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   }
 }
 
+export async function findAllTransactions (
+  { fromBlock, toBlock, sender, options }: {
+    fromBlock: number | string
+    toBlock: number | string
+    sender: string
+    options?: {
+      provider?: ethers.providers.Provider
+      etherCustodianAddress?: string
+      etherCustodianAbi?: string
+      auroraEvmAccount?: string
+    }
+  }
+): Promise<string[]> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const provider = options.provider ?? getEthProvider()
+  const ethTokenLocker = new ethers.Contract(
+    options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
+    options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
+    provider
+  )
+  const filter = ethTokenLocker.filters.Deposited!(sender)
+  const events = await ethTokenLocker.queryFilter(filter, fromBlock, toBlock)
+  const auroraAddress = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount as string + ':'
+  return events.filter(event => event.args!.recipient.startsWith(auroraAddress)).map(event => event.transactionHash)
+}
+
+export async function findAllTransfers (
+  { fromBlock, toBlock, sender, options }: {
+    fromBlock: number | string
+    toBlock: number | string
+    sender: string
+    options?: TransferOptions
+  }
+): Promise<Transfer[]> {
+  const lockTransactions = await findAllTransactions({ fromBlock, toBlock, sender, options })
+  const transfers = await Promise.all(lockTransactions.map(async (tx) => await recover(tx, options)))
+  return transfers
+}
+
 /**
  * Recover transfer from a lock tx hash
  * @param lockTxHash Ethereum transaction hash which initiated the transfer.
