@@ -236,7 +236,10 @@ export async function findAllTransfers (
     sender: string
     erc20Address: string
     callIndexer: (query: string) => [{ originated_from_transaction_hash: string, args: { method_name: string } }]
-    options?: TransferOptions
+    options?: TransferOptions & {
+      decimals?: number
+      symbol?: string
+    }
   }
 ): Promise<Transfer[]> {
   const burnTransactions = await findAllTransactions({ fromBlock, toBlock, sender, erc20Address, callIndexer, options })
@@ -263,7 +266,10 @@ export async function findAllTransfers (
 export async function recover (
   withdrawTxHash: string,
   sender: string = 'todo',
-  options?: TransferOptions
+  options?: TransferOptions & {
+    decimals?: number
+    symbol?: string
+  }
 ): Promise<Transfer> {
   options = options ?? {}
   const nearAccount = options.nearAccount ?? await getNearAccount()
@@ -319,11 +325,11 @@ export async function recover (
   const amount = withdrawEvent.amount.toString()
   const recipient = '0x' + Buffer.from(withdrawEvent.recipient).toString('hex')
   const erc20Address = '0x' + Buffer.from(withdrawEvent.token).toString('hex')
-  const symbol = await getSymbol({ erc20Address, options })
+  const symbol = options.symbol ?? await getSymbol({ erc20Address, options })
   const destinationTokenName = symbol
   const sourceTokenName = 'n' + symbol
   const sourceToken = getNep141Address({ erc20Address, options })
-  const decimals = await getDecimals({ erc20Address, options })
+  const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
 
   const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, sender, sourceToken, nearAccount)
 

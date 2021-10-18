@@ -195,7 +195,10 @@ export async function findAllTransfers (
     toBlock: number | string
     sender: string
     erc20Address: string
-    options?: TransferOptions
+    options?: TransferOptions & {
+      decimals?: number
+      symbol?: string
+    }
   }
 ): Promise<Transfer[]> {
   const lockTransactions = await findAllTransactions({ fromBlock, toBlock, sender, erc20Address, options })
@@ -211,7 +214,10 @@ export async function findAllTransfers (
  */
 export async function recover (
   lockTxHash: string,
-  options?: TransferOptions
+  options?: TransferOptions & {
+    decimals?: number
+    symbol?: string
+  }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -240,8 +246,8 @@ export async function recover (
   if (!/^([A-Fa-f0-9]{40})$/.test(auroraRecipient)) {
     throw new Error('Failed to parse recipient in protocol message')
   }
-  const symbol: string = await getSymbol({ erc20Address, options })
-  const decimals = await getDecimals({ erc20Address, options })
+  const symbol: string = options.symbol ?? await getSymbol({ erc20Address, options })
+  const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
   const destinationTokenName = 'a' + symbol
   const sourceTokenName = symbol
 

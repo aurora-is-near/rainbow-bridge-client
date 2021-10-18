@@ -126,6 +126,8 @@ export async function findAllTransfers (
     options?: {
       auroraEvmAccount?: string
       nearAccount?: Account
+      decimals?: number
+      symbol?: string
     }
   }
 ): Promise<Transfer[]> {
@@ -138,7 +140,14 @@ export async function findAllTransfers (
   ))
   const regex = nep141Address === auroraEvmAccount ? new RegExp(`^${sender}:${'0'.repeat(64)}[a-f0-9]{40}$`) : /^[a-f0-9]{40}$/
   // TODO also use getMetadata for aurora (nETH) when available
-  const metadata = nep141Address === auroraEvmAccount ? { decimals: 18, symbol: 'ETH' } : await getMetadata({ nep141Address, options })
+  let metadata = { symbol: 'Symbol N/A', decimals: 0 }
+  if (nep141Address === auroraEvmAccount) {
+    metadata = { decimals: 18, symbol: 'ETH' }
+  } else if (!options.symbol || !options.decimals) {
+    metadata = await getMetadata({ nep141Address, options })
+  }
+  const symbol = options.symbol ?? metadata.symbol
+  const decimals = options.decimals ?? metadata.decimals
   const transfers = await Promise.all(transactions
     .filter(tx => tx.args.method_name === 'ft_transfer_call')
     .filter(tx => tx.args.args_json.receiver_id === auroraEvmAccount && regex.test(tx.args.args_json.msg))
@@ -167,8 +176,8 @@ export async function findAllTransfers (
         id: Math.random().toString().slice(2),
         startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
         amount,
-        decimals: metadata.decimals,
-        symbol: metadata.symbol,
+        decimals,
+        symbol,
         sourceToken: nep141Address,
         sourceTokenName: metadata.symbol,
         destinationTokenName: 'a' + metadata.symbol,
@@ -257,7 +266,7 @@ export async function sendToAurora (
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  let metadata = { symbol: nep141Address.slice(0, 5) + '...', decimals: 0 }
+  let metadata = { symbol: 'Symbol N/A', decimals: 0 }
   if (!options.symbol || !options.decimals) {
     metadata = await getMetadata({ nep141Address, options })
   }
