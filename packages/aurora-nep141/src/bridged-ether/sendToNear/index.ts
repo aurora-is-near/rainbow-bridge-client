@@ -53,6 +53,7 @@ const transferDraft: TransferDraft = {
   burnReceipts: []
 }
 
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 export const i18n = {
   en_US: {
     steps: (_transfer: Transfer) => [],
@@ -69,6 +70,7 @@ export const i18n = {
     }
   }
 }
+/* eslint-enable @typescript-eslint/restrict-template-expressions */
 
 /**
  * Called when status is FAILED
@@ -116,6 +118,7 @@ export async function findAllTransfers (
 
   const transfers = await Promise.all(logs.map(async (log) => {
     const txBlock = await provider.getBlock(log.blockHash)
+    const recipientHash: string = log.topics[3]!
     const transfer = {
       id: Math.random().toString().slice(2),
       startTime: new Date(txBlock.timestamp * 1000).toISOString(),
@@ -130,7 +133,7 @@ export async function findAllTransfers (
       sourceTokenName: 'ETH',
       destinationTokenName: 'ETH',
       sender,
-      recipient: `NEAR account hash: ' + ${log.topics[3]!}`,
+      recipient: `NEAR account hash: ${recipientHash}`,
       burnHashes: [log.transactionHash],
       burnReceipts: []
     }
@@ -149,7 +152,7 @@ export async function checkBurn (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getAuroraProvider()
-  const ethChainId = (await provider.getNetwork()).chainId
+  const ethChainId: number = (await provider.getNetwork()).chainId
   const expectedChainId: number = options.auroraChainId ?? bridgeParams.auroraChainId
   if (ethChainId !== expectedChainId) {
     throw new Error(

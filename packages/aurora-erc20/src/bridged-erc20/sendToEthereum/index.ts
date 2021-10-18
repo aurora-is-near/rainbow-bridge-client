@@ -254,7 +254,10 @@ export async function findAllTransactions (
   )
   const filterBurns = auroraErc20.filters.Transfer!(sender, '0x0000000000000000000000000000000000000000')
   const events = await auroraErc20.queryFilter(filterBurns, fromBlock, toBlock)
-  const receipts = await Promise.all(events.map(async (event) => await provider.getTransactionReceipt(event.transactionHash)))
+  const receipts = await Promise.all(events.map(async (event) => {
+    const receipt = await provider.getTransactionReceipt(event.transactionHash)
+    return receipt
+  }))
   // Keep only transfers from Aurora to Ethereum.
   const transferReceipts = receipts.filter((receipt) => receipt.logs.length === 2 &&
     receipt.logs[1]!.topics[0] === '0xd046c2bb01a5622bc4b9696332391d87491373762eeac0831c48400e2d5a5f07'
@@ -545,7 +548,7 @@ export async function checkBurn (
 
   const burnHash = last(transfer.burnHashes)
 
-  const ethChainId = (await provider.getNetwork()).chainId
+  const ethChainId: number = (await provider.getNetwork()).chainId
   const expectedChainId: number = options.auroraChainId ?? bridgeParams.auroraChainId
   if (ethChainId !== expectedChainId) {
     throw new Error(
@@ -717,7 +720,7 @@ export async function checkSync (
   if (transfer.nextCheckSyncTimestamp && new Date() < new Date(transfer.nextCheckSyncTimestamp)) {
     return transfer
   }
-  const ethChainId = (await provider.getNetwork()).chainId
+  const ethChainId: number = (await provider.getNetwork()).chainId
   const expectedChainId: number = options.ethChainId ?? bridgeParams.ethChainId
   if (ethChainId !== expectedChainId) {
     throw new Error(
@@ -849,7 +852,7 @@ export async function checkUnlock (
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
 
-  const ethChainId = (await provider.getNetwork()).chainId
+  const ethChainId: number = (await provider.getNetwork()).chainId
   const expectedChainId: number = options.ethChainId ?? bridgeParams.ethChainId
   if (ethChainId !== expectedChainId) {
     throw new Error(

@@ -393,7 +393,7 @@ export async function checkLock (
   const provider = options.provider ?? getEthProvider()
 
   const lockHash = last(transfer.lockHashes)
-  const ethChainId = (await provider.getNetwork()).chainId
+  const ethChainId: number = (await provider.getNetwork()).chainId
   const expectedChainId: number = options.ethChainId ?? bridgeParams.ethChainId
   if (ethChainId !== expectedChainId) {
     throw new Error(
