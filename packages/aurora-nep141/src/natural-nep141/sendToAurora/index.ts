@@ -48,6 +48,7 @@ const transferDraft: TransferDraft = {
   lockHashes: []
 }
 
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 export const i18n = {
   en_US: {
     steps: (_transfer: Transfer) => [],
@@ -64,6 +65,7 @@ export const i18n = {
     }
   }
 }
+/* eslint-enable @typescript-eslint/restrict-template-expressions */
 
 /**
  * Called when status is FAILED

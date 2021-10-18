@@ -756,7 +756,7 @@ export async function checkSync (
     return transfer
   }
 
-  const ethChainId = (await provider.getNetwork()).chainId
+  const ethChainId: number = (await provider.getNetwork()).chainId
   const expectedChainId: number = options.ethChainId ?? bridgeParams.ethChainId
   if (ethChainId !== expectedChainId) {
     throw new Error(
@@ -887,7 +887,7 @@ export async function checkUnlock (
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
 
-  const ethChainId = (await provider.getNetwork()).chainId
+  const ethChainId: number = (await provider.getNetwork()).chainId
   const expectedChainId: number = options.ethChainId ?? bridgeParams.ethChainId
   if (ethChainId !== expectedChainId) {
     throw new Error(

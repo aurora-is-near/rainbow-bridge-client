@@ -56,6 +56,7 @@ const transferDraft: TransferDraft = {
   burnReceipts: []
 }
 
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 export const i18n = {
   en_US: {
     steps: (_transfer: Transfer) => [],
@@ -72,6 +73,7 @@ export const i18n = {
     }
   }
 }
+/* eslint-enable @typescript-eslint/restrict-template-expressions */
 
 /**
  * Called when status is FAILED
@@ -121,7 +123,10 @@ export async function findAllTransfers (
   )
   const filterBurns = auroraErc20.filters.Transfer!(sender, '0x0000000000000000000000000000000000000000')
   const events = await auroraErc20.queryFilter(filterBurns, fromBlock, toBlock)
-  const receipts = await Promise.all(events.map(async (event) => await provider.getTransactionReceipt(event.transactionHash)))
+  const receipts = await Promise.all(events.map(async (event) => {
+    const receipt = await provider.getTransactionReceipt(event.transactionHash)
+    return receipt
+  }))
   // Keep only transfers from Aurora to NEAR.
   const transferReceipts = receipts.filter(
     (receipt) => receipt.logs.length === 2 && receipt.logs[1]!.topics[0] === '0x5a91b8bc9c1981673db8fb226dbd8fcdd0c23f45cd28abb31403a5392f6dd0c7'
@@ -137,6 +142,7 @@ export async function findAllTransfers (
 
   const transfers = await Promise.all(transferReceipts.map(async (r) => {
     const txBlock = await provider.getBlock(r.blockHash)
+    const recipientHash: string = r.logs[1]!.topics[3]!
     const transfer = {
       id: Math.random().toString().slice(2),
       startTime: new Date(txBlock.timestamp * 1000).toISOString(),
@@ -151,7 +157,7 @@ export async function findAllTransfers (
       sourceTokenName,
       destinationTokenName,
       sender,
-      recipient: `NEAR account hash: ' + ${r.logs[1]!.topics[3]!}`,
+      recipient: `NEAR account hash: ${recipientHash}`,
       burnHashes: [r.transactionHash],
       burnReceipts: []
     }
@@ -170,7 +176,7 @@ export async function checkBurn (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getAuroraProvider()
-  const ethChainId = (await provider.getNetwork()).chainId
+  const ethChainId: number = (await provider.getNetwork()).chainId
   const expectedChainId: number = options.auroraChainId ?? bridgeParams.auroraChainId
   if (ethChainId !== expectedChainId) {
     throw new Error(
