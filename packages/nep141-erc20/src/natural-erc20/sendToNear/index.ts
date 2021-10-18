@@ -229,7 +229,10 @@ export async function findAllTransfers (
     toBlock: number | string
     sender: string
     erc20Address: string
-    options?: TransferOptions
+    options?: TransferOptions & {
+      decimals?: number
+      symbol?: string
+    }
   }
 ): Promise<Transfer[]> {
   const lockTransactions = await findAllTransactions({ fromBlock, toBlock, sender, erc20Address, options })
@@ -245,7 +248,10 @@ export async function findAllTransfers (
  */
 export async function recover (
   lockTxHash: string,
-  options?: TransferOptions
+  options?: TransferOptions & {
+    decimals?: number
+    symbol?: string
+  }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -267,10 +273,10 @@ export async function recover (
   const amount = lockedEvent.args!.amount.toString()
   const recipient = lockedEvent.args!.accountId
   const sender = lockedEvent.args!.sender
-  const symbol: string = await getSymbol({ erc20Address, options })
+  const symbol: string = options.symbol ?? await getSymbol({ erc20Address, options })
   const sourceTokenName = symbol
   const destinationTokenName = 'n' + symbol
-  const decimals = await getDecimals({ erc20Address, options })
+  const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
 
   const txBlock = await lockedEvent.getBlock()
 

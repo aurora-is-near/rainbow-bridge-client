@@ -268,7 +268,10 @@ export async function findAllTransfers (
     toBlock: number | string
     sender: string
     erc20Address: string
-    options?: TransferOptions
+    options?: TransferOptions & {
+      decimals?: number
+      symbol?: string
+    }
   }
 ): Promise<Transfer[]> {
   const burnTransactions = await findAllTransactions({ fromBlock, toBlock, sender, erc20Address, options })
@@ -286,7 +289,10 @@ export async function findAllTransfers (
 export async function recover (
   auroraBurnTxHash: string,
   sender: string = 'todo',
-  options?: TransferOptions
+  options?: TransferOptions & {
+    decimals?: number
+    symbol?: string
+  }
 ): Promise<Transfer> {
   options = options ?? {}
   const nearAccount = options.nearAccount ?? await getNearAccount()
@@ -351,8 +357,8 @@ export async function recover (
   const amount = burnEvent.amount.toString()
   const recipient = '0x' + Buffer.from(burnEvent.recipient).toString('hex')
   const erc20Address = '0x' + Buffer.from(burnEvent.token).toString('hex')
-  const symbol = await getSymbol({ erc20Address, options })
-  const decimals = await getDecimals({ erc20Address, options })
+  const symbol = options.symbol ?? await getSymbol({ erc20Address, options })
+  const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
   const sourceTokenName = 'a' + symbol
   const destinationTokenName = symbol
   const sourceToken = auroraBurnReceipt.logs[0].address.toLowerCase()

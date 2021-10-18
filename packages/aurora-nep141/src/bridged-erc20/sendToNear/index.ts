@@ -103,6 +103,8 @@ export async function findAllTransfers (
       auroraErc20Abi?: string
       auroraEvmAccount?: string
       nearAccount?: Account
+      decimals?: number
+      symbol?: string
     }
   }
 ): Promise<Transfer[]> {
@@ -124,11 +126,14 @@ export async function findAllTransfers (
   const transferReceipts = receipts.filter(
     (receipt) => receipt.logs.length === 2 && receipt.logs[1]!.topics[0] === '0x5a91b8bc9c1981673db8fb226dbd8fcdd0c23f45cd28abb31403a5392f6dd0c7'
   )
-  const metadata = await getMetadata({ nep141Address, options })
-  const symbol = metadata.symbol
+  let metadata = { symbol: 'Symbol N/A', decimals: 0 }
+  if (!options.symbol || !options.decimals) {
+    metadata = await getMetadata({ nep141Address, options })
+  }
+  const symbol = options.symbol ?? metadata.symbol
   const sourceTokenName = symbol
   const destinationTokenName = symbol
-  const decimals = metadata.decimals
+  const decimals = options.decimals ?? metadata.decimals
 
   const transfers = await Promise.all(transferReceipts.map(async (r) => {
     const txBlock = await provider.getBlock(r.blockHash)
@@ -248,7 +253,7 @@ export async function sendToNear (
 ): Promise<Transfer> {
   options = options ?? {}
   const provider = options.provider ?? getSignerProvider()
-  let metadata = { symbol: nep141Address.slice(0, 5) + '...', decimals: 0 }
+  let metadata = { symbol: 'Symbol N/A', decimals: 0 }
   if (!options.symbol || !options.decimals) {
     metadata = await getMetadata({ nep141Address, options })
   }
