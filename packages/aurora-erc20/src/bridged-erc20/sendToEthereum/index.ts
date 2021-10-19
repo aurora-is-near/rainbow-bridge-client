@@ -259,9 +259,10 @@ export async function findAllTransactions (
     return receipt
   }))
   // Keep only transfers from Aurora to Ethereum.
-  const transferReceipts = receipts.filter((receipt) => receipt.logs.length === 2 &&
-    receipt.logs[1]!.topics[0] === '0xd046c2bb01a5622bc4b9696332391d87491373762eeac0831c48400e2d5a5f07'
-  )
+  const logId = '0xd046c2bb01a5622bc4b9696332391d87491373762eeac0831c48400e2d5a5f07'
+  const transferReceipts = receipts.filter((receipt) => receipt.logs.find(
+    (log) => log.topics[0] === logId
+  ))
   return transferReceipts.map(r => r.transactionHash)
 }
 
@@ -364,7 +365,10 @@ export async function recover (
   const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
   const sourceTokenName = 'a' + symbol
   const destinationTokenName = symbol
-  const sourceToken = auroraBurnReceipt.logs[0].address.toLowerCase()
+  const logId = '0xd046c2bb01a5622bc4b9696332391d87491373762eeac0831c48400e2d5a5f07'
+  const sourceToken = auroraBurnReceipt.logs.find(
+    (log: ethers.providers.Log) => log.topics[0] === logId
+  ).address.toLowerCase()
 
   // @ts-expect-error TODO
   const txBlock = await nearAccount.connection.provider.block({ blockId: burnTx.transaction_outcome.block_hash })

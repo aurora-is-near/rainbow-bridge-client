@@ -128,9 +128,10 @@ export async function findAllTransfers (
     return receipt
   }))
   // Keep only transfers from Aurora to NEAR.
-  const transferReceipts = receipts.filter(
-    (receipt) => receipt.logs.length === 2 && receipt.logs[1]!.topics[0] === '0x5a91b8bc9c1981673db8fb226dbd8fcdd0c23f45cd28abb31403a5392f6dd0c7'
-  )
+  const logId = '0x5a91b8bc9c1981673db8fb226dbd8fcdd0c23f45cd28abb31403a5392f6dd0c7'
+  const transferReceipts = receipts.filter((receipt) => receipt.logs.find(
+    (log) => log.topics[0] === logId
+  ))
   let metadata = { symbol: 'Symbol N/A', decimals: 0 }
   if (!options.symbol || !options.decimals) {
     metadata = await getMetadata({ nep141Address, options })
@@ -142,7 +143,10 @@ export async function findAllTransfers (
 
   const transfers = await Promise.all(transferReceipts.map(async (r) => {
     const txBlock = await provider.getBlock(r.blockHash)
-    const recipientHash: string = r.logs[1]!.topics[3]!
+    const exitLog = r.logs.find(log => log.topics[0] === logId)!
+    const recipientHash: string = exitLog.topics[3]!
+    const amount = ethers.BigNumber.from(exitLog.data).toString()
+
     const transfer = {
       id: Math.random().toString().slice(2),
       startTime: new Date(txBlock.timestamp * 1000).toISOString(),
@@ -150,7 +154,7 @@ export async function findAllTransfers (
       status: status.COMPLETE,
       completedStep: BURN,
       errors: [],
-      amount: ethers.BigNumber.from(r.logs[1]!.data).toString(),
+      amount,
       decimals,
       symbol,
       sourceToken: auroraErc20Address,

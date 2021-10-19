@@ -105,14 +105,12 @@ export async function findAllTransfers (
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getAuroraProvider()
 
+  const logId = '0x5a91b8bc9c1981673db8fb226dbd8fcdd0c23f45cd28abb31403a5392f6dd0c7'
   const filter = {
     address: options.etherExitToNearPrecompile ?? bridgeParams.etherExitToNearPrecompile,
     fromBlock,
     toBlock,
-    topics: [
-      '0x5a91b8bc9c1981673db8fb226dbd8fcdd0c23f45cd28abb31403a5392f6dd0c7',
-      ethers.utils.hexZeroPad(sender, 32)
-    ]
+    topics: [logId, ethers.utils.hexZeroPad(sender, 32)]
   }
   const logs = await provider.getLogs(filter)
 
