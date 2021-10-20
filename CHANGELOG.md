@@ -1,3 +1,23 @@
+# [2.2.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.1.0...v2.2.0) (2021-10-20)
+
+
+### Bug Fixes
+
+* Query icon from nep141, update naj release. ([51f54c2](https://github.com/aurora-is-near/rainbow-bridge-client/commit/51f54c20eb4741df2cca95f4f5728e4276029430))
+* Remove unnecessary conflictingTransfer check. ([144bf35](https://github.com/aurora-is-near/rainbow-bridge-client/commit/144bf35bf4b16b1f73868a9ddb39673be0fcd63d))
+* Replace eth_getStorageAt. ([1d41f5f](https://github.com/aurora-is-near/rainbow-bridge-client/commit/1d41f5f4f3319f031a0543352344a104c9b93ea3))
+* Throw on invalid eth/aurora chain id. ([f5a5f75](https://github.com/aurora-is-near/rainbow-bridge-client/commit/f5a5f7563c34cd6df5b94d95db8cb687a0d61c20))
+
+
+### Features
+
+* Add findAllTransfers to/from Aurora. ([4b3de53](https://github.com/aurora-is-near/rainbow-bridge-client/commit/4b3de539091f8622711e709ab7ea2ee1cede1699), [47318fc](https://github.com/aurora-is-near/rainbow-bridge-client/commit/47318fc2dd3deacc676fef7f2a3a66364bf6562a))
+* Add optional metadata to recover. ([e9672c1](https://github.com/aurora-is-near/rainbow-bridge-client/commit/e9672c1f3cac6742a8fc62e62c49ee0df8ffd3cb))
+* Give a random `id` to transfers. ([2575d04](https://github.com/aurora-is-near/rainbow-bridge-client/commit/2575d0419d19577213c98cb3b07b8692f4b73d5a))
+* Refactor aurora-nep141/bridged-ether. ([c373bd2](https://github.com/aurora-is-near/rainbow-bridge-client/commit/c373bd2d480a2d81782322d7f7468936eed9bf91))
+
+
+
 # [2.1.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.0.0...v2.1.0) (2021-09-23)
 
 
