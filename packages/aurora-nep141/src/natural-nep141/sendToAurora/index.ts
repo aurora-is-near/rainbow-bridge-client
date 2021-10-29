@@ -121,10 +121,10 @@ export async function findAllTransfers (
     toBlock: string
     sender: string
     nep141Address: string
-    callIndexer: (query: string) => [{
+    callIndexer: (query: string) => Promise<[{
       originated_from_transaction_hash: string
       args: { method_name: string, args_json: { msg: string, amount: string, receiver_id: string } }
-    }]
+    }]>
     options?: {
       auroraEvmAccount?: string
       nearAccount?: Account
@@ -142,7 +142,7 @@ export async function findAllTransfers (
   ))
   const regex = nep141Address === auroraEvmAccount ? new RegExp(`^${sender}:${'0'.repeat(64)}[a-f0-9]{40}$`) : /^[a-f0-9]{40}$/
   // TODO also use getMetadata for aurora (nETH) when available
-  let metadata = { symbol: 'Symbol N/A', decimals: 0 }
+  let metadata = { symbol: '', decimals: 0 }
   if (nep141Address === auroraEvmAccount) {
     metadata = { decimals: 18, symbol: 'ETH' }
   } else if (!options.symbol || !options.decimals) {
@@ -192,6 +192,73 @@ export async function findAllTransfers (
       }
     }))
   return transfers.filter((transfer: Transfer | null): transfer is Transfer => transfer !== null)
+}
+
+export async function recover (
+  lockTxHash: string,
+  callIndexer: (query: string) => Promise<[{
+    included_in_block_timestamp: string
+    receipt_predecessor_account_id: string
+    args: { method_name: string, args_json: { msg: string, amount: string, sender_id: string } }
+  }]>,
+  options?: {
+    nearAccount?: Account
+    decimals?: number
+    symbol?: string
+    auroraEvmAccount?: string
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const bridgeParams = getBridgeParams()
+  const auroraEvmAccount: string = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
+  const actionReceipts = await callIndexer(`SELECT public.receipts.included_in_block_timestamp,
+    public.action_receipt_actions.receipt_predecessor_account_id, public.action_receipt_actions.args
+    FROM public.receipts
+    JOIN public.action_receipt_actions
+    ON public.action_receipt_actions.receipt_id = public.receipts.receipt_id
+    WHERE (originated_from_transaction_hash = '${lockTxHash}'
+      AND receiver_account_id = '${auroraEvmAccount}'
+    )`
+  )
+  const [lockToAuroraActionReceipt] = actionReceipts.filter(
+    // When sending nETH, msg = near_sender:eth_addr
+    // When sending other nep141, msg = eth_addr
+    r => r.args.method_name === 'ft_on_transfer' && /^[a-f0-9]{40}$/.test(r.args.args_json.msg.slice(r.args.args_json.msg.length - 40))
+  )
+  if (!lockToAuroraActionReceipt) {
+    throw new Error(`Failed to verify ${auroraEvmAccount} ft_on_transfer action receipt: ${JSON.stringify(actionReceipts)}`)
+  }
+  const nep141Address = lockToAuroraActionReceipt.receipt_predecessor_account_id
+  let metadata = { symbol: '', decimals: 0 }
+  if (nep141Address === auroraEvmAccount) {
+    metadata = { decimals: 18, symbol: 'ETH' }
+  } else if (!options.symbol || !options.decimals) {
+    metadata = await getMetadata({ nep141Address, options })
+  }
+  const symbol = options.symbol ?? metadata.symbol
+  const decimals = options.decimals ?? metadata.decimals
+  let sender = lockToAuroraActionReceipt.args.args_json.sender_id
+  if (sender === auroraEvmAccount) {
+    const msg = lockToAuroraActionReceipt.args.args_json.msg
+    sender = msg.substr(0, msg.indexOf(':'))
+  }
+  return {
+    type: TRANSFER_TYPE,
+    id: Math.random().toString().slice(2),
+    startTime: new Date(Number(lockToAuroraActionReceipt.included_in_block_timestamp) / 10 ** 6).toISOString(),
+    amount: lockToAuroraActionReceipt.args.args_json.amount,
+    decimals,
+    symbol,
+    sourceToken: nep141Address,
+    sourceTokenName: metadata.symbol,
+    destinationTokenName: 'a' + metadata.symbol,
+    sender,
+    recipient: '0x' + lockToAuroraActionReceipt.args.args_json.msg.slice(lockToAuroraActionReceipt.args.args_json.msg.length - 40),
+    status: status.COMPLETE,
+    completedStep: LOCK,
+    errors: [],
+    lockHashes: [lockTxHash]
+  }
 }
 
 export async function checkLock (
@@ -268,7 +335,7 @@ export async function sendToAurora (
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  let metadata = { symbol: 'Symbol N/A', decimals: 0 }
+  let metadata = { symbol: '', decimals: 0 }
   if (!options.symbol || !options.decimals) {
     metadata = await getMetadata({ nep141Address, options })
   }

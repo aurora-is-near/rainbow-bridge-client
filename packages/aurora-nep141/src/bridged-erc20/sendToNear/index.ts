@@ -4,8 +4,9 @@ import { getAuroraProvider, getSignerProvider, getBridgeParams, track } from '@n
 import { TransactionInfo, TransferStatus } from '@near-eth/client/dist/types'
 import * as status from '@near-eth/client/dist/statuses'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
-import { getAuroraErc20Address } from '../getAddress'
+import { getAuroraErc20Address, getNep141Address } from '../getAddress'
 import { getMetadata } from '../../natural-nep141'
+import { EXIT_TO_NEAR_SIGNATURE, BURN_SIGNATURE } from '@near-eth/utils/dist/aurora'
 
 export const SOURCE_NETWORK = 'aurora'
 export const DESTINATION_NETWORK = 'near'
@@ -128,11 +129,10 @@ export async function findAllTransfers (
     return receipt
   }))
   // Keep only transfers from Aurora to NEAR.
-  const logId = '0x5a91b8bc9c1981673db8fb226dbd8fcdd0c23f45cd28abb31403a5392f6dd0c7'
   const transferReceipts = receipts.filter((receipt) => receipt.logs.find(
-    (log) => log.topics[0] === logId
+    (log) => log.topics[0] === EXIT_TO_NEAR_SIGNATURE
   ))
-  let metadata = { symbol: 'Symbol N/A', decimals: 0 }
+  let metadata = { symbol: '', decimals: 0 }
   if (!options.symbol || !options.decimals) {
     metadata = await getMetadata({ nep141Address, options })
   }
@@ -143,7 +143,7 @@ export async function findAllTransfers (
 
   const transfers = await Promise.all(transferReceipts.map(async (r) => {
     const txBlock = await provider.getBlock(r.blockHash)
-    const exitLog = r.logs.find(log => log.topics[0] === logId)!
+    const exitLog = r.logs.find(log => log.topics[0] === EXIT_TO_NEAR_SIGNATURE)!
     const recipientHash: string = exitLog.topics[3]!
     const amount = ethers.BigNumber.from(exitLog.data).toString()
 
@@ -168,6 +168,60 @@ export async function findAllTransfers (
     return transfer
   }))
   return transfers
+}
+
+export async function recover (
+  burnTxHash: string,
+  options?: {
+    provider?: ethers.providers.Provider
+    nep141Address?: string
+    auroraEvmAccount?: string
+    nearAccount?: Account
+    decimals?: number
+    symbol?: string
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const provider = options.provider ?? getAuroraProvider()
+  const receipt = await provider.getTransactionReceipt(burnTxHash)
+
+  const exitLog: ethers.providers.Log = receipt.logs.find(log => log.topics[0] === EXIT_TO_NEAR_SIGNATURE)!
+  const burnLog: ethers.providers.Log = receipt.logs.find(log => log.topics[0] === BURN_SIGNATURE)!
+  const recipientHash: string = exitLog.topics[3]!
+  const amount = ethers.BigNumber.from(exitLog.data).toString()
+  const auroraErc20Address = '0x' + exitLog.topics[1]!.slice(26)
+  const sender = '0x' + burnLog.topics[1]!.slice(26)
+
+  let metadata = { symbol: '', decimals: 0 }
+  if (!options.symbol || !options.decimals) {
+    const nep141Address = options.nep141Address ?? await getNep141Address({ auroraErc20Address, options })
+    metadata = await getMetadata({ nep141Address: nep141Address!, options })
+  }
+  const symbol = options.symbol ?? metadata.symbol
+  const sourceTokenName = symbol
+  const destinationTokenName = symbol
+  const decimals = options.decimals ?? metadata.decimals
+  const txBlock = await provider.getBlock(receipt.blockHash)
+
+  const transfer = {
+    id: Math.random().toString().slice(2),
+    startTime: new Date(txBlock.timestamp * 1000).toISOString(),
+    type: TRANSFER_TYPE,
+    status: status.COMPLETE,
+    completedStep: BURN,
+    errors: [],
+    amount,
+    decimals,
+    symbol,
+    sourceToken: auroraErc20Address,
+    sourceTokenName,
+    destinationTokenName,
+    sender,
+    recipient: `NEAR account hash: ${recipientHash}`,
+    burnHashes: [receipt.transactionHash],
+    burnReceipts: []
+  }
+  return transfer
 }
 
 export async function checkBurn (
@@ -263,7 +317,7 @@ export async function sendToNear (
 ): Promise<Transfer> {
   options = options ?? {}
   const provider = options.provider ?? getSignerProvider()
-  let metadata = { symbol: 'Symbol N/A', decimals: 0 }
+  let metadata = { symbol: '', decimals: 0 }
   if (!options.symbol || !options.decimals) {
     metadata = await getMetadata({ nep141Address, options })
   }
