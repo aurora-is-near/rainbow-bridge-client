@@ -195,7 +195,7 @@ export async function findAllTransactions (
     fromBlock: string
     toBlock: string
     sender: string
-    callIndexer: (query: string) => [{ originated_from_transaction_hash: string, args: { method_name: string } }]
+    callIndexer: (query: string) => Promise<[{ originated_from_transaction_hash: string, args: { method_name: string } }]>
     options?: {
       auroraEvmAccount?: string
     }
@@ -226,7 +226,7 @@ export async function findAllTransfers (
     fromBlock: string
     toBlock: string
     sender: string
-    callIndexer: (query: string) => [{ originated_from_transaction_hash: string, args: { method_name: string } }]
+    callIndexer: (query: string) => Promise<[{ originated_from_transaction_hash: string, args: { method_name: string } }]>
     options?: TransferOptions
   }
 ): Promise<Transfer[]> {
