@@ -19,6 +19,7 @@ import {
   formatLargeNum,
   getBridgeParams
 } from '@near-eth/client/dist/utils'
+import { EXIT_TO_ETHEREUM_SIGNATURE } from '@near-eth/utils/dist/aurora'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 
 export const SOURCE_NETWORK = 'aurora'
@@ -236,7 +237,7 @@ export async function findAllTransactions (
     fromBlock,
     toBlock,
     topics: [
-      '0xd046c2bb01a5622bc4b9696332391d87491373762eeac0831c48400e2d5a5f07',
+      EXIT_TO_ETHEREUM_SIGNATURE,
       ethers.utils.hexZeroPad(sender, 32)
     ]
   }
@@ -259,29 +260,49 @@ export async function findAllTransfers (
 
 /**
  * Recover transfer from a burn tx hash
- * @param auroraBurnTxHash Aurora tx hash containing the token withdrawal
+ * @param burnTxHash Aurora or NEAR relayer tx hash containing the token withdrawal
  * @param sender Near account sender of burnTxHash (aurora relayer)
  * @param options TransferOptions optional arguments.
  * @returns The recovered transfer object
  */
 export async function recover (
-  auroraBurnTxHash: string,
+  burnTxHash: string,
   sender: string = 'todo',
   options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const nearAccount = options.nearAccount ?? await getNearAccount()
-  const auroraProvider = options.auroraProvider ?? getAuroraProvider()
 
-  // Ethers formats the receipts and removes nearTransactionHash
-  const auroraBurnReceipt = await auroraProvider.send('eth_getTransactionReceipt', [auroraBurnTxHash])
-  const nearBurnTxHash: string = bs58.encode(Buffer.from(auroraBurnReceipt.nearTransactionHash.slice(2), 'hex'))
+  let nearBurnTxHash
+  let decodedTxHash
+  let auroraTxHash
+  let auroraSender = 'NA'
+  if (/^0x[A-Fa-f0-9]{64}$/.test(burnTxHash)) {
+    const auroraProvider = options.auroraProvider ?? getAuroraProvider()
+    // Ethers formats the receipts and removes nearTransactionHash
+    const auroraBurnReceipt = await auroraProvider.send('eth_getTransactionReceipt', [burnTxHash])
+    decodedTxHash = Buffer.from(auroraBurnReceipt.nearTransactionHash.slice(2), 'hex')
+    nearBurnTxHash = bs58.encode(decodedTxHash)
+    const exitLog: ethers.providers.Log = auroraBurnReceipt.logs.find(
+      (log: ethers.providers.Log) => log.topics[0] === EXIT_TO_ETHEREUM_SIGNATURE
+    )
+    auroraSender = '0x' + exitLog.topics[1]!.slice(26)
+    auroraTxHash = burnTxHash
+  } else {
+    nearBurnTxHash = burnTxHash
+    decodedTxHash = utils.serialize.base_decode(nearBurnTxHash)
+  }
 
-  const decodedTxHash = utils.serialize.base_decode(nearBurnTxHash)
   const burnTx = await nearAccount.connection.provider.txStatus(
     decodedTxHash, sender
   )
+
+  if (!auroraTxHash) {
+    auroraTxHash = ethers.utils.keccak256(
+      Buffer.from(burnTx.transaction.actions[0].FunctionCall.args, 'base64')
+    )
+  }
 
   // @ts-expect-error TODO
   if (burnTx.status.Unknown) {
@@ -350,15 +371,13 @@ export async function recover (
     completedStep: BURN,
     destinationTokenName,
     recipient,
-    sender: auroraBurnReceipt.from, // TODO get sender from receipt event (to handle multisig)
+    sender: auroraSender,
     sourceToken,
     sourceTokenName,
     symbol,
     decimals,
-
-    burnHashes: [auroraBurnReceipt.transactionHash],
+    burnHashes: [auroraTxHash],
     nearBurnHashes: [nearBurnTxHash],
-    burnReceipts: [auroraBurnReceipt],
     nearBurnReceiptIds: [nearBurnReceipt.id],
     nearBurnReceiptBlockHeights: [nearBurnReceipt.blockHeight]
   }
