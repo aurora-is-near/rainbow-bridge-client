@@ -77,6 +77,7 @@ export interface TransferOptions {
   ethClientAddress?: string
   ethClientAbi?: string
   auroraProvider?: ethers.providers.JsonRpcProvider
+  auroraEvmAccount?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -725,7 +726,7 @@ export async function checkSync (
   if (nearOnEthClientBlockHeight > burnBlockHeight) {
     proof = await findNearProof(
       last(transfer.nearBurnReceiptIds),
-      transfer.sender,
+      options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
       nearOnEthClientBlockHeight,
       nearAccount,
       provider,

@@ -761,7 +761,7 @@ export async function checkSync (
   if (nearOnEthClientBlockHeight > lockReceiptBlockHeight) {
     proof = await findNearProof(
       last(transfer.lockReceiptIds),
-      transfer.sender,
+      options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
       nearOnEthClientBlockHeight,
       nearAccount,
       provider,

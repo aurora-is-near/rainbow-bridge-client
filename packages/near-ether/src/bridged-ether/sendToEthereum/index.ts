@@ -776,7 +776,7 @@ export async function checkSync (
   if (nearOnEthClientBlockHeight > withdrawBlockHeight) {
     proof = await findNearProof(
       last(transfer.burnReceiptIds),
-      transfer.sender,
+      options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
       nearOnEthClientBlockHeight,
       nearAccount,
       provider,
