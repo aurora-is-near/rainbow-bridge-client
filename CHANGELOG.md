@@ -1,3 +1,18 @@
+# [2.3.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.2.0...v2.3.0) (2021-10-29)
+
+
+### Bug Fixes
+
+* NEAR proof sharding fix. ([555c3c4](https://github.com/aurora-is-near/rainbow-bridge-client/commit/555c3c4ee471e6593f29b1b05edb69ed6ea8ccbf))
+
+
+### Features
+
+* Add aurora-nep141 recover. ([934adc6](https://github.com/aurora-is-near/rainbow-bridge-client/commit/934adc684dd5546ee1c7c4be6014c63f4fb4ae37))
+* Restore Aurora -> Eth transfer from NEAR relayer tx. ([9beb6f9](https://github.com/aurora-is-near/rainbow-bridge-client/commit/9beb6f9c2dca6fad0a5f618d9811d27ec2411ab3))
+
+
+
 # [2.2.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.1.0...v2.2.0) (2021-10-20)
 
 
