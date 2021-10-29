@@ -201,7 +201,7 @@ export async function findAllTransactions (
     toBlock: string
     sender: string
     erc20Address: string
-    callIndexer: (query: string) => [{ originated_from_transaction_hash: string, args: { method_name: string } }]
+    callIndexer: (query: string) => Promise<[{ originated_from_transaction_hash: string, args: { method_name: string } }]>
     options?: {
       nep141Factory?: string
       nep141Address?: string
@@ -235,7 +235,7 @@ export async function findAllTransfers (
     toBlock: string
     sender: string
     erc20Address: string
-    callIndexer: (query: string) => [{ originated_from_transaction_hash: string, args: { method_name: string } }]
+    callIndexer: (query: string) => Promise<[{ originated_from_transaction_hash: string, args: { method_name: string } }]>
     options?: TransferOptions & {
       decimals?: number
       symbol?: string
