@@ -3,6 +3,7 @@ import { getAuroraProvider, getSignerProvider, getBridgeParams, track } from '@n
 import { TransactionInfo, TransferStatus } from '@near-eth/client/dist/types'
 import * as status from '@near-eth/client/dist/statuses'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
+import { EXIT_TO_NEAR_SIGNATURE } from '@near-eth/utils/dist/aurora'
 
 export const SOURCE_NETWORK = 'aurora'
 export const DESTINATION_NETWORK = 'near'
@@ -105,12 +106,11 @@ export async function findAllTransfers (
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getAuroraProvider()
 
-  const logId = '0x5a91b8bc9c1981673db8fb226dbd8fcdd0c23f45cd28abb31403a5392f6dd0c7'
   const filter = {
     address: options.etherExitToNearPrecompile ?? bridgeParams.etherExitToNearPrecompile,
     fromBlock,
     toBlock,
-    topics: [logId, ethers.utils.hexZeroPad(sender, 32)]
+    topics: [EXIT_TO_NEAR_SIGNATURE, ethers.utils.hexZeroPad(sender, 32)]
   }
   const logs = await provider.getLogs(filter)
 
@@ -138,6 +138,51 @@ export async function findAllTransfers (
     return transfer
   }))
   return transfers
+}
+
+export async function recover (
+  burnTxHash: string,
+  options?: {
+    provider?: ethers.providers.Provider
+    etherExitToNearPrecompile?: string
+  }
+): Promise<Transfer> {
+  options = options ?? {}
+  const provider = options.provider ?? getAuroraProvider()
+  const bridgeParams = getBridgeParams()
+  const receipt = await provider.getTransactionReceipt(burnTxHash)
+
+  const exitLog: ethers.providers.Log = receipt.logs.find(log => log.topics[0] === EXIT_TO_NEAR_SIGNATURE)!
+  const etherExitToNearPrecompile = options.etherExitToNearPrecompile ?? bridgeParams.etherExitToNearPrecompile
+  if (exitLog.address.toLowerCase() !== etherExitToNearPrecompile.toLowerCase()) {
+    throw new Error(`Failed to verify exit log precompile address ${JSON.stringify(exitLog)}`)
+  }
+
+  const recipientHash: string = exitLog.topics[3]!
+  const amount = ethers.BigNumber.from(exitLog.data).toString()
+  const sender = '0x' + exitLog.topics[1]!.slice(26)
+
+  const txBlock = await provider.getBlock(receipt.blockHash)
+
+  const transfer = {
+    id: Math.random().toString().slice(2),
+    startTime: new Date(txBlock.timestamp * 1000).toISOString(),
+    type: TRANSFER_TYPE,
+    status: status.COMPLETE,
+    completedStep: BURN,
+    errors: [],
+    amount,
+    decimals: 18,
+    symbol: 'ETH',
+    sourceToken: 'ETH',
+    sourceTokenName: 'ETH',
+    destinationTokenName: 'ETH',
+    sender,
+    recipient: `NEAR account hash: ${recipientHash}`,
+    burnHashes: [receipt.transactionHash],
+    burnReceipts: []
+  }
+  return transfer
 }
 
 export async function checkBurn (
