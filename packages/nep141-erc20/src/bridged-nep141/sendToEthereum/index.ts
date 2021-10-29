@@ -68,6 +68,7 @@ export interface TransferOptions {
   erc20Abi?: string
   nep141Factory?: string
   erc20LockerAbi?: string
+  nearTokenFactoryAccount?: string
 }
 
 class TransferError extends Error {}
@@ -776,7 +777,7 @@ export async function checkSync (
   if (nearOnEthClientBlockHeight > withdrawBlockHeight) {
     proof = await findNearProof(
       last(transfer.withdrawReceiptIds),
-      transfer.sender,
+      options.nearTokenFactoryAccount ?? bridgeParams.nearTokenFactoryAccount,
       nearOnEthClientBlockHeight,
       nearAccount,
       provider,

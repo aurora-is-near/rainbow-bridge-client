@@ -61,7 +61,15 @@ export function borshifyOutcomeProof (proof: any): Buffer {
 
       statusToBuffer(proof.outcome_proof.outcome.status),
 
-      utils.toBN(0).toBuffer('le', 4),
+      utils.toBN(proof.outcome_root_proof.length).toBuffer('le', 4),
+      Buffer.concat(
+        proof.outcome_root_proof.map((orp: any) =>
+          Buffer.concat([
+            bs58.decode(orp.hash),
+            Buffer.from([orp.direction === 'Right' ? 1 : 0])
+          ])
+        )
+      ),
 
       bs58.decode(proof.block_header_lite.prev_block_hash),
       bs58.decode(proof.block_header_lite.inner_rest_hash),
