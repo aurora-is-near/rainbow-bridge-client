@@ -222,7 +222,7 @@ export async function recover (
   if (auroraAddress !== (options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount)) {
     throw new Error('Failed to parse auroraEvmAccount in protocol message')
   }
-  if (!/^([A-Fa-f0-9]{40})$/.test(auroraRecipient)) {
+  if (!/^(0x)?([A-Fa-f0-9]{40})$/.test(auroraRecipient)) {
     throw new Error('Failed to parse recipient in protocol message')
   }
   const amount = lockedEvent.args!.amount.toString()
