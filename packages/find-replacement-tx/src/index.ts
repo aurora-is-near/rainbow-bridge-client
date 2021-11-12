@@ -16,35 +16,25 @@ export async function getTransactionByNonce (
   from: string,
   nonce: number
 ): Promise<ethers.providers.TransactionResponse | null> {
-  const currentNonce = await provider.getTransactionCount(from, 'latest')
+  const currentNonce = await provider.getTransactionCount(from, 'latest') - 1
 
   // Transaction still pending
-  if (currentNonce <= nonce) return null
+  if (currentNonce < nonce) return null
 
   // Binary search the block containing the transaction between startSearch and latest.
-  let txBlock
   let maxBlock: number = await provider.getBlockNumber() // latest: chain head
   let minBlock = startSearch
-  while (minBlock <= maxBlock) {
+  while (minBlock < maxBlock) {
     const middleBlock = Math.floor((minBlock + maxBlock) / 2)
     const middleNonce = await provider.getTransactionCount(from, middleBlock) - 1
     if (middleNonce < nonce) {
       // middleBlock was mined before the tx with broadcasted nonce, so take next block as lower bound
       minBlock = middleBlock + 1
-    } else if (middleNonce >= nonce) {
-      // The middleBlock was mined after the tx with tx.nonce, so check if the account has a
-      // lower nonce at previous block which would mean that tx.nonce was mined in this middleBlock.
-      if (await provider.getTransactionCount(from, middleBlock - 1) - 1 < nonce) {
-        // Confirm the nonce changed by checking the previous block:
-        // use previous block nonce `>=` broadcasted nonce in case there are multiple user tx
-        // in the previous block. If only 1 user tx, then `===` would work
-        txBlock = middleBlock
-        break
-      }
-      // Otherwise take the previous block as the higher bound
-      maxBlock = middleBlock - 1
+    } else {
+      maxBlock = middleBlock
     }
   }
+  const txBlock = minBlock
   if (!txBlock) {
     const error = 'Could not find replacement transaction. It may be due to a chain reorg.'
     throw new SearchError(error)
