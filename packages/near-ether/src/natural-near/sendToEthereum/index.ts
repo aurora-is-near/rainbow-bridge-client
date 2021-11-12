@@ -10,7 +10,7 @@ import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { track, untrack } from '@near-eth/client'
-import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof, buildIndexerTxQuery } from '@near-eth/utils'
+import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof, buildIndexerTxQuery, findFinalizationTxOnEthereum } from '@near-eth/utils'
 import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 
@@ -774,7 +774,25 @@ export async function checkSync (
       options.eNEARAddress ?? bridgeParams.eNEARAddress,
       options.eNEARAbi ?? bridgeParams.eNEARAbi
     )) {
-      // TODO find the unlockTxHash
+      try {
+        const finalizationTxHash = await findFinalizationTxOnEthereum({
+          usedProofPosition: '8',
+          proof,
+          connectorAddress: options.eNEARAddress ?? bridgeParams.eNEARAddress,
+          connectorAbi: options.eNEARAbi ?? bridgeParams.eNEARAbi,
+          finalizationEvent: 'NearToEthTransferFinalised',
+          recipient: transfer.recipient,
+          amount: transfer.amount,
+          provider
+        })
+        transfer = {
+          ...transfer,
+          mintHashes: [...transfer.mintHashes, ...finalizationTxHash]
+        }
+      } catch (error) {
+        // Not finding the finalization tx should not prevent processing/recovering the transfer.
+        console.error(error)
+      }
       return {
         ...transfer,
         completedStep: MINT,
