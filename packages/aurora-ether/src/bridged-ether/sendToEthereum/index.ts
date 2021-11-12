@@ -1,4 +1,4 @@
-import { borshifyOutcomeProof, nearOnEthSyncHeight, findNearProof } from '@near-eth/utils'
+import { borshifyOutcomeProof, nearOnEthSyncHeight, findNearProof, findFinalizationTxOnEthereum } from '@near-eth/utils'
 import { ethers } from 'ethers'
 import bs58 from 'bs58'
 import { utils, Account } from 'near-api-js'
@@ -739,7 +739,25 @@ export async function checkSync (
       options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
       options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi
     )) {
-      // TODO find the unlockTxHash
+      try {
+        const finalizationTxHash = await findFinalizationTxOnEthereum({
+          usedProofPosition: '3',
+          proof,
+          connectorAddress: options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
+          connectorAbi: options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
+          finalizationEvent: 'Withdrawn',
+          recipient: transfer.recipient,
+          amount: transfer.amount,
+          provider
+        })
+        transfer = {
+          ...transfer,
+          unlockHashes: [...transfer.unlockHashes, ...finalizationTxHash]
+        }
+      } catch (error) {
+        // Not finding the finalization tx should not prevent processing/recovering the transfer.
+        console.error(error)
+      }
       return {
         ...transfer,
         completedStep: UNLOCK,

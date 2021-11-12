@@ -10,7 +10,7 @@ import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { track, untrack } from '@near-eth/client'
-import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof, buildIndexerTxQuery } from '@near-eth/utils'
+import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof, buildIndexerTxQuery, findFinalizationTxOnEthereum } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import getNep141Address from '../getAddress'
@@ -790,7 +790,25 @@ export async function checkSync (
       options.erc20LockerAddress ?? bridgeParams.erc20LockerAddress,
       options.erc20LockerAbi ?? bridgeParams.erc20LockerAbi
     )) {
-      // TODO find the unlockTxHash
+      try {
+        const finalizationTxHash = await findFinalizationTxOnEthereum({
+          usedProofPosition: '3',
+          proof,
+          connectorAddress: options.erc20LockerAddress ?? bridgeParams.erc20LockerAddress,
+          connectorAbi: options.erc20LockerAbi ?? bridgeParams.erc20LockerAbi,
+          finalizationEvent: 'Unlocked',
+          recipient: transfer.recipient,
+          amount: transfer.amount,
+          provider
+        })
+        transfer = {
+          ...transfer,
+          unlockHashes: [...transfer.unlockHashes, ...finalizationTxHash]
+        }
+      } catch (error) {
+        // Not finding the finalization tx should not prevent processing/recovering the transfer.
+        console.error(error)
+      }
       return {
         ...transfer,
         completedStep: UNLOCK,
