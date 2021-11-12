@@ -80,7 +80,7 @@ export interface TransferOptions {
   nearAccount?: Account
   ethClientAddress?: string
   ethClientAbi?: string
-  nearTokenFactoryAccount?: string
+  nep141Factory?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -766,7 +766,7 @@ export async function checkSync (
   if (nearOnEthClientBlockHeight > burnBlockHeight) {
     proof = await findNearProof(
       last(transfer.nearBurnReceiptIds),
-      options.nearTokenFactoryAccount ?? bridgeParams.nearTokenFactoryAccount,
+      options.nep141Factory ?? bridgeParams.nep141Factory,
       nearOnEthClientBlockHeight,
       nearAccount,
       provider,
