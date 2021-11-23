@@ -41,11 +41,6 @@ export async function findFinalizationTxOnEthereum (
       maxBlock = middleBlock
     }
   }
-  const txBlock = minBlock
-  if (!txBlock) {
-    const error = 'Could not find replacement transaction. It may be due to a chain reorg.'
-    throw new SearchError(error)
-  }
   const connectorContract = new ethers.Contract(
     connectorAddress,
     connectorAbi,
@@ -53,7 +48,7 @@ export async function findFinalizationTxOnEthereum (
   )
   // NOTE: Depending on the connector, event args are in different order or not indexed, so query all and filter.
   const filter = connectorContract.filters[finalizationEvent]!()
-  const events = await connectorContract.queryFilter(filter, txBlock, txBlock)
+  const events = await connectorContract.queryFilter(filter, minBlock, minBlock)
   return events.filter(e =>
     e.args!.recipient.toLowerCase() === recipient.toLowerCase() && e.args!.amount.toString() === amount
   ).map(e => e.transactionHash)
