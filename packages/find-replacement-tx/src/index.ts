@@ -21,6 +21,13 @@ export async function getTransactionByNonce (
   // Transaction still pending
   if (currentNonce < nonce) return null
 
+  const startSearchNonce = await provider.getTransactionCount(from, startSearch - 1) - 1
+  // Check nonce was used inside ]startSearch - 1, 'latest'].
+  if (nonce <= startSearchNonce) {
+    const error = `Nonce ${nonce} from ${from} is used before block ${startSearch}`
+    throw new SearchError(error)
+  }
+
   // Binary search the block containing the transaction between startSearch and latest.
   let maxBlock: number = await provider.getBlockNumber() // latest: chain head
   let minBlock = startSearch
@@ -34,12 +41,7 @@ export async function getTransactionByNonce (
       maxBlock = middleBlock
     }
   }
-  const txBlock = minBlock
-  if (!txBlock) {
-    const error = 'Could not find replacement transaction. It may be due to a chain reorg.'
-    throw new SearchError(error)
-  }
-  const block = await provider.getBlockWithTransactions(txBlock)
+  const block = await provider.getBlockWithTransactions(minBlock)
   const transaction = block.transactions.find(
     blockTx => blockTx.from.toLowerCase() === from.toLowerCase() && blockTx.nonce === nonce
   )
