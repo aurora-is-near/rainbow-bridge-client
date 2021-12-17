@@ -5,7 +5,7 @@ export async function getMetadata (
     nep141Address: string
     nearAccount: Account
   }
-): Promise<{symbol: string, decimals: number, icon: string}> {
+): Promise<{symbol: string, decimals: number, name: string, icon: string}> {
   const metadata = await nearAccount.viewFunction(
     nep141Address,
     'ft_metadata'
