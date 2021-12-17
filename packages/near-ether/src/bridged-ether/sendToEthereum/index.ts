@@ -47,6 +47,7 @@ export interface TransferDraft extends TransferStatus {
 export interface Transfer extends TransferDraft, TransactionInfo {
   id: string
   startTime: string
+  finishTime?: string
   decimals: number
   destinationTokenName: string
   recipient: string
@@ -790,7 +791,7 @@ export async function checkSync (
       options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi
     )) {
       try {
-        const finalizationTxHash = await findFinalizationTxOnEthereum({
+        const { transactions, block } = await findFinalizationTxOnEthereum({
           usedProofPosition: '3',
           proof,
           connectorAddress: options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
@@ -802,7 +803,8 @@ export async function checkSync (
         })
         transfer = {
           ...transfer,
-          unlockHashes: [...transfer.unlockHashes, ...finalizationTxHash]
+          finishTime: new Date(block.timestamp * 1000).toISOString(),
+          unlockHashes: [...transfer.unlockHashes, ...transactions]
         }
       } catch (error) {
         // Not finding the finalization tx should not prevent processing/recovering the transfer.
@@ -963,10 +965,13 @@ export async function checkUnlock (
     }
   }
 
+  const block = await provider.getBlock(unlockReceipt.blockNumber)
+
   return {
     ...transfer,
     status: status.COMPLETE,
     completedStep: UNLOCK,
+    finishTime: new Date(block.timestamp * 1000).toISOString(),
     unlockReceipts: [...transfer.unlockReceipts, unlockReceipt]
   }
 }

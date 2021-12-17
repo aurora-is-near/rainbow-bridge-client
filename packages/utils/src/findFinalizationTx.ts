@@ -24,7 +24,7 @@ export async function findFinalizationTxOnEthereum (
     amount: string
     provider: ethers.providers.Provider
   }
-): Promise<string[]> {
+): Promise<{ transactions: string[], block: ethers.providers.Block }> {
   const usedProofsMappingPosition = '0'.repeat(63) + usedProofPosition
   const usedProofsKey: string = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]!).toString('hex')
   const proofStorageIndex = ethers.utils.keccak256('0x' + usedProofsKey + usedProofsMappingPosition)
@@ -49,7 +49,12 @@ export async function findFinalizationTxOnEthereum (
   // NOTE: Depending on the connector, event args are in different order or not indexed, so query all and filter.
   const filter = connectorContract.filters[finalizationEvent]!()
   const events = await connectorContract.queryFilter(filter, minBlock, minBlock)
-  return events.filter(e =>
+  const transactions = events.filter(e =>
     e.args!.recipient.toLowerCase() === recipient.toLowerCase() && e.args!.amount.toString() === amount
   ).map(e => e.transactionHash)
+  if (transactions.length === 0) {
+    throw new SearchError(`Finalization tx on Ethereum not found for proof: ${JSON.stringify(proof)}`)
+  }
+  const block = await provider.getBlock(minBlock)
+  return { transactions, block }
 }
