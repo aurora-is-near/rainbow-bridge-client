@@ -96,7 +96,11 @@ export async function getSymbol (
     erc20Symbols[erc20Address] = symbol
   } catch {
     console.log(`Failed to read token symbol for: ${erc20Address}`)
-    symbol = erc20Address.slice(0, 5) + '…'
+    if (erc20Address.toLowerCase() === '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2') {
+      symbol = 'MKR'
+    } else {
+      symbol = erc20Address.slice(0, 5) + '…'
+    }
   }
   return symbol
 }
