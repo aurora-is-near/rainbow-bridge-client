@@ -2,7 +2,7 @@ import { Account } from 'near-api-js'
 import { nep141 } from '@near-eth/utils'
 import { getNearAccount } from '@near-eth/client/dist/utils'
 
-const tokenMetadata: {[key: string]: {symbol: string, decimals: number, icon: string}} = {}
+const tokenMetadata: {[key: string]: {symbol: string, decimals: number, name: string, icon: string}} = {}
 
 export default async function getMetadata (
   { nep141Address, options }: {
@@ -11,7 +11,7 @@ export default async function getMetadata (
       nearAccount?: Account
     }
   }
-): Promise<{symbol: string, decimals: number}> {
+): Promise<{symbol: string, decimals: number, name: string}> {
   options = options ?? {}
   const nearAccount = options.nearAccount ?? await getNearAccount()
   if (tokenMetadata[nep141Address]) return tokenMetadata[nep141Address]!
