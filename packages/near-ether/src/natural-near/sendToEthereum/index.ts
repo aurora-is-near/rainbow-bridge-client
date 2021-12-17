@@ -44,6 +44,7 @@ export interface TransferDraft extends TransferStatus {
 export interface Transfer extends TransferDraft, TransactionInfo {
   id: string
   startTime: string
+  finishTime?: string
   decimals: number
   destinationTokenName: string
   recipient: string
@@ -775,7 +776,7 @@ export async function checkSync (
       options.eNEARAbi ?? bridgeParams.eNEARAbi
     )) {
       try {
-        const finalizationTxHash = await findFinalizationTxOnEthereum({
+        const { transactions, block } = await findFinalizationTxOnEthereum({
           usedProofPosition: '8',
           proof,
           connectorAddress: options.eNEARAddress ?? bridgeParams.eNEARAddress,
@@ -787,7 +788,8 @@ export async function checkSync (
         })
         transfer = {
           ...transfer,
-          mintHashes: [...transfer.mintHashes, ...finalizationTxHash]
+          finishTime: new Date(block.timestamp * 1000).toISOString(),
+          mintHashes: [...transfer.mintHashes, ...transactions]
         }
       } catch (error) {
         // Not finding the finalization tx should not prevent processing/recovering the transfer.
@@ -951,10 +953,13 @@ export async function checkMint (
     }
   }
 
+  const block = await provider.getBlock(mintReceipt.blockNumber)
+
   return {
     ...transfer,
     status: status.COMPLETE,
     completedStep: MINT,
+    finishTime: new Date(block.timestamp * 1000).toISOString(),
     mintReceipts: [...transfer.mintReceipts, mintReceipt]
   }
 }
