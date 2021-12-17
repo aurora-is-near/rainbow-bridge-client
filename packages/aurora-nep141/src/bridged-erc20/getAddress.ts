@@ -32,7 +32,7 @@ export async function getAuroraErc20Address (
     const address = await aurora.getErc20FromNep141({ nep141Address, nearAccount, auroraEvmAccount })
     auroraErc20Addresses[nep141Address] = address
   } catch (error) {
-    console.error(error, nep141Address)
+    console.warn(error, nep141Address)
     return null
   }
   return auroraErc20Addresses[nep141Address]!
