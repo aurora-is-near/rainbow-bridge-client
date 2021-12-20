@@ -6,7 +6,7 @@ import { Account } from 'near-api-js'
 import { getEthProvider, getSignerProvider, getNearAccount, formatLargeNum, getBridgeParams } from '@near-eth/client/dist/utils'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
-import { ethOnNearSyncHeight, findEthProof } from '@near-eth/utils'
+import { ethOnNearSyncHeight, findEthProof, findFinalizationTxOnNear } from '@near-eth/utils'
 import { getDecimals, getSymbol } from '../getMetadata'
 
 export const SOURCE_NETWORK = 'ethereum'
@@ -42,6 +42,7 @@ export interface ApprovalInfo extends TransactionInfo, TransferStatus {
 export interface Transfer extends TransferDraft, TransactionInfo {
   id: string
   startTime: string
+  finishTime?: string
   decimals: number
   destinationTokenName: string
   recipient: string
@@ -65,6 +66,8 @@ export interface TransferOptions {
   maxFindEthProofInterval?: number
   nearClientAccount?: string
   auroraEvmAccount?: string
+  callIndexer?: (query: string) => Promise<Array<{originated_from_transaction_hash: string, included_in_block_timestamp: string}>>
+  eventRelayerAccount?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -679,14 +682,35 @@ export async function checkSync (
       { stringify: (args) => args }
     )
     if (proofAlreadyUsed) {
-      // TODO: find the event relayer tx hash
+      if (options.callIndexer) {
+        try {
+          const { transactions, timestamps } = await findFinalizationTxOnNear({
+            proof: Buffer.from(proof).toString('base64'),
+            connectorAccount: options.nep141Factory ?? bridgeParams.nep141Factory,
+            eventRelayerAccount: options.eventRelayerAccount ?? bridgeParams.eventRelayerAccount,
+            finalizationMethod: 'deposit',
+            callIndexer: options.callIndexer
+          })
+          let finishTime: string | undefined
+          if (timestamps.length > 0) {
+            finishTime = new Date(timestamps[0]! / 10 ** 6).toISOString()
+          }
+          transfer = {
+            ...transfer,
+            finishTime,
+            mintHashes: [...transfer.mintHashes, ...transactions]
+          }
+        } catch (error) {
+          // Not finding the finalization tx should not prevent processing/recovering the transfer.
+          console.error(error)
+        }
+      }
       return {
         ...transfer,
         completedStep: MINT,
         completedConfirmations,
         status: status.COMPLETE,
         errors: [...transfer.errors, 'Transfer already finalized.']
-        // mintHashes: [...transfer.mintHashes, txHash]
       }
     }
     // Increase the interval for the next findEthProof call.

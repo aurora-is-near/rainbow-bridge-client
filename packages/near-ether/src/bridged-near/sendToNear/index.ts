@@ -6,7 +6,7 @@ import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
-import { urlParams, ethOnNearSyncHeight, findEthProof } from '@near-eth/utils'
+import { urlParams, ethOnNearSyncHeight, findEthProof, findFinalizationTxOnNear } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 
 export const SOURCE_NETWORK = 'ethereum'
@@ -35,6 +35,7 @@ export interface TransferDraft extends TransferStatus {
 export interface Transfer extends TransferDraft, TransactionInfo {
   id: string
   startTime: string
+  finishTime?: string
   decimals: number
   destinationTokenName: string
   recipient: string
@@ -54,6 +55,8 @@ export interface TransferOptions {
   nearEventRelayerMargin?: number
   nearAccount?: Account
   nearClientAccount?: string
+  callIndexer?: (query: string) => Promise<Array<{originated_from_transaction_hash: string, included_in_block_timestamp: string}>>
+  eventRelayerAccount?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -525,14 +528,35 @@ export async function checkSync (
       { stringify: (args) => args }
     )
     if (proofAlreadyUsed) {
-      // TODO: find the event relayer tx hash
+      if (options.callIndexer) {
+        try {
+          const { transactions, timestamps } = await findFinalizationTxOnNear({
+            proof: Buffer.from(proof).toString('base64'),
+            connectorAccount: options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
+            eventRelayerAccount: options.eventRelayerAccount ?? bridgeParams.eventRelayerAccount,
+            finalizationMethod: 'finalise_eth_to_near_transfer',
+            callIndexer: options.callIndexer
+          })
+          let finishTime: string | undefined
+          if (timestamps.length > 0) {
+            finishTime = new Date(timestamps[0]! / 10 ** 6).toISOString()
+          }
+          transfer = {
+            ...transfer,
+            finishTime,
+            unlockHashes: [...transfer.unlockHashes, ...transactions]
+          }
+        } catch (error) {
+          // Not finding the finalization tx should not prevent processing/recovering the transfer.
+          console.error(error)
+        }
+      }
       return {
         ...transfer,
         completedStep: UNLOCK,
         completedConfirmations,
         status: status.COMPLETE,
         errors: [...transfer.errors, 'Transfer already finalized.']
-        // unlockHashes: [...transfer.unlockHashes, txHash]
       }
     }
   }
