@@ -3,6 +3,35 @@ import bs58 from 'bs58'
 
 export class SearchError extends Error {}
 
+export async function findFinalizationTxOnNear ({
+  proof,
+  connectorAccount,
+  eventRelayerAccount,
+  finalizationMethod,
+  callIndexer
+}: {
+  proof: string
+  connectorAccount: string
+  eventRelayerAccount: string
+  finalizationMethod: string
+  callIndexer: (query: string) => Promise<Array<{originated_from_transaction_hash: string, included_in_block_timestamp: string}>>
+}): Promise<{ transactions: string[], timestamps: number[] }> {
+  const query = `SELECT public.receipts.originated_from_transaction_hash, public.receipts.included_in_block_timestamp
+    FROM public.receipts
+    JOIN public.action_receipt_actions
+    ON public.action_receipt_actions.receipt_id = public.receipts.receipt_id
+    WHERE (receipt_predecessor_account_id = '${eventRelayerAccount}'
+      AND receipt_receiver_account_id = '${connectorAccount}'
+      AND args ->> 'method_name' = '${finalizationMethod}'
+      AND args ->> 'args_base64' = '${proof}'
+    )`
+  // NOTE: Generally only 1 result is returned, but allow multiple in case finalization attempts are made.
+  const results = await callIndexer(query)
+  const transactions = results.map(tx => tx.originated_from_transaction_hash)
+  const timestamps = results.map(tx => Number(tx.included_in_block_timestamp))
+  return { transactions, timestamps }
+}
+
 async function proofAlreadyUsed (
   proofStorageIndex: string,
   connectorAddress: string,
@@ -13,18 +42,25 @@ async function proofAlreadyUsed (
   return Number(proofIsUsed) === 1
 }
 
-export async function findFinalizationTxOnEthereum (
-  { usedProofPosition, proof, connectorAddress, connectorAbi, finalizationEvent, recipient, amount, provider }: {
-    usedProofPosition: string
-    proof: { outcome_proof: { outcome: { receipt_ids: string[] } } }
-    connectorAddress: string
-    connectorAbi: string
-    finalizationEvent: string
-    recipient: string
-    amount: string
-    provider: ethers.providers.Provider
-  }
-): Promise<{ transactions: string[], block: ethers.providers.Block }> {
+export async function findFinalizationTxOnEthereum ({
+  usedProofPosition,
+  proof,
+  connectorAddress,
+  connectorAbi,
+  finalizationEvent,
+  recipient,
+  amount,
+  provider
+}: {
+  usedProofPosition: string
+  proof: { outcome_proof: { outcome: { receipt_ids: string[] } } }
+  connectorAddress: string
+  connectorAbi: string
+  finalizationEvent: string
+  recipient: string
+  amount: string
+  provider: ethers.providers.Provider
+}): Promise<{ transactions: string[], block: ethers.providers.Block }> {
   const usedProofsMappingPosition = '0'.repeat(63) + usedProofPosition
   const usedProofsKey: string = bs58.decode(proof.outcome_proof.outcome.receipt_ids[0]!).toString('hex')
   const proofStorageIndex = ethers.utils.keccak256('0x' + usedProofsKey + usedProofsMappingPosition)
