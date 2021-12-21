@@ -1,3 +1,21 @@
+# [2.4.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.3.0...v2.4.0) (2021-12-21)
+
+
+### Bug Fixes
+
+* Add getTransactionByNonce start bound check. ([d0b77e5](https://github.com/aurora-is-near/rainbow-bridge-client/commit/d0b77e5e96c27546e9cc3f67b76ec17a6fe8d04b))
+* Simplify getTransactionByNonce. ([a30c076](https://github.com/aurora-is-near/rainbow-bridge-client/commit/a30c07642526996b36b5fb033d0a867d0cb432e3))
+
+
+### Features
+
+* Add findFinalizationTxOnEthereum. ([c548c61](https://github.com/aurora-is-near/rainbow-bridge-client/commit/c548c6156728854b2b01eaa9c26e88ce54f814e1))
+* Add findFinalizationTxOnNear and finishTime. ([269ba6a](https://github.com/aurora-is-near/rainbow-bridge-client/commit/269ba6af3daf4b4a59a86b0b7cb546d6c2b2d6ad))
+* Add finishTime in transfers to Ethereum. ([b5dbf2a](https://github.com/aurora-is-near/rainbow-bridge-client/commit/b5dbf2ad2ff5b3b116965124b21e632310503377))
+* Allow 0x in aurora recipient format. ([9e1f6dd](https://github.com/aurora-is-near/rainbow-bridge-client/commit/9e1f6dd0cab29e6d885cadd161d3cd6944a3da55))
+
+
+
 # [2.3.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.2.0...v2.3.0) (2021-10-29)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@near-eth/aurora-ether",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "license": "(MIT AND Apache-2.0)",
   "main": "dist/index.js",
   "files": [
