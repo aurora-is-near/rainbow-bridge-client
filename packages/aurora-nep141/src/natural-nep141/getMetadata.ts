@@ -11,7 +11,7 @@ export default async function getMetadata (
       nearAccount?: Account
     }
   }
-): Promise<{symbol: string, decimals: number, name: string}> {
+): Promise<{symbol: string, decimals: number, name: string, icon: string}> {
   options = options ?? {}
   const nearAccount = options.nearAccount ?? await getNearAccount()
   if (tokenMetadata[nep141Address]) return tokenMetadata[nep141Address]!
