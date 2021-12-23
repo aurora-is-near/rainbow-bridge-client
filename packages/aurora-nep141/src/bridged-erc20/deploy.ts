@@ -44,8 +44,7 @@ export default async function deployToAurora (
     contractId: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
     methodName: 'deploy_erc20_token',
     args: arg,
-    gas: new BN('100' + '0'.repeat(12)),
-    attachedDeposit: new BN('3' + '0'.repeat(24))
+    gas: new BN('100' + '0'.repeat(12))
   })
   return tx
 }
