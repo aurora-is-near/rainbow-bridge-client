@@ -3,7 +3,9 @@
 // dependence on URL Params only needed as workaround until
 // https://github.com/near/near-api-js/pull/467 is merged
 
-export function get (...paramNames: string[]): string | null | { [x: string]: string } {
+export function get(...paramNames: string[]): string | null | { [x: string]: string } {
+  if (typeof window === 'undefined') { return null }
+
   const params = new URLSearchParams(window.location.search)
 
   if (paramNames.length === 0) {
@@ -20,24 +22,28 @@ export function get (...paramNames: string[]): string | null | { [x: string]: st
   )
 }
 
-export function set (newParams: { [x: string]: string }): void {
-  const params = new URLSearchParams(window.location.search)
-  for (const param in newParams) {
-    params.set(param, newParams[param]!)
+export function set(newParams: { [x: string]: string }): void {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search)
+    for (const param in newParams) {
+      params.set(param, newParams[param]!)
+    }
+    window.history.replaceState({}, '', `${location.pathname}?${params.toString()}`)
   }
-  window.history.replaceState({}, '', `${location.pathname}?${params.toString()}`)
 }
 
-export function clear (...paramNames: any[]): void {
-  if (paramNames.length === 0) {
-    window.history.replaceState({}, '', location.pathname)
-  } else {
-    const params = new URLSearchParams(window.location.search)
-    paramNames.forEach(p => params.delete(p))
-    if (params.toString()) {
-      window.history.replaceState({}, '', `${location.pathname}?${params.toString()}`)
-    } else {
+export function clear(...paramNames: any[]): void {
+  if(typeof window !== 'undefined') {
+    if (paramNames.length === 0) {
       window.history.replaceState({}, '', location.pathname)
+    } else {
+      const params = new URLSearchParams(window.location.search)
+      paramNames.forEach(p => params.delete(p))
+      if (params.toString()) {
+        window.history.replaceState({}, '', `${location.pathname}?${params.toString()}`)
+      } else {
+        window.history.replaceState({}, '', location.pathname)
+      }
     }
   }
 }
