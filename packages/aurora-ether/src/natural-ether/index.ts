@@ -2,5 +2,7 @@ export {
   initiate as sendToAurora,
   recover,
   findAllTransactions,
-  findAllTransfers
+  findAllTransfers,
+  act,
+  checkStatus
 } from './sendToAurora'

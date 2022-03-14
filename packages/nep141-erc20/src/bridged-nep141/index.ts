@@ -6,5 +6,7 @@ export {
   initiate as sendToEthereum,
   recover,
   findAllTransactions,
-  findAllTransfers
+  findAllTransfers,
+  act,
+  checkStatus
 } from './sendToEthereum'

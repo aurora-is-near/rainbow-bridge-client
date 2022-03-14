@@ -2,5 +2,7 @@ export {
   initiate as sendToNear,
   recover,
   findAllTransactions,
-  findAllTransfers
+  findAllTransfers,
+  act,
+  checkStatus
 } from './sendToNear'

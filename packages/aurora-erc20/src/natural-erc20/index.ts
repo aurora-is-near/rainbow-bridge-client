@@ -4,7 +4,9 @@ export {
   checkApprove,
   recover,
   findAllTransactions,
-  findAllTransfers
+  findAllTransfers,
+  act,
+  checkStatus
 } from './sendToAurora'
 export { default as getMetadata } from './getMetadata'
 export { default as getAllowance } from './getAllowance'

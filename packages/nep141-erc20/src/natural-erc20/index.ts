@@ -7,5 +7,7 @@ export {
   checkApprove,
   recover,
   findAllTransactions,
-  findAllTransfers
+  findAllTransfers,
+  act,
+  checkStatus
 } from './sendToNear'

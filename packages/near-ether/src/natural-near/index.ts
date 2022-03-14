@@ -2,6 +2,8 @@ export {
   initiate as sendToEthereum,
   recover,
   findAllTransactions,
-  findAllTransfers
+  findAllTransfers,
+  act,
+  checkStatus
 } from './sendToEthereum'
 export { default as getBalance } from './getBalance'

@@ -2,6 +2,8 @@ export {
   initiate as sendToNear,
   recover,
   findAllTransactions,
-  findAllTransfers
+  findAllTransfers,
+  act,
+  checkStatus
 } from './sendToNear'
 export { default as getBalance } from './getBalance'
