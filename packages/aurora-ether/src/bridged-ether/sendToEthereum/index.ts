@@ -866,6 +866,7 @@ export async function checkUnlock (
     )
   }
 
+  if (transfer.unlockHashes.length <= 0) { return transfer }
   const unlockHash = last(transfer.unlockHashes)
   let unlockReceipt: ethers.providers.TransactionReceipt = await provider.getTransactionReceipt(unlockHash)
 
