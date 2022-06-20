@@ -16,4 +16,3 @@ jobs:
       - name: Check codebase linting
         run: |
           yarn lint
-          yarn commitlint
