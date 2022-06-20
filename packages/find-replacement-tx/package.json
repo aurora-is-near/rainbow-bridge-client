@@ -13,7 +13,7 @@
     "@types/node": "^14.14.28"
   },
   "dependencies": {
-    "ethers": "^5.4.6"
+    "ethers": "^5.6.9"
   },
   "browserslist": [
     "since 2017-04"
