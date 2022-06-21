@@ -1,5 +1,14 @@
-import { FAILED } from './statuses'
+import { Status } from './statuses'
 import { Transfer, Step } from './types'
+
+export enum StepStatus {
+  PENDING = 'pending',
+  COMPLETE = 'completed',
+  FAILED = 'failed',
+}
+export const PENDING = StepStatus.PENDING
+export const COMPLETE = StepStatus.COMPLETE
+export const FAILED = StepStatus.FAILED
 
 export function stepsFor (
   transfer: Transfer,
@@ -10,8 +19,8 @@ export function stepsFor (
   return steps.map((key, i) => ({
     key,
     description: descriptions[key],
-    status: transfer.status === FAILED && i === completed + 1
-      ? FAILED
-      : i <= completed ? 'completed' : 'pending'
+    status: transfer.status === Status.FAILED && i === completed + 1
+      ? StepStatus.FAILED
+      : i <= completed ? StepStatus.COMPLETE : StepStatus.PENDING
   }))
 }
