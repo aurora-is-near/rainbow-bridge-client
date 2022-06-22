@@ -108,7 +108,7 @@ export const i18n = {
         }
       }
       switch (transfer.completedStep) {
-        case null: return 'Transfering to NEAR'
+        case null: return 'Transferring to NEAR'
         case LOCK: return `Confirming transfer ${transfer.completedConfirmations + 1} of ${transfer.neededConfirmations + Number(getBridgeParams().nearEventRelayerMargin)}`
         case SYNC: return 'Depositing in NEAR'
         case MINT: return 'Transfer complete'

@@ -123,7 +123,7 @@ export const i18n = {
         }
       }
       switch (transfer.completedStep) {
-        case null: return 'Transfering from NEAR'
+        case null: return 'Transferring from NEAR'
         case WITHDRAW: return 'Confirming transfer'
         case AWAIT_FINALITY: return 'Confirming transfer'
         case SYNC: return 'Depositing in Ethereum'
