@@ -3,7 +3,7 @@
 
 <a href="https://www.npmjs.com/package/@near-eth/client"><img alt="@near-eth/client Version" src="https://img.shields.io/npm/v/@near-eth/client"></a>
 
-Do you want to allow your users to send assets between [Ethereum] & [NEAR] over
+Do you want to allow your users to send assets between [Ethereum] & [NEAR] & [Aurora] over
 the [Rainbow Bridge]?
 
 Do you want to easily send assets between the two blockchains using your
@@ -16,6 +16,7 @@ If you answered "Yes" to any of the above questions, this is the library for you
 
   [Ethereum]: https://ethereum.org/
   [NEAR]: https://near.org/
+  [Aurora]: https://aurora.dev/
   [Rainbow Bridge]: https://near.org/blog/eth-near-rainbow-bridge/
   [Connector]: https://github.com/aurora-is-near/rainbow-token-connector
 
@@ -33,8 +34,8 @@ Add it to your browser app
 Let's say you want to allow users to send ERC20 tokens from Ethereum to NEAR,
 where they'll become NEP141 tokens.
 
-Step 0: Add Dependencies
-------------------------
+Installation
+------------
 
 You'll need to add two dependencies to your app:
 
@@ -85,18 +86,18 @@ Step 0: Set the bridge parameters
 These parameters are specific to the bridge being used.
 ```js
 import { setBridgeParams } from '@near-eth/client'
-  setBridgeParams({
-    nearEventRelayerMargin: 10, // 10 blocks margin for the Event relayer to finalize the transfer
-    sendToNearSyncInterval: 20000, // check light client sync every 20sec
-    sendToEthereumSyncInterval: 60000, // check light client sync every 60sec
-    ethChainId: 1, // mainnet
-    erc20Abi: process.env.ethErc20AbiText, // Standard ERC-20 ABI
-    erc20LockerAddress: '0x23ddd3e3692d1861ed57ede224608875809e127f',
-    erc20LockerAbi: process.env.ethLockerAbiText,
-    nep141Factory: 'factory.bridge.near',
-    ethClientAddress: '0x0151568af92125fb289f1dd81d9d8f7484efc362',
-    ethClientAbi: process.env.ethNearOnEthClientAbiText,
-    nearClientAccount: 'client.bridge.near'
+setBridgeParams({
+  nearEventRelayerMargin: 10, // 10 blocks margin for the Event relayer to finalize the transfer
+  sendToNearSyncInterval: 20000, // check light client sync every 20sec
+  sendToEthereumSyncInterval: 60000, // check light client sync every 60sec
+  ethChainId: 1, // mainnet
+  erc20Abi: process.env.ethErc20AbiText, // Standard ERC-20 ABI
+  erc20LockerAddress: '0x23ddd3e3692d1861ed57ede224608875809e127f',
+  erc20LockerAbi: process.env.ethLockerAbiText,
+  nep141Factory: 'factory.bridge.near',
+  ethClientAddress: '0x0151568af92125fb289f1dd81d9d8f7484efc362',
+  ethClientAbi: process.env.ethNearOnEthClientAbiText,
+  nearClientAccount: 'client.bridge.near'
 })
 ```
 
@@ -425,9 +426,145 @@ The user of this library should specify the `callIndexer` callback with the pref
 Browsers should connect to a backend providing Indexer data or can use a WAMP session to query the indexer via NEAR Explorer backend. Node.js applications can connect directly to the Indexer with Sequelize.
 
 
+Transfer types overview
+=======================
+```js
+import * as auroraErc20 from '@near-eth/aurora-erc20'
+import * as auroraEther from '@near-eth/aurora-ether'
+import * as auroraNep141 from '@near-eth/aurora-nep141'
+import * as nearEther from '@near-eth/near-ether'
+import * as nep141Erc20 from '@near-eth/nep141-erc20'
+```
+
+| from Ethereum | to NEAR                                         | to Aurora                                               |
+| :------------ | :---------------------------------------------- | :------------------------------------------------------ |
+| ERC-20        | nep141Erc20/naturalErc20/sendToNear             | auroraErc20/naturalErc20/sendToAurora                   |
+|               | nep141Erc20/bridgedErc20/sendToNear (TODO)      | auroraErc20/bridgedErc20/sendToAurora (TODO)            |
+| ETH           | nearEther/naturalETH/sendToNear                 | auroraEther/naturalEther/sendToAurora                   |
+| NEAR          | nearEther.bridgedNEAR.sendToNear                | (TODO)                                                  |
+| ERC-721       | (TODO)                                          | (TODO)                                                  |
+
+| from NEAR     | to Ethereum                                     | to Aurora                                               |
+| :------------ | :---------------------------------------------- | :------------------------------------------------------ |
+| NEP-141       | nep141Erc20/bridgedNep141/sendToEthereum        | auroraNep141/naturalNep141/sendToAurora                 |
+|               | nep141Erc20/naturalNep141/sendToEthereum (TODO) | auroraNep141/bridgedNep141/sendToAurora (TODO)          |
+| ETH           | nearEther/bridgedETH/sendToEthereum             | auroraNep141/naturalNep141/sendToAurora                 |
+| NEAR          | nearEther/naturalNEAR/sendToEthereum            | auroraNep141/naturalNep141/wrapAndSendNearToAurora \*\* |
+| ERC-721       | (TODO)                                          | (TODO)                                                  |
+
+| from Aurora   | to Ethereum                                     | to NEAR                                                 |
+| :------------ | :---------------------------------------------- | :------------------------------------------------------ |
+| ERC-20        | auroraErc20/bridgedErc20/sendToEthereum         | auroraNep141/bridgedErc20/sendToNear \*                 |
+|               | auroraErc20/naturalErc20/sendToEthereum (TODO)  | auroraNep141/naturalErc20/sendToNear (TODO) \*          |
+| ETH           | auroraEther/bridgedEther/sendToEthereum         | auroraNep141/bridgedEther/sendToNear \*                 |
+| NEAR          | (TODO)                                          | auroraNep141/bridgedErc20/sendToNear \* \*\*            |
+| ERC-721       | (TODO)                                          | (TODO)                                                  |
+
+\* WARNING: The recipient of transfers from Aurora to NEAR must have paid NEAR storage fees otherwise tokens may be lost.
+
+\*\* Received as wNEAR
+
+
 Author a custom connector library
 =================================
 
 1. Copy the code in the [`@near-eth/nep141-erc20`](../../packages/nep141-erc20) library
 2. Adjust for your needs
 3. Send a Pull Request to add your client to [the `getTransferType` lookup logic](https://github.com/aurora-is-near/rainbow-bridge-client/blob/227c50ba6506f4f81e6105a0bbb1873a3adee754/packages/client/src/index.ts#L14) in `@near-eth/client`
+
+
+
+Ethereum Mainnet Bridge addresses and parameters
+================================================
+```js
+import { setBridgeParams } from '@near-eth/client'
+setBridgeParams({
+  nearEventRelayerMargin: 10, // blocks
+  sendToNearSyncInterval: 60000, // check light client sync interval (ms)
+  sendToEthereumSyncInterval: 60000, // check light client sync interval (ms)
+  maxFindEthProofInterval: 600000, // check finalization status max interval (ms)
+  ethChainId: 1,
+  auroraChainId: 1313161554,
+  // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/erc20.abi
+  erc20Abi: process.env.erc20Abi,
+  // https://github.com/aurora-is-near/aurora-engine/blob/master/etc/eth-contracts/contracts/EvmErc20.sol
+  // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/aurora-near/abi/auroraErc20.abi
+  auroraErc20Abi: process.env.auroraErc20Abi,
+  // https://github.com/aurora-is-near/rainbow-token-connector
+  erc20LockerAddress: '0x23Ddd3e3692d1861Ed57EDE224608875809e127f',
+  // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/ERC20Locker.full.abi
+  erc20LockerAbi: process.env.erc20LockerAbi,
+  nep141Factory: 'factory.bridge.near',
+  // https://github.com/aurora-is-near/eth-connector/tree/master/eth-custodian
+  etherCustodianAddress: '0x6BFaD42cFC4EfC96f529D786D643Ff4A8B89FA52',
+  // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/etherCustodian.full.abi
+  etherCustodianAbi: process.env.etherCustodianAbi,
+  auroraEvmAccount: 'aurora',
+  auroraRelayerAccount: 'relay.aurora',
+  etherExitToEthereumPrecompile: '0xb0bD02F6a392aF548bDf1CfAeE5dFa0EefcC8EaB',
+  etherExitToNearPrecompile: '0xE9217BC70B7ED1f598ddD3199e80b093fA71124F',
+  // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/nearOnEthClient.abi
+  ethClientAddress: '0x3be7Df8dB39996a837041bb8Ee0dAdf60F767038',
+  // https://github.com/aurora-is-near/rainbow-bridge/tree/master/contracts/eth
+  ethClientAbi: process.env.ethNearOnEthClientAbi,
+  nearClientAccount: 'client.bridge.near',
+  // https://github.com/aurora-is-near/near-erc20-connector
+  eNEARAddress: '0x85F17Cf997934a597031b2E18a9aB6ebD4B9f6a4',
+  // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/eNEAR.abi
+  eNEARAbi: process.env.eNEARAbi,
+  nativeNEARLockerAddress: 'e-near.near',
+  wNearNep141: 'wrap.near',
+  eventRelayerAccount: 'event-relayer.near',
+})
+```
+
+Goerli Testnet Bridge addresses and parameters
+==============================================
+```js
+import { setBridgeParams } from '@near-eth/client'
+setBridgeParams({
+  nearEventRelayerMargin: 10, // blocks
+  sendToNearSyncInterval: 60000, // check light client sync interval (ms)
+  sendToEthereumSyncInterval: 60000, // check light client sync interval (ms)
+  maxFindEthProofInterval: 600000, // check finalization status max interval (ms)
+  ethChainId: 5,
+  auroraChainId: 1313161555,
+  // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/erc20.abi
+  erc20Abi: process.env.erc20Abi,
+  // https://github.com/aurora-is-near/aurora-engine/blob/master/etc/eth-contracts/contracts/EvmErc20.sol
+  // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/aurora-near/abi/auroraErc20.abi
+  auroraErc20Abi: process.env.auroraErc20Abi,
+  // https://github.com/aurora-is-near/rainbow-token-connector
+  erc20LockerAddress: '0xC115851CA60Aed2CCc6EE3D5343F590834e4a3aB',
+  // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/ERC20Locker.full.abi
+  erc20LockerAbi: process.env.erc20LockerAbi,
+  nep141Factory: 'factory.goerli.testnet',
+  // https://github.com/aurora-is-near/eth-connector/tree/master/eth-custodian
+  etherCustodianAddress: '0x84a82Bb39c83989D5Dc07e1310281923D2544dC2',
+  // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/etherCustodian.full.abi
+  etherCustodianAbi: process.env.etherCustodianAbi,
+  auroraEvmAccount: 'aurora',
+  auroraRelayerAccount: 'relay.aurora',
+  etherExitToEthereumPrecompile: '0xb0bD02F6a392aF548bDf1CfAeE5dFa0EefcC8EaB',
+  etherExitToNearPrecompile: '0xE9217BC70B7ED1f598ddD3199e80b093fA71124F',
+  // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/nearOnEthClient.abi
+  ethClientAddress: '0x37C2d89b55Bfd95532637554711441017eFabFef',
+  // https://github.com/aurora-is-near/rainbow-bridge/tree/master/contracts/eth
+  ethClientAbi: process.env.ethNearOnEthClientAbi,
+  nearClientAccount: 'client6.goerli.testnet',
+  // https://github.com/aurora-is-near/near-erc20-connector
+  eNEARAddress: '0xe6b7C088Da1c2BfCf84aaE03fd6DE3C4f28629dA',
+  // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/eNEAR.abi
+  eNEARAbi: process.env.eNEARAbi,
+  nativeNEARLockerAddress: 'enear.goerli.testnet',
+  wNearNep141: 'wrap.testnet',
+  eventRelayerAccount: 'event-relayer.goerli.testnet',
+})
+```
+
+Getting testnet tokens:
+
+- https://erc20faucet.com
+- https://goerlifaucet.com
+- https://goerli-faucet.mudit.blog
+- https://usdcfaucet.com
