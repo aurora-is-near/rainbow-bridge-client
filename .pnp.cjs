@@ -53,6 +53,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         "reference": "workspace:packages/nep141-erc20"\
       },\
       {\
+        "name": "@near-eth/rainbow",\
+        "reference": "workspace:packages/rainbow"\
+      },\
+      {\
         "name": "@near-eth/utils",\
         "reference": "workspace:packages/utils"\
       }\
@@ -66,6 +70,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
       ["@near-eth/client", ["workspace:packages/client"]],\
       ["@near-eth/near-ether", ["workspace:packages/near-ether"]],\
       ["@near-eth/nep141-erc20", ["workspace:packages/nep141-erc20"]],\
+      ["@near-eth/rainbow", ["workspace:packages/rainbow"]],\
       ["@near-eth/utils", ["workspace:packages/utils"]],\
       ["find-replacement-tx", ["workspace:packages/find-replacement-tx"]],\
       ["lite-merkle-patricia-tree", ["workspace:packages/lite-merkle-patricia-tree"]],\
@@ -975,6 +980,23 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["near-api-js", "npm:0.43.1"],\
             ["promisfy", "npm:1.2.0"],\
             ["rlp", "npm:2.2.7"]\
+          ],\
+          "linkType": "SOFT"\
+        }]\
+      ]],\
+      ["@near-eth/rainbow", [\
+        ["workspace:packages/rainbow", {\
+          "packageLocation": "./packages/rainbow/",\
+          "packageDependencies": [\
+            ["@near-eth/rainbow", "workspace:packages/rainbow"],\
+            ["@near-eth/aurora-erc20", "workspace:packages/aurora-erc20"],\
+            ["@near-eth/aurora-ether", "workspace:packages/aurora-ether"],\
+            ["@near-eth/aurora-nep141", "workspace:packages/aurora-nep141"],\
+            ["@near-eth/client", "workspace:packages/client"],\
+            ["@near-eth/near-ether", "workspace:packages/near-ether"],\
+            ["@near-eth/nep141-erc20", "workspace:packages/nep141-erc20"],\
+            ["@near-eth/utils", "workspace:packages/utils"],\
+            ["@types/node", "npm:14.18.21"]\
           ],\
           "linkType": "SOFT"\
         }]\

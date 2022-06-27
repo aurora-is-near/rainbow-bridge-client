@@ -12,9 +12,22 @@ import {
 
 export { onChange } from './storage'
 export {
-  setEthProvider, setNearConnection, setAuroraProvider, setSignerProvider,
-  getSignerProvider, getEthProvider, getAuroraProvider, getBridgeParams, setBridgeParams
+  getAuroraProvider,
+  getBridgeParams,
+  getEthProvider,
+  getNearAccount,
+  getSignerProvider,
+  setAuroraProvider,
+  setBridgeParams,
+  setEthProvider,
+  setNearConnection,
+  setSignerProvider
 } from './utils'
+export {
+  DecoratedTransfer,
+  Transfer,
+  UnsavedTransfer
+} from './types'
 
 let customTransferTypes: CustomTransferTypes = {}
 

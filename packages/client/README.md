@@ -429,11 +429,13 @@ Browsers should connect to a backend providing Indexer data or can use a WAMP se
 Transfer types overview
 =======================
 ```js
-import * as auroraErc20 from '@near-eth/aurora-erc20'
-import * as auroraEther from '@near-eth/aurora-ether'
-import * as auroraNep141 from '@near-eth/aurora-nep141'
-import * as nearEther from '@near-eth/near-ether'
-import * as nep141Erc20 from '@near-eth/nep141-erc20'
+import {
+  nep141Erc20,
+  nearEther,
+  auroraErc20,
+  auroraEther,
+  auroraNep141,
+} from '@near-eth/rainbow'
 ```
 
 | from Ethereum | to NEAR                                         | to Aurora                                               |

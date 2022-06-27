@@ -699,7 +699,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@near-eth/aurora-erc20@workspace:packages/aurora-erc20":
+"@near-eth/aurora-erc20@workspace:*, @near-eth/aurora-erc20@workspace:packages/aurora-erc20":
   version: 0.0.0-use.local
   resolution: "@near-eth/aurora-erc20@workspace:packages/aurora-erc20"
   dependencies:
@@ -719,7 +719,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@near-eth/aurora-ether@workspace:packages/aurora-ether":
+"@near-eth/aurora-ether@workspace:*, @near-eth/aurora-ether@workspace:packages/aurora-ether":
   version: 0.0.0-use.local
   resolution: "@near-eth/aurora-ether@workspace:packages/aurora-ether"
   dependencies:
@@ -739,7 +739,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@near-eth/aurora-nep141@workspace:packages/aurora-nep141":
+"@near-eth/aurora-nep141@workspace:*, @near-eth/aurora-nep141@workspace:packages/aurora-nep141":
   version: 0.0.0-use.local
   resolution: "@near-eth/aurora-nep141@workspace:packages/aurora-nep141"
   dependencies:
@@ -772,7 +772,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@near-eth/near-ether@workspace:packages/near-ether":
+"@near-eth/near-ether@workspace:*, @near-eth/near-ether@workspace:packages/near-ether":
   version: 0.0.0-use.local
   resolution: "@near-eth/near-ether@workspace:packages/near-ether"
   dependencies:
@@ -792,7 +792,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@near-eth/nep141-erc20@workspace:packages/nep141-erc20":
+"@near-eth/nep141-erc20@workspace:*, @near-eth/nep141-erc20@workspace:packages/nep141-erc20":
   version: 0.0.0-use.local
   resolution: "@near-eth/nep141-erc20@workspace:packages/nep141-erc20"
   dependencies:
@@ -809,6 +809,21 @@ __metadata:
     near-api-js: ^0.43.0
     promisfy: ^1.2.0
     rlp: ^2.2.6
+  languageName: unknown
+  linkType: soft
+
+"@near-eth/rainbow@workspace:packages/rainbow":
+  version: 0.0.0-use.local
+  resolution: "@near-eth/rainbow@workspace:packages/rainbow"
+  dependencies:
+    "@near-eth/aurora-erc20": "workspace:*"
+    "@near-eth/aurora-ether": "workspace:*"
+    "@near-eth/aurora-nep141": "workspace:*"
+    "@near-eth/client": "workspace:*"
+    "@near-eth/near-ether": "workspace:*"
+    "@near-eth/nep141-erc20": "workspace:*"
+    "@near-eth/utils": "workspace:*"
+    "@types/node": ^14.14.28
   languageName: unknown
   linkType: soft
 

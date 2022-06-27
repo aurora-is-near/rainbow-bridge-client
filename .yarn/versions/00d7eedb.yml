@@ -9,3 +9,6 @@ releases:
   find-replacement-tx: patch
   lite-merkle-patricia-tree: patch
   rainbow-bridge-client-monorepo: patch
+
+declined:
+  - "@near-eth/rainbow"
