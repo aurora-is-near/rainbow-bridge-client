@@ -107,7 +107,7 @@ export const i18n = {
         }
       }
       switch (transfer.completedStep) {
-        case null: return 'Transfering to Aurora'
+        case null: return 'Transferring to Aurora'
         case LOCK: return `Confirming transfer ${transfer.completedConfirmations + 1} of ${transfer.neededConfirmations}`
         case SYNC: return 'Depositing in Aurora'
         case MINT: return 'Transfer complete'

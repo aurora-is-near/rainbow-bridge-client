@@ -1,18 +1,16 @@
-import { ACTION_NEEDED, IN_PROGRESS, COMPLETE, FAILED } from './statuses'
+import { Status } from './statuses'
+import { StepStatus } from './i18nHelpers'
 
 export interface Step {
   key: string
   description?: string
-  status: typeof FAILED | 'completed' | 'pending'
+  status: StepStatus
 }
 
 export interface TransferStatus {
   errors: string[]
   completedStep: null | string
-  status: typeof IN_PROGRESS |
-          typeof ACTION_NEEDED |
-          typeof COMPLETE |
-          typeof FAILED
+  status: Status
 }
 export interface UnsavedTransfer extends TransferStatus {
   destinationTokenName: string

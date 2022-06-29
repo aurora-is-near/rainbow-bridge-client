@@ -1,0 +1,31 @@
+{
+  "name": "@near-eth/rainbow",
+  "version": "1.0.0",
+  "license": "(MIT AND Apache-2.0)",
+  "main": "dist/index.js",
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc --build tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.28"
+  },
+  "dependencies": {
+    "@near-eth/aurora-erc20": "workspace:*",
+    "@near-eth/aurora-ether": "workspace:*",
+    "@near-eth/aurora-nep141": "workspace:*",
+    "@near-eth/client": "workspace:*",
+    "@near-eth/near-ether": "workspace:*",
+    "@near-eth/nep141-erc20": "workspace:*",
+    "@near-eth/utils": "workspace:*"
+  },
+  "browserslist": [
+    "since 2017-04"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/rainbow"
+  }
+}

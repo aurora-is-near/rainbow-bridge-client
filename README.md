@@ -1,7 +1,7 @@
 Rainbow Bridge Client Libraries
 ===============================
 
-Monorepo containing NEAR-maintained libraries for using the Rainbow Bridge from an app (or, someday, CLI)
+Monorepo containing Aurora-maintained libraries for using the Rainbow Bridge from an app (or, someday, CLI)
 
 ![Install and Build](https://github.com/aurora-is-near/rainbow-bridge-client/actions/workflows/build.yaml/badge.svg)
 ![Lint](https://github.com/aurora-is-near/rainbow-bridge-client/actions/workflows/lint.yaml/badge.svg)
@@ -20,6 +20,12 @@ Monorepo containing NEAR-maintained libraries for using the Rainbow Bridge from 
 | <a href="https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/find-replacement-tx">find-replacement-tx</a> | <a href="https://www.npmjs.com/package/find-replacement-tx"><img alt="find-replacement-tx Version" src="https://img.shields.io/npm/v/find-replacement-tx"></a> |
 
 
+Documentation
+=============
+
+- [Getting Started](https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/client)
+- [Rainbow Bridge widget](https://rainbowbridge.app/embed)
+
 
 Contributing
 ============
@@ -37,7 +43,7 @@ If you use an editor other than VS Code or vim to work on this codebase, you may
 Now you should be able to run project scripts:
 
 * `yarn lint`
-* `yarn workspaces foreach run build`
+* `yarn workspaces foreach -pt run build`
 
 You should also see eslint & TypeScript support in your editor.
 

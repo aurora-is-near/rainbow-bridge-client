@@ -138,7 +138,7 @@ export const i18n = {
         }
       }
       switch (transfer.completedStep) {
-        case null: return 'Transfering to Ethereum'
+        case null: return 'Transferring to Ethereum'
         case BURN: return 'Confirming transfer'
         case AWAIT_FINALITY: return 'Confirming transfer'
         case SYNC: return 'Depositing in Ethereum'
