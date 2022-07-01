@@ -6,7 +6,7 @@ import { Header, Proof, Receipt, Log } from 'eth-object'
 import { rlp, toBuffer } from 'ethereumjs-util'
 import { serialize as serializeBorsh } from 'near-api-js/lib/utils/serialize'
 import { IdType } from 'near-api-js/lib/providers/provider'
-import { Account } from 'near-api-js'
+import { providers as najProviders } from 'near-api-js'
 import { ethers } from 'ethers'
 import bs58 from 'bs58'
 
@@ -164,7 +164,7 @@ export async function findNearProof (
   nearReceiptId: string,
   nearReceiverId: string,
   nearBlockHeight: number,
-  nearAccount: Account,
+  nearProvider: najProviders.Provider,
   provider: ethers.providers.Provider,
   ethClientAddress: string,
   ethClientAbi: string
@@ -177,13 +177,11 @@ export async function findNearProof (
   const clientBlockHashB58 = bs58.encode(toBuffer(
     await nearOnEthClient.blockHashes(nearBlockHeight)
   ))
-  const proof = await nearAccount.connection.provider.lightClientProof(
-    {
-      type: IdType.Receipt,
-      receipt_id: nearReceiptId,
-      receiver_id: nearReceiverId,
-      light_client_head: clientBlockHashB58
-    }
-  )
+  const proof = await nearProvider.lightClientProof({
+    type: IdType.Receipt,
+    receipt_id: nearReceiptId,
+    receiver_id: nearReceiverId,
+    light_client_head: clientBlockHashB58
+  })
   return proof
 }

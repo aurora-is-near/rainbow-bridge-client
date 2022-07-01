@@ -1,10 +1,11 @@
 import BN from 'bn.js'
 import { ethers } from 'ethers'
 import { track } from '@near-eth/client'
-import { utils, Account } from 'near-api-js'
+import { utils, Account, providers as najProviders } from 'near-api-js'
+import { CodeResult } from 'near-api-js/lib/providers/provider'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
-import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
+import { getEthProvider, getNearAccount, getNearProvider, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { urlParams, ethOnNearSyncHeight, findEthProof, findFinalizationTxOnNear } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
@@ -54,6 +55,7 @@ export interface TransferOptions {
   sendToNearSyncInterval?: number
   nearEventRelayerMargin?: number
   nearAccount?: Account
+  nearProvider?: najProviders.Provider
   nearClientAccount?: string
   callIndexer?: (query: string) => Promise<Array<{originated_from_transaction_hash: string, included_in_block_timestamp: string}>>
   eventRelayerAccount?: string
@@ -491,7 +493,10 @@ export async function checkSync (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
 
   if (!transfer.checkSyncInterval) {
     // checkSync every 20s: reasonable value to show the confirmation counter x/30
@@ -507,7 +512,7 @@ export async function checkSync (
   const eventEmittedAt = burnReceipt.blockNumber
   const syncedTo = await ethOnNearSyncHeight(
     options.nearClientAccount ?? bridgeParams.nearClientAccount,
-    nearAccount
+    nearProvider
   )
   const completedConfirmations = Math.max(0, syncedTo - eventEmittedAt)
   let proof
@@ -521,12 +526,14 @@ export async function checkSync (
       options.eNEARAbi ?? bridgeParams.eNEARAbi,
       provider
     )
-    const proofAlreadyUsed = await nearAccount.viewFunction(
-      options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
-      'is_used_proof',
-      Buffer.from(proof),
-      { stringify: (args) => args }
-    )
+    const result = await nearProvider.query<CodeResult>({
+      request_type: 'call_function',
+      account_id: options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
+      method_name: 'is_used_proof',
+      args_base64: Buffer.from(proof).toString('base64'),
+      finality: 'optimistic'
+    })
+    const proofAlreadyUsed = JSON.parse(Buffer.from(result.result).toString())
     if (proofAlreadyUsed) {
       if (options.callIndexer) {
         try {
@@ -633,6 +640,7 @@ export async function checkUnlock (
   transfer: Transfer,
   options?: {
     nearAccount?: Account
+    nearProvider?: najProviders.Provider
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -699,9 +707,12 @@ export async function checkUnlock (
   }
 
   const decodedTxHash = utils.serialize.base_decode(txHash)
-  const nearAccount = options.nearAccount ?? await getNearAccount()
-  const unlockTx = await nearAccount.connection.provider.txStatus(
-    decodedTxHash, nearAccount.accountId
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
+  const unlockTx = await nearProvider.txStatus(
+    decodedTxHash, options?.nearAccount?.accountId ?? 'todo'
   )
 
   // @ts-expect-error : wallet returns errorCode

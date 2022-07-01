@@ -1,5 +1,6 @@
-import { getNearAccount } from '@near-eth/client/dist/utils'
-import { Account } from 'near-api-js'
+import { getNearProvider } from '@near-eth/client/dist/utils'
+import { Account, providers as najProviders } from 'near-api-js'
+import { CodeResult } from 'near-api-js/lib/providers/provider'
 import getNep141Address from './getAddress'
 
 /**
@@ -10,6 +11,7 @@ import getNep141Address from './getAddress'
  * @param params.owner NEAR account address
  * @param params.options Optional arguments.
  * @param params.options.nearAccount Connected NEAR wallet account to use.
+ * @param params.options.nearProvider NEAR provider.
  *
  * @returns If BridgeToken has been deployed, returns balance for `params.user`.
  *   Otherwise, returns `null`.
@@ -20,21 +22,27 @@ export default async function getBalance (
     owner: string
     options?: {
       nearAccount?: Account
+      nearProvider?: najProviders.Provider
     }
   }
 ): Promise<string | null> {
   options = options ?? {}
   const nep141Address = getNep141Address({ erc20Address })
 
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
 
   try {
-    const balanceAsString = await nearAccount.viewFunction(
-      nep141Address,
-      'ft_balance_of',
-      { account_id: owner }
-    )
-    return balanceAsString
+    const result = await nearProvider.query<CodeResult>({
+      request_type: 'call_function',
+      account_id: nep141Address,
+      method_name: 'ft_balance_of',
+      args_base64: Buffer.from(JSON.stringify({ account_id: owner })).toString('base64'),
+      finality: 'optimistic'
+    })
+    return JSON.parse(Buffer.from(result.result).toString())
   } catch (e) {
     console.warn(e)
     if (e.message.includes('does not exist while viewing')) {

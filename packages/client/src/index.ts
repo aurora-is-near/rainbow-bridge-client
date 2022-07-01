@@ -16,6 +16,7 @@ export {
   getBridgeParams,
   getEthProvider,
   getNearAccount,
+  getNearProvider,
   getSignerProvider,
   setAuroraProvider,
   setBridgeParams,

@@ -1,7 +1,7 @@
 import BN from 'bn.js'
 import bs58 from 'bs58'
 import { ethers } from 'ethers'
-import { Account, utils } from 'near-api-js'
+import { Account, utils, providers as najProviders } from 'near-api-js'
 import { FinalExecutionOutcome } from 'near-api-js/lib/providers'
 import {
   deserialize as deserializeBorsh
@@ -12,7 +12,7 @@ import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { track, untrack } from '@near-eth/client'
 import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof, buildIndexerTxQuery, findFinalizationTxOnEthereum } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
-import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
+import { getEthProvider, getNearAccount, getNearProvider, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import getNep141Address from '../getAddress'
 import { getDecimals, getSymbol } from '../../natural-erc20/getMetadata'
 
@@ -64,6 +64,7 @@ export interface TransferOptions {
   sendToEthereumSyncInterval?: number
   ethChainId?: number
   nearAccount?: Account
+  nearProvider?: najProviders.Provider
   ethClientAddress?: string
   ethClientAbi?: string
   erc20Abi?: string
@@ -273,9 +274,12 @@ export async function recover (
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
   const decodedTxHash = utils.serialize.base_decode(withdrawTxHash)
-  const withdrawTx = await nearAccount.connection.provider.txStatus(
+  const withdrawTx = await nearProvider.txStatus(
     // TODO: when multiple shards, the sender should be known in order to query txStatus
     decodedTxHash, sender
   )
@@ -332,10 +336,10 @@ export async function recover (
   const sourceToken = getNep141Address({ erc20Address, options })
   const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
 
-  const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, sender, sourceToken, nearAccount)
+  const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, sender, sourceToken, nearProvider)
 
   // @ts-expect-error TODO
-  const txBlock = await nearAccount.connection.provider.block({ blockId: withdrawTx.transaction_outcome.block_hash })
+  const txBlock = await nearProvider.block({ blockId: withdrawTx.transaction_outcome.block_hash })
 
   // various attributes stored as arrays, to keep history of retries
   const transfer = {
@@ -368,13 +372,13 @@ export async function recover (
  * @param withdrawTx
  * @param sender
  * @param sourceToken
- * @param nearAccount
+ * @param nearProvider
  */
 export async function parseWithdrawReceipt (
   withdrawTx: FinalExecutionOutcome,
   sender: string,
   sourceToken: string,
-  nearAccount: Account
+  nearProvider: najProviders.Provider
 ): Promise<{id: string, blockHeight: number }> {
   const receiptIds = withdrawTx.transaction_outcome.outcome.receipt_ids
 
@@ -437,9 +441,7 @@ export async function parseWithdrawReceipt (
     // @ts-expect-error TODO
     .block_hash
 
-  const receiptBlock = await nearAccount.connection.provider.block({
-    blockId: txReceiptBlockHash
-  })
+  const receiptBlock = await nearProvider.block({ blockId: txReceiptBlockHash })
   const receiptBlockHeight = Number(receiptBlock.header.height)
   return { id: withdrawReceiptId, blockHeight: receiptBlockHeight }
 }
@@ -569,6 +571,7 @@ export async function checkWithdraw (
   transfer: Transfer,
   options?: {
     nearAccount?: Account
+    nearProvider?: najProviders.Provider
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -635,8 +638,11 @@ export async function checkWithdraw (
   }
 
   const decodedTxHash = utils.serialize.base_decode(txHash)
-  const nearAccount = options.nearAccount ?? await getNearAccount()
-  const withdrawTx = await nearAccount.connection.provider.txStatus(
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
+  const withdrawTx = await nearProvider.txStatus(
     // use transfer.sender instead of nearAccount.accountId so that a withdraw
     // tx hash can be recovered even if it is not made by the logged in account
     decodedTxHash, transfer.sender
@@ -664,7 +670,7 @@ export async function checkWithdraw (
 
   let withdrawReceipt
   try {
-    withdrawReceipt = await parseWithdrawReceipt(withdrawTx, transfer.sender, transfer.sourceToken, nearAccount)
+    withdrawReceipt = await parseWithdrawReceipt(withdrawTx, transfer.sender, transfer.sourceToken, nearProvider)
   } catch (e) {
     if (e instanceof TransferError) {
       urlParams.clear(...clearParams)
@@ -681,7 +687,7 @@ export async function checkWithdraw (
   }
 
   // @ts-expect-error TODO
-  const txBlock = await nearAccount.connection.provider.block({ blockId: withdrawTx.transaction_outcome.block_hash })
+  const txBlock = await nearProvider.block({ blockId: withdrawTx.transaction_outcome.block_hash })
   const startTime = new Date(txBlock.header.timestamp / 10 ** 6).toISOString()
 
   // Clear urlParams at the end so that if the provider connection throws,
@@ -709,14 +715,18 @@ export async function checkFinality (
   transfer: Transfer,
   options?: {
     nearAccount?: Account
+    nearProvider?: najProviders.Provider
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
 
   const withdrawReceiptBlockHeight = last(transfer.withdrawReceiptBlockHeights)
   const latestFinalizedBlock = Number((
-    await nearAccount.connection.provider.block({ finality: 'final' })
+    await nearProvider.block({ finality: 'final' })
   ).header.height)
 
   if (latestFinalizedBlock <= withdrawReceiptBlockHeight) {
@@ -773,13 +783,16 @@ export async function checkSync (
   )
   let proof
 
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
   if (nearOnEthClientBlockHeight > withdrawBlockHeight) {
     proof = await findNearProof(
       last(transfer.withdrawReceiptIds),
       options.nep141Factory ?? bridgeParams.nep141Factory,
       nearOnEthClientBlockHeight,
-      nearAccount,
+      nearProvider,
       provider,
       options.ethClientAddress ?? bridgeParams.ethClientAddress,
       options.ethClientAbi ?? bridgeParams.ethClientAbi

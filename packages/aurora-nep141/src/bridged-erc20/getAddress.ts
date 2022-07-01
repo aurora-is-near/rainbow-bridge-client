@@ -1,5 +1,5 @@
-import { getBridgeParams, getNearAccount } from '@near-eth/client/dist/utils'
-import { Account } from 'near-api-js'
+import { getBridgeParams, getNearProvider } from '@near-eth/client/dist/utils'
+import { Account, providers as najProviders } from 'near-api-js'
 import { aurora } from '@near-eth/utils'
 
 const auroraErc20Addresses: {[key: string]: string} = {}
@@ -19,17 +19,21 @@ export async function getAuroraErc20Address (
     nep141Address: string
     options?: {
       nearAccount?: Account
+      nearProvider?: najProviders.Provider
       auroraEvmAccount?: string
     }
   }
 ): Promise<string | null> {
   if (auroraErc20Addresses[nep141Address]) return auroraErc20Addresses[nep141Address]!
   options = options ?? {}
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
   const bridgeParams = getBridgeParams()
   const auroraEvmAccount: string = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
   try {
-    const address = await aurora.getErc20FromNep141({ nep141Address, nearAccount, auroraEvmAccount })
+    const address = await aurora.getErc20FromNep141({ nep141Address, nearProvider, auroraEvmAccount })
     auroraErc20Addresses[nep141Address] = address
   } catch (error) {
     console.warn(error, nep141Address)
@@ -51,17 +55,21 @@ export async function getNep141Address (
     auroraErc20Address: string
     options?: {
       nearAccount?: Account
+      nearProvider?: najProviders.Provider
       auroraEvmAccount?: string
     }
   }
 ): Promise<string | null> {
   if (nep141Addresses[auroraErc20Address]) return nep141Addresses[auroraErc20Address]!
   options = options ?? {}
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
   const bridgeParams = getBridgeParams()
   const auroraEvmAccount: string = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
   try {
-    const address = await aurora.getNep141FromErc20({ auroraErc20Address, nearAccount, auroraEvmAccount })
+    const address = await aurora.getNep141FromErc20({ auroraErc20Address, nearProvider, auroraEvmAccount })
     nep141Addresses[auroraErc20Address] = address
   } catch (error) {
     console.error(error, auroraErc20Address)

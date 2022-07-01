@@ -1,5 +1,5 @@
 import { ethers } from 'ethers'
-import { Account } from 'near-api-js'
+import { Account, providers as najProviders } from 'near-api-js'
 import { getAuroraProvider, getSignerProvider, getBridgeParams, track } from '@near-eth/client'
 import { TransactionInfo, TransferStatus } from '@near-eth/client/dist/types'
 import * as status from '@near-eth/client/dist/statuses'
@@ -106,6 +106,7 @@ export async function findAllTransfers (
       auroraErc20Abi?: string
       auroraEvmAccount?: string
       nearAccount?: Account
+      nearProvider?: najProviders.Provider
       decimals?: number
       symbol?: string
     }
@@ -177,6 +178,7 @@ export async function recover (
     nep141Address?: string
     auroraEvmAccount?: string
     nearAccount?: Account
+    nearProvider?: najProviders.Provider
     decimals?: number
     symbol?: string
   }
@@ -311,6 +313,7 @@ export async function sendToNear (
       auroraErc20Address?: string
       signer?: ethers.Signer
       nearAccount?: Account
+      nearProvider?: najProviders.Provider
       auroraEvmAccount?: string
     }
   }
