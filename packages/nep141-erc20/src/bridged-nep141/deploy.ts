@@ -82,8 +82,8 @@ export default async function deployBridgeToken (
           params: {
             methodName: 'deploy_bridge_token',
             args: { address: erc20Address.replace('0x', '') },
-            gas: new BN('60' + '0'.repeat(12)),
-            deposit: new BN('302' + '0'.repeat(22))
+            gas: '60' + '0'.repeat(12),
+            deposit: '302' + '0'.repeat(22)
           }
         }
       ]

@@ -380,6 +380,8 @@ export async function sendToAurora (
   }
   try {
     transfer = await lock(transfer, options)
+    // Track for injected NEAR wallet (Sender)
+    if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
   } catch (error) {
     if (error.message.includes('Failed to redirect to sign transaction')) {
       // Increase time to redirect to wallet before alerting an error
@@ -451,8 +453,8 @@ export async function lock (
               memo: null,
               msg: msgPrefix + transfer.recipient.toLowerCase().slice(2)
             },
-            gas: new BN('70' + '0'.repeat(12)),
-            deposit: new BN('1')
+            gas: '70' + '0'.repeat(12),
+            deposit: '1'
           }
         }
       ]
@@ -500,6 +502,8 @@ export async function wrapAndSendNearToAurora (
   }
   try {
     transfer = await lockNear(transfer, options)
+    // Track for injected NEAR wallet (Sender)
+    if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
   } catch (error) {
     if (error.message.includes('Failed to redirect to sign transaction')) {
       // Increase time to redirect to wallet before alerting an error
@@ -567,8 +571,8 @@ export async function lockNear (
             account_id: transfer.sender,
             registration_only: true
           },
-          gas: new BN('50' + '0'.repeat(12)),
-          deposit: new BN(minStorageBalance)
+          gas: '50' + '0'.repeat(12),
+          deposit: minStorageBalance
         }
       })
     }
@@ -598,8 +602,8 @@ export async function lockNear (
       params: {
         methodName: 'near_deposit',
         args: {},
-        gas: new BN('30' + '0'.repeat(12)),
-        deposit: new BN(transfer.amount)
+        gas: '30' + '0'.repeat(12),
+        deposit: transfer.amount
       }
     })
     actions.push({
@@ -612,8 +616,8 @@ export async function lockNear (
           memo: null,
           msg: transfer.recipient.toLowerCase().slice(2)
         },
-        gas: new BN('70' + '0'.repeat(12)),
-        deposit: new BN('1')
+        gas: '70' + '0'.repeat(12),
+        deposit: '1'
       }
     })
   }

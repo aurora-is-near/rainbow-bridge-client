@@ -482,6 +482,8 @@ export async function initiate (
 
   try {
     transfer = await lock(transfer, options)
+    // Track for injected NEAR wallet (Sender)
+    if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
   } catch (error) {
     if (error.message.includes('Failed to redirect to sign transaction')) {
       // Increase time to redirect to wallet before alerting an error
@@ -544,8 +546,8 @@ export async function lock (
             args: {
               eth_recipient: transfer.recipient.replace('0x', '')
             },
-            gas: new BN('10' + '0'.repeat(12)),
-            deposit: new BN(transfer.amount)
+            gas: '10' + '0'.repeat(12),
+            deposit: transfer.amount
           }
         }
       ]

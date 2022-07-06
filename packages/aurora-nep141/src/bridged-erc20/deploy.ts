@@ -59,7 +59,7 @@ export default async function deployToAurora (
           params: {
             methodName: 'deploy_erc20_token',
             args: arg,
-            gas: new BN('100' + '0'.repeat(12))
+            gas: '100' + '0'.repeat(12)
           }
         }
       ]

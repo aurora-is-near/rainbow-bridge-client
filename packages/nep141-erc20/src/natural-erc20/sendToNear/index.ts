@@ -817,8 +817,8 @@ export async function mint (
           params: {
             methodName: 'deposit',
             args: proof!,
-            gas: new BN('200' + '0'.repeat(12)),
-            deposit: new BN('6' + '0'.repeat(22))
+            gas: '200' + '0'.repeat(12),
+            deposit: '6' + '0'.repeat(22)
           }
         }
       ]
