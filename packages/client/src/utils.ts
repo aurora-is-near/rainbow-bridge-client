@@ -17,7 +17,13 @@ let bridgeParams: any
 interface NearWalletBehaviour {
   type: string
   getAccounts: () => Promise<Array<{ accountId: string }>>
-  signAndSendTransaction: ({ receiverId, actions }: { receiverId: string, actions: any[]}) => Promise<najProviders.FinalExecutionOutcome>
+  signAndSendTransaction: ({
+    receiverId,
+    actions
+  }: {
+    receiverId: string
+    actions: any[]
+  }) => Promise<najProviders.FinalExecutionOutcome>
 }
 
 /**

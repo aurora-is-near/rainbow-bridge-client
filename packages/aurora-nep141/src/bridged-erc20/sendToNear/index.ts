@@ -1,3 +1,5 @@
+import BN from 'bn.js'
+import { getNearWallet, getNearAccountId } from '@near-eth/client/dist/utils'
 import { ethers } from 'ethers'
 import { Account, providers as najProviders } from 'near-api-js'
 import { getAuroraProvider, getSignerProvider, getBridgeParams, track } from '@near-eth/client'
@@ -296,6 +298,54 @@ export async function checkBurn (
     startTime: new Date(txBlock.timestamp * 1000).toISOString(),
     burnReceipts: [...transfer.burnReceipts, receipt]
   }
+}
+
+export async function payNep141Storage (
+  { nep141Address, storageDeposit, storageAccount, options }: {
+    nep141Address: string
+    storageDeposit: string
+    storageAccount: string
+    options?: {
+      nearAccount?: Account
+    }
+  }
+): Promise<string> {
+  options = options ?? {}
+  const nearWallet = options.nearAccount ?? getNearWallet()
+  const isNajAccount = nearWallet instanceof Account
+  const accountId = storageAccount ?? await getNearAccountId()
+  let tx
+  if (isNajAccount) {
+    tx = await nearWallet.functionCall({
+      contractId: nep141Address,
+      methodName: 'storage_deposit',
+      args: {
+        account_id: accountId,
+        registration_only: true
+      },
+      gas: new BN('100' + '0'.repeat(12)),
+      attachedDeposit: new BN(storageDeposit)
+    })
+  } else {
+    tx = await nearWallet.signAndSendTransaction({
+      receiverId: nep141Address,
+      actions: [
+        {
+          type: 'FunctionCall',
+          params: {
+            methodName: 'storage_deposit',
+            args: {
+              account_id: accountId,
+              registration_only: true
+            },
+            gas: '100' + '0'.repeat(12),
+            deposit: storageDeposit
+          }
+        }
+      ]
+    })
+  }
+  return tx.transaction.hash
 }
 
 export async function sendToNear (
