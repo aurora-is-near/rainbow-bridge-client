@@ -5,7 +5,7 @@ import { CodeResult } from 'near-api-js/lib/providers/provider'
 import { getBridgeParams, track, untrack } from '@near-eth/client'
 import { TransactionInfo, TransferStatus } from '@near-eth/client/dist/types'
 import * as status from '@near-eth/client/dist/statuses'
-import { getNearAccount, getNearProvider } from '@near-eth/client/dist/utils'
+import { getNearWallet, getNearAccountId, getNearProvider } from '@near-eth/client/dist/utils'
 import { urlParams, buildIndexerTxQuery } from '@near-eth/utils'
 import getMetadata from '../getMetadata'
 
@@ -275,36 +275,44 @@ export async function checkLock (
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const id = urlParams.get('locking') as string
-  const txHash = urlParams.get('transactionHashes') as string | null
-  const errorCode = urlParams.get('errorCode') as string | null
-  const clearParams = ['locking', 'transactionHashes', 'errorCode', 'errorMessage']
-  if (!id) {
-    // The user closed the tab and never rejected or approved the tx from Near wallet.
-    // This doesn't protect against the user broadcasting a tx and closing the tab before
-    // redirect. So the dapp has no way of knowing the status of that transaction.
-    const newError = 'Failed to process NEAR Wallet transaction.'
-    console.error(newError)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [newError]
+  let txHash: string
+  let clearParams
+  if (transfer.lockHashes.length === 0) {
+    const id = urlParams.get('locking') as string
+    const transactionHashes = urlParams.get('transactionHashes') as string | null
+    const errorCode = urlParams.get('errorCode') as string | null
+    clearParams = ['locking', 'transactionHashes', 'errorCode', 'errorMessage']
+    if (!id) {
+      // The user closed the tab and never rejected or approved the tx from Near wallet.
+      // This doesn't protect against the user broadcasting a tx and closing the tab before
+      // redirect. So the dapp has no way of knowing the status of that transaction.
+      const newError = 'Failed to process NEAR Wallet transaction.'
+      console.error(newError)
+      return {
+        ...transfer,
+        status: status.FAILED,
+        errors: [newError]
+      }
     }
+    if (id !== transfer.id) {
+      const newError = `Couldn't determine transaction outcome.
+        Got transfer id '${id} in URL, expected '${transfer.id}`
+      console.error(newError)
+      return { ...transfer, status: status.FAILED, errors: [`Failed: ${newError}`] }
+    }
+    if (errorCode) {
+      urlParams.clear(...clearParams)
+      return { ...transfer, status: status.FAILED, errors: [`Failed: ${errorCode}`] }
+    }
+    if (!transactionHashes) {
+      console.log('Waiting for Near wallet redirect to sign lock')
+      return transfer
+    }
+    txHash = transactionHashes
+  } else {
+    txHash = last(transfer.lockHashes)
   }
-  if (id !== transfer.id) {
-    const newError = `Couldn't determine transaction outcome.
-      Got transfer id '${id} in URL, expected '${transfer.id}`
-    console.error(newError)
-    return { ...transfer, status: status.FAILED, errors: [`Failed: ${newError}`] }
-  }
-  if (errorCode) {
-    urlParams.clear(...clearParams)
-    return { ...transfer, status: status.FAILED, errors: [`Failed: ${errorCode}`] }
-  }
-  if (!txHash) {
-    console.log('Waiting for Near wallet redirect to sign lock')
-    return transfer
-  }
+
   const nearProvider =
     options.nearProvider ??
     options.nearAccount?.connection.provider ??
@@ -320,7 +328,7 @@ export async function checkLock (
   const txBlock = await nearProvider.block({ blockId: withdrawTx.transaction_outcome.block_hash })
   const startTime = new Date(txBlock.header.timestamp / 10 ** 6).toISOString()
 
-  urlParams.clear(...clearParams)
+  if (clearParams) urlParams.clear(...clearParams)
   return {
     ...transfer,
     status: status.COMPLETE,
@@ -355,8 +363,7 @@ export async function sendToAurora (
   const destinationTokenName = 'a' + symbol
   const decimals = options.decimals ?? metadata.decimals
   const sourceToken = nep141Address
-  const nearAccount = options.nearAccount ?? await getNearAccount()
-  const sender = options.sender ?? nearAccount.accountId
+  const sender = options.sender ?? await getNearAccountId()
 
   let transfer = {
     ...transferDraft,
@@ -398,7 +405,9 @@ export async function lock (
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearWallet = options.nearAccount ?? getNearWallet()
+  const isNajAccount = nearWallet instanceof Account
+  const browserRedirect = typeof window !== 'undefined' && (isNajAccount || nearWallet.type === 'browser')
   const auroraEvmAccount = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
 
   // nETH (aurora) transfers to Aurora have a different protocol:
@@ -409,23 +418,46 @@ export async function lock (
   // checkStatus should wait for NEAR wallet redirect if it didn't happen yet.
   // On page load the dapp should clear urlParams if transactionHashes or errorCode are not present:
   // this will allow checkStatus to handle the transfer as failed because the NEAR transaction could not be processed.
-  if (typeof window !== 'undefined') urlParams.set({ locking: transfer.id })
-  if (typeof window !== 'undefined') transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
+  if (browserRedirect) urlParams.set({ locking: transfer.id })
+  if (browserRedirect) transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
 
   // If function call error, the transfer will be pending until the transaction id is cleared
   // and the transfer is set to FAILED by checkStatus.
-  const tx = await nearAccount.functionCall({
-    contractId: transfer.sourceToken,
-    methodName: 'ft_transfer_call',
-    args: {
-      receiver_id: auroraEvmAccount,
-      amount: transfer.amount,
-      memo: null,
-      msg: msgPrefix + transfer.recipient.toLowerCase().slice(2)
-    },
-    gas: new BN('70' + '0'.repeat(12)),
-    attachedDeposit: new BN('1')
-  })
+  let tx
+  if (isNajAccount) {
+    tx = await nearWallet.functionCall({
+      contractId: transfer.sourceToken,
+      methodName: 'ft_transfer_call',
+      args: {
+        receiver_id: auroraEvmAccount,
+        amount: transfer.amount,
+        memo: null,
+        msg: msgPrefix + transfer.recipient.toLowerCase().slice(2)
+      },
+      gas: new BN('70' + '0'.repeat(12)),
+      attachedDeposit: new BN('1')
+    })
+  } else {
+    tx = await nearWallet.signAndSendTransaction({
+      receiverId: transfer.sourceToken,
+      actions: [
+        {
+          type: 'FunctionCall',
+          params: {
+            methodName: 'ft_transfer_call',
+            args: {
+              receiver_id: auroraEvmAccount,
+              amount: transfer.amount,
+              memo: null,
+              msg: msgPrefix + transfer.recipient.toLowerCase().slice(2)
+            },
+            gas: new BN('70' + '0'.repeat(12)),
+            deposit: new BN('1')
+          }
+        }
+      ]
+    })
+  }
   return {
     ...transfer,
     lockHashes: [tx.transaction.hash]
@@ -451,8 +483,7 @@ export async function wrapAndSendNearToAurora (
   const destinationTokenName = 'a' + symbol
   const sourceTokenName = symbol
   const sourceToken = 'NEAR'
-  const nearAccount = options.nearAccount ?? await getNearAccount()
-  const sender = options.sender ?? nearAccount.accountId
+  const sender = options.sender ?? await getNearAccountId()
 
   let transfer: Transfer = {
     ...transferDraft,
@@ -497,7 +528,9 @@ export async function lockNear (
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearWallet = options.nearAccount ?? getNearWallet()
+  const isNajAccount = nearWallet instanceof Account
+  const browserRedirect = typeof window !== 'undefined' && (isNajAccount || nearWallet.type === 'browser')
   const nearProvider =
     options.nearProvider ??
     options.nearAccount?.connection.provider ??
@@ -515,46 +548,91 @@ export async function lockNear (
     nearProvider
   })
   if (!userStorageBalance || new BN(userStorageBalance.total).lt(new BN(minStorageBalance))) {
-    actions.push(transactions.functionCall(
-      'storage_deposit',
-      Buffer.from(JSON.stringify({
-        account_id: transfer.sender,
-        registration_only: true
-      })),
-      new BN('50' + '0'.repeat(12)),
-      new BN(minStorageBalance)
-    ))
+    if (isNajAccount) {
+      actions.push(transactions.functionCall(
+        'storage_deposit',
+        Buffer.from(JSON.stringify({
+          account_id: transfer.sender,
+          registration_only: true
+        })),
+        new BN('50' + '0'.repeat(12)),
+        new BN(minStorageBalance)
+      ))
+    } else {
+      actions.push({
+        type: 'FunctionCall',
+        params: {
+          methodName: 'storage_deposit',
+          args: {
+            account_id: transfer.sender,
+            registration_only: true
+          },
+          gas: new BN('50' + '0'.repeat(12)),
+          deposit: new BN(minStorageBalance)
+        }
+      })
+    }
   }
 
-  actions.push(transactions.functionCall(
-    'near_deposit',
-    Buffer.from(JSON.stringify({})),
-    new BN('30' + '0'.repeat(12)),
-    new BN(transfer.amount)
-  ))
-  actions.push(transactions.functionCall(
-    'ft_transfer_call',
-    Buffer.from(JSON.stringify({
-      receiver_id: auroraEvmAccount,
-      amount: transfer.amount,
-      memo: null,
-      msg: transfer.recipient.toLowerCase().slice(2)
-    })),
-    new BN('70' + '0'.repeat(12)),
-    new BN('1')
-  ))
+  if (isNajAccount) {
+    actions.push(transactions.functionCall(
+      'near_deposit',
+      Buffer.from(JSON.stringify({})),
+      new BN('30' + '0'.repeat(12)),
+      new BN(transfer.amount)
+    ))
+    actions.push(transactions.functionCall(
+      'ft_transfer_call',
+      Buffer.from(JSON.stringify({
+        receiver_id: auroraEvmAccount,
+        amount: transfer.amount,
+        memo: null,
+        msg: transfer.recipient.toLowerCase().slice(2)
+      })),
+      new BN('70' + '0'.repeat(12)),
+      new BN('1')
+    ))
+  } else {
+    actions.push({
+      type: 'FunctionCall',
+      params: {
+        methodName: 'near_deposit',
+        args: {},
+        gas: new BN('30' + '0'.repeat(12)),
+        deposit: new BN(transfer.amount)
+      }
+    })
+    actions.push({
+      type: 'FunctionCall',
+      params: {
+        methodName: 'ft_transfer_call',
+        args: {
+          receiver_id: auroraEvmAccount,
+          amount: transfer.amount,
+          memo: null,
+          msg: transfer.recipient.toLowerCase().slice(2)
+        },
+        gas: new BN('70' + '0'.repeat(12)),
+        deposit: new BN('1')
+      }
+    })
+  }
 
   // NOTE:
   // checkStatus should wait for NEAR wallet redirect if it didn't happen yet.
   // On page load the dapp should clear urlParams if transactionHashes or errorCode are not present:
   // this will allow checkStatus to handle the transfer as failed because the NEAR transaction could not be processed.
-  if (typeof window !== 'undefined') urlParams.set({ locking: transfer.id })
-  if (typeof window !== 'undefined') transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
+  if (browserRedirect) urlParams.set({ locking: transfer.id })
+  if (browserRedirect) transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
 
   // If function call error, the transfer will be pending until the transaction id is cleared
   // and the transfer is set to FAILED by checkStatus.
   // @ts-expect-error
-  const tx = await nearAccount.signAndSendTransaction(wNearNep141, actions)
+  const tx = await nearWallet.signAndSendTransaction({
+    receiverId: wNearNep141,
+    actions
+  })
+
   return {
     ...transfer,
     lockHashes: [tx.transaction.hash]

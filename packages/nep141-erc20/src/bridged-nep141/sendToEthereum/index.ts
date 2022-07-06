@@ -12,7 +12,7 @@ import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { track, untrack } from '@near-eth/client'
 import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof, buildIndexerTxQuery, findFinalizationTxOnEthereum } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
-import { getEthProvider, getNearAccount, getNearProvider, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
+import { getEthProvider, getNearWallet, getNearAccountId, getNearProvider, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import getNep141Address from '../getAddress'
 import { getDecimals, getSymbol } from '../../natural-erc20/getMetadata'
 
@@ -486,8 +486,7 @@ export async function initiate (
   const sourceTokenName = 'n' + symbol
   const sourceToken = options.nep141Address ?? getNep141Address({ erc20Address, options })
   const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
-  const nearAccount = options.nearAccount ?? await getNearAccount()
-  const sender = options.sender ?? nearAccount.accountId
+  const sender = options.sender ?? await getNearAccountId()
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
@@ -531,26 +530,49 @@ export async function withdraw (
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearWallet = options.nearAccount ?? getNearWallet()
+  const isNajAccount = nearWallet instanceof Account
+  const browserRedirect = typeof window !== 'undefined' && (isNajAccount || nearWallet.type === 'browser')
 
   // NOTE:
   // checkStatus should wait for NEAR wallet redirect if it didn't happen yet.
   // On page load the dapp should clear urlParams if transactionHashes or errorCode are not present:
   // this will allow checkStatus to handle the transfer as failed because the NEAR transaction could not be processed.
-  if (typeof window !== 'undefined') urlParams.set({ withdrawing: transfer.id })
-  if (typeof window !== 'undefined') transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
+  if (browserRedirect) urlParams.set({ withdrawing: transfer.id })
+  if (browserRedirect) transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
 
-  const tx = await nearAccount.functionCall({
-    contractId: transfer.sourceToken,
-    methodName: 'withdraw',
-    args: {
-      amount: String(transfer.amount),
-      recipient: transfer.recipient.replace('0x', '')
-    },
-    // 100Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
-    gas: new BN('100' + '0'.repeat(12)),
-    attachedDeposit: new BN('1')
-  })
+  let tx
+  if (isNajAccount) {
+    tx = await nearWallet.functionCall({
+      contractId: transfer.sourceToken,
+      methodName: 'withdraw',
+      args: {
+        amount: String(transfer.amount),
+        recipient: transfer.recipient.replace('0x', '')
+      },
+      // 100Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
+      gas: new BN('100' + '0'.repeat(12)),
+      attachedDeposit: new BN('1')
+    })
+  } else {
+    tx = await nearWallet.signAndSendTransaction({
+      receiverId: transfer.sourceToken,
+      actions: [
+        {
+          type: 'FunctionCall',
+          params: {
+            methodName: 'withdraw',
+            args: {
+              amount: String(transfer.amount),
+              recipient: transfer.recipient.replace('0x', '')
+            },
+            gas: new BN('100' + '0'.repeat(12)),
+            deposit: new BN('1')
+          }
+        }
+      ]
+    })
+  }
 
   return {
     ...transfer,
@@ -575,66 +597,73 @@ export async function checkWithdraw (
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const id = urlParams.get('withdrawing') as string | null
-  // NOTE: when a single tx is executed, transactionHashes is equal to that hash
-  const txHash = urlParams.get('transactionHashes') as string | null
-  const errorCode = urlParams.get('errorCode') as string | null
-  const clearParams = ['withdrawing', 'transactionHashes', 'errorCode', 'errorMessage']
-  if (!id) {
-    // The user closed the tab and never rejected or approved the tx from Near wallet.
-    // This doesn't protect agains the user broadcasting a tx and closing the tab before
-    // redirect. So the dapp has no way of knowing the status of that transaction.
-    // Set status to FAILED so that it can be retried
-    const newError = `A transaction was initiated but could not be verified.
-      Click 'Rescan the blockchain' to check if a transfer was created.`
-    console.error(newError)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [...transfer.errors, newError]
+  let txHash: string
+  let clearParams
+  if (transfer.withdrawHashes.length === 0) {
+    const id = urlParams.get('withdrawing') as string | null
+    // NOTE: when a single tx is executed, transactionHashes is equal to that hash
+    const transactionHashes = urlParams.get('transactionHashes') as string | null
+    const errorCode = urlParams.get('errorCode') as string | null
+    clearParams = ['withdrawing', 'transactionHashes', 'errorCode', 'errorMessage']
+    if (!id) {
+      // The user closed the tab and never rejected or approved the tx from Near wallet.
+      // This doesn't protect agains the user broadcasting a tx and closing the tab before
+      // redirect. So the dapp has no way of knowing the status of that transaction.
+      // Set status to FAILED so that it can be retried
+      const newError = `A transaction was initiated but could not be verified.
+        Click 'Rescan the blockchain' to check if a transfer was created.`
+      console.error(newError)
+      return {
+        ...transfer,
+        status: status.FAILED,
+        errors: [...transfer.errors, newError]
+      }
     }
-  }
-  if (id !== transfer.id) {
-    // Another withdraw transaction cannot be in progress, ie if checkWithdraw is called on
-    // an in process withdraw then the transfer ids must be equal or the url callback is invalid.
-    const newError = `Couldn't determine transaction outcome.
-      Got transfer id '${id} in URL, expected '${transfer.id}`
-    console.error(newError)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [...transfer.errors, newError]
+    if (id !== transfer.id) {
+      // Another withdraw transaction cannot be in progress, ie if checkWithdraw is called on
+      // an in process withdraw then the transfer ids must be equal or the url callback is invalid.
+      const newError = `Couldn't determine transaction outcome.
+        Got transfer id '${id} in URL, expected '${transfer.id}`
+      console.error(newError)
+      return {
+        ...transfer,
+        status: status.FAILED,
+        errors: [...transfer.errors, newError]
+      }
     }
-  }
-  if (errorCode) {
-    // If errorCode, then the redirect succeded but the tx was rejected/failed
-    // so clear url params
-    urlParams.clear(...clearParams)
-    const newError = 'Error from wallet: ' + errorCode
-    console.error(newError)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [...transfer.errors, newError]
+    if (errorCode) {
+      // If errorCode, then the redirect succeded but the tx was rejected/failed
+      // so clear url params
+      urlParams.clear(...clearParams)
+      const newError = 'Error from wallet: ' + errorCode
+      console.error(newError)
+      return {
+        ...transfer,
+        status: status.FAILED,
+        errors: [...transfer.errors, newError]
+      }
     }
-  }
-  if (!txHash) {
-    // If checkWithdraw is called before withdraw sig wallet redirect
-    // log the error but don't mark as FAILED and don't clear url params
-    // as the wallet redirect has not happened yet
-    const newError = 'Withdraw tx hash not received: pending redirect or wallet error'
-    console.log(newError)
-    return transfer
-  }
-  if (txHash.includes(',')) {
-    urlParams.clear(...clearParams)
-    const newError = 'Error from wallet: expected single txHash, got: ' + txHash
-    console.error(newError)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [...transfer.errors, newError]
+    if (!transactionHashes) {
+      // If checkWithdraw is called before withdraw sig wallet redirect
+      // log the error but don't mark as FAILED and don't clear url params
+      // as the wallet redirect has not happened yet
+      const newError = 'Withdraw tx hash not received: pending redirect or wallet error'
+      console.log(newError)
+      return transfer
     }
+    if (transactionHashes.includes(',')) {
+      urlParams.clear(...clearParams)
+      const newError = 'Error from wallet: expected single txHash, got: ' + transactionHashes
+      console.error(newError)
+      return {
+        ...transfer,
+        status: status.FAILED,
+        errors: [...transfer.errors, newError]
+      }
+    }
+    txHash = transactionHashes
+  } else {
+    txHash = last(transfer.withdrawHashes)
   }
 
   const decodedTxHash = utils.serialize.base_decode(txHash)
@@ -657,7 +686,7 @@ export async function checkWithdraw (
   // Check status of tx broadcasted by wallet
   // @ts-expect-error : wallet returns errorCode
   if (withdrawTx.status.Failure) {
-    urlParams.clear(...clearParams)
+    if (clearParams) urlParams.clear(...clearParams)
     const error = `NEAR transaction failed: ${txHash}`
     console.error(error)
     return {
@@ -673,7 +702,7 @@ export async function checkWithdraw (
     withdrawReceipt = await parseWithdrawReceipt(withdrawTx, transfer.sender, transfer.sourceToken, nearProvider)
   } catch (e) {
     if (e instanceof TransferError) {
-      urlParams.clear(...clearParams)
+      if (clearParams) urlParams.clear(...clearParams)
       return {
         ...transfer,
         errors: [...transfer.errors, e.message],
@@ -692,7 +721,7 @@ export async function checkWithdraw (
 
   // Clear urlParams at the end so that if the provider connection throws,
   // checkStatus will be able to process it again in the next loop.
-  urlParams.clear(...clearParams)
+  if (clearParams) urlParams.clear(...clearParams)
 
   return {
     ...transfer,

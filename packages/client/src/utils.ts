@@ -11,7 +11,14 @@ let nearConnection: WalletConnection
 let auroraProvider: ethersProviders.JsonRpcProvider
 let signerProvider: ethersProviders.JsonRpcProvider | ethersProviders.Web3Provider
 let nearProvider: najProviders.Provider
+let nearWallet: NearWalletBehaviour
 let bridgeParams: any
+
+interface NearWalletBehaviour {
+  type: string
+  getAccounts: () => Promise<Array<{ accountId: string }>>
+  signAndSendTransaction: ({ receiverId, actions }: { receiverId: string, actions: any[]}) => Promise<najProviders.FinalExecutionOutcome>
+}
 
 /**
  * Set ethProvider
@@ -115,6 +122,37 @@ export function setNearProvider (
 }
 
 /**
+ * Set wallet-selector NEAR wallet
+ *
+ * This must be called by apps that use @near-eth/client before performing any
+ * transfer operations with @near-eth/client itself or with connector libraries
+ * such as @near-eth/nep141-erc20.
+ *
+ * Example:
+ *
+ *     import { setNearWallet } from '@near-eth/client'
+ *     import { setupWalletSelector } from "@near-wallet-selector/core"
+ *     import { setupMyNearWallet } from "@near-wallet-selector/my-near-wallet"
+ *     import { setupSender } from "@near-wallet-selector/sender"
+ *
+ *     const selector = await setupWalletSelector({
+ *       network: "testnet",
+ *       debug: true,
+ *       modules: [setupMyNearWallet(), setupSender()]
+ *     })
+ *     setNearWallet(await selector.wallet())
+ *
+ * @param wallet Near Wallet signer
+ *
+ * @returns `wallet`
+ */
+export function setNearWallet (wallet: NearWalletBehaviour): NearWalletBehaviour {
+  nearWallet = wallet
+  // TODO: verify provider meets expectations
+  return nearWallet
+}
+
+/**
  * Set nearConnection
  *
  * This must be called by apps that use @near-eth/client before performing any
@@ -164,6 +202,18 @@ export function getSignerProvider (): ethersProviders.JsonRpcProvider {
 export function getNearProvider (): najProviders.Provider {
   if (nearProvider) return nearProvider
   else return (getNearAccount()).connection.provider
+}
+
+export function getNearWallet (): NearWalletBehaviour | ConnectedWalletAccount {
+  if (nearWallet) return nearWallet
+  // Backward compatibility
+  else return getNearAccount()
+}
+
+export async function getNearAccountId (): Promise<string> {
+  if (nearWallet) return (await nearWallet.getAccounts())[0]!.accountId
+  // Backward compatibility
+  else return (getNearAccount().accountId)
 }
 
 /**
