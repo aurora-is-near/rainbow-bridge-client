@@ -309,7 +309,7 @@ export async function payNep141Storage (
       nearAccount?: Account
     }
   }
-): Promise<string> {
+): Promise<najProviders.FinalExecutionOutcome> {
   options = options ?? {}
   const nearWallet = options.nearAccount ?? getNearWallet()
   const isNajAccount = nearWallet instanceof Account
@@ -345,7 +345,7 @@ export async function payNep141Storage (
       ]
     })
   }
-  return tx.transaction.hash
+  return tx
 }
 
 export async function sendToNear (

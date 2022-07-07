@@ -23,7 +23,7 @@ interface NearWalletBehaviour {
   }: {
     receiverId: string
     actions: any[]
-  }) => Promise<najProviders.FinalExecutionOutcome>
+  }) => Promise<any>
 }
 
 /**
