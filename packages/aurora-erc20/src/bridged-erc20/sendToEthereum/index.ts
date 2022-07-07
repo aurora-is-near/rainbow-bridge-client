@@ -302,7 +302,6 @@ export async function recover (
   options?: TransferOptions & {
     decimals?: number
     symbol?: string
-    callIndexer?: (query: string) => Promise<Array<{originated_from_transaction_hash: string, included_in_block_timestamp: string}>>
   }
 ): Promise<Transfer> {
   options = options ?? {}
