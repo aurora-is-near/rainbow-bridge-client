@@ -1,6 +1,6 @@
 {
   "name": "@near-eth/aurora-erc20",
-  "version": "2.3.0",
+  "version": "2.4.0-rc.1",
   "license": "(MIT AND Apache-2.0)",
   "main": "dist/index.js",
   "files": [
@@ -32,5 +32,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/aurora-erc20"
-  }
+  },
+  "stableVersion": "2.3.0"
 }

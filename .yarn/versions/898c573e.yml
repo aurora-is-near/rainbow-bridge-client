@@ -9,4 +9,6 @@ releases:
   rainbow-bridge-client-monorepo: minor
 
 declined:
+  - find-replacement-tx
+  - lite-merkle-patricia-tree
   - "@near-eth/rainbow"
