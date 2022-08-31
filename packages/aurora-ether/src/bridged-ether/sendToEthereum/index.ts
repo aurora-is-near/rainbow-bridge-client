@@ -1,7 +1,7 @@
 import { borshifyOutcomeProof, nearOnEthSyncHeight, findNearProof, findFinalizationTxOnEthereum } from '@near-eth/utils'
 import { ethers } from 'ethers'
 import bs58 from 'bs58'
-import { utils, Account } from 'near-api-js'
+import { utils, Account, providers as najProviders } from 'near-api-js'
 import BN from 'bn.js'
 import {
   deserialize as deserializeBorsh
@@ -15,7 +15,7 @@ import {
   getSignerProvider,
   getAuroraProvider,
   getEthProvider,
-  getNearAccount,
+  getNearProvider,
   formatLargeNum,
   getBridgeParams
 } from '@near-eth/client/dist/utils'
@@ -75,6 +75,7 @@ export interface TransferOptions {
   sendToEthereumSyncInterval?: number
   ethChainId?: number
   nearAccount?: Account
+  nearProvider?: najProviders.Provider
   ethClientAddress?: string
   ethClientAbi?: string
   auroraProvider?: ethers.providers.JsonRpcProvider
@@ -189,7 +190,7 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
  */
 export async function parseBurnReceipt (
   nearBurnTx: FinalExecutionOutcome,
-  nearAccount: Account
+  nearProvider: najProviders.Provider
 ): Promise<{id: string, blockHeight: number }> {
   const receiptIds = nearBurnTx.transaction_outcome.outcome.receipt_ids
 
@@ -212,9 +213,7 @@ export async function parseBurnReceipt (
     // @ts-expect-error TODO
     .block_hash
 
-  const receiptBlock = await nearAccount.connection.provider.block({
-    blockId: txReceiptBlockHash
-  })
+  const receiptBlock = await nearProvider.block({ blockId: txReceiptBlockHash })
   const receiptBlockHeight = Number(receiptBlock.header.height)
   return { id: burnReceiptId, blockHeight: receiptBlockHeight }
 }
@@ -274,7 +273,10 @@ export async function recover (
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
 
   let nearBurnTxHash
   let decodedTxHash
@@ -296,9 +298,7 @@ export async function recover (
     decodedTxHash = utils.serialize.base_decode(nearBurnTxHash)
   }
 
-  const burnTx = await nearAccount.connection.provider.txStatus(
-    decodedTxHash, sender
-  )
+  const burnTx = await nearProvider.txStatus(decodedTxHash, sender)
 
   if (!auroraTxHash) {
     auroraTxHash = ethers.utils.keccak256(
@@ -358,10 +358,10 @@ export async function recover (
   const sourceTokenName = 'a' + symbol
   const sourceToken = symbol
 
-  const nearBurnReceipt = await parseBurnReceipt(burnTx, nearAccount)
+  const nearBurnReceipt = await parseBurnReceipt(burnTx, nearProvider)
 
   // @ts-expect-error TODO
-  const txBlock = await nearAccount.connection.provider.block({ blockId: burnTx.transaction_outcome.block_hash })
+  const txBlock = await nearProvider.block({ blockId: burnTx.transaction_outcome.block_hash })
 
   // various attributes stored as arrays, to keep history of retries
   const transfer = {
@@ -529,6 +529,7 @@ export async function checkBurn (
     auroraChainId?: number
     auroraRelayerAccount?: string
     nearAccount?: Account
+    nearProvider?: najProviders.Provider
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -598,8 +599,11 @@ export async function checkBurn (
   const decodedTxHash = Buffer.from(burnReceipt.nearTransactionHash.slice(2), 'hex')
   const nearBurnHash = bs58.encode(decodedTxHash)
 
-  const nearAccount = options.nearAccount ?? await getNearAccount()
-  const nearBurnTx = await nearAccount.connection.provider.txStatus(
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
+  const nearBurnTx = await nearProvider.txStatus(
     decodedTxHash, options.auroraRelayerAccount ?? bridgeParams.auroraRelayerAccount
   )
 
@@ -622,7 +626,7 @@ export async function checkBurn (
 
   let nearBurnReceipt
   try {
-    nearBurnReceipt = await parseBurnReceipt(nearBurnTx, nearAccount)
+    nearBurnReceipt = await parseBurnReceipt(nearBurnTx, nearProvider)
   } catch (e) {
     if (e instanceof TransferError) {
       return {
@@ -637,7 +641,7 @@ export async function checkBurn (
   }
 
   // @ts-expect-error TODO
-  const txBlock = await nearAccount.connection.provider.block({ blockId: nearBurnTx.transaction_outcome.block_hash })
+  const txBlock = await nearProvider.block({ blockId: nearBurnTx.transaction_outcome.block_hash })
 
   return {
     ...transfer,
@@ -661,14 +665,17 @@ export async function checkFinality (
   transfer: Transfer,
   options?: {
     nearAccount?: Account
+    nearProvider?: najProviders.Provider
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const nearAccount = options.nearAccount ?? await getNearAccount()
-
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
   const burnReceiptBlockHeight = last(transfer.nearBurnReceiptBlockHeights)
   const latestFinalizedBlock = Number((
-    await nearAccount.connection.provider.block({ finality: 'final' })
+    await nearProvider.block({ finality: 'final' })
   ).header.height)
 
   if (latestFinalizedBlock <= burnReceiptBlockHeight) {
@@ -723,13 +730,16 @@ export async function checkSync (
   )
   let proof
 
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
   if (nearOnEthClientBlockHeight > burnBlockHeight) {
     proof = await findNearProof(
       last(transfer.nearBurnReceiptIds),
       options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
       nearOnEthClientBlockHeight,
-      nearAccount,
+      nearProvider,
       provider,
       options.ethClientAddress ?? bridgeParams.ethClientAddress,
       options.ethClientAbi ?? bridgeParams.ethClientAbi

@@ -1,10 +1,11 @@
 import BN from 'bn.js'
 import { ethers } from 'ethers'
 import { track } from '@near-eth/client'
-import { utils, Account } from 'near-api-js'
+import { utils, Account, providers as najProviders } from 'near-api-js'
+import { CodeResult } from 'near-api-js/lib/providers/provider'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
-import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
+import { getEthProvider, getNearWallet, getNearProvider, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { urlParams, ethOnNearSyncHeight, findEthProof, findFinalizationTxOnNear } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
@@ -63,6 +64,7 @@ export interface TransferOptions {
   nep141Factory?: string
   nearEventRelayerMargin?: number
   nearAccount?: Account
+  nearProvider?: najProviders.Provider
   nearClientAccount?: string
   callIndexer?: (query: string) => Promise<Array<{originated_from_transaction_hash: string, included_in_block_timestamp: string}>>
   eventRelayerAccount?: string
@@ -672,7 +674,10 @@ export async function checkSync (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
 
   if (!transfer.checkSyncInterval) {
     // checkSync every 20s: reasonable value to show the confirmation counter x/30
@@ -688,7 +693,7 @@ export async function checkSync (
   const eventEmittedAt = lockReceipt.blockNumber
   const syncedTo = await ethOnNearSyncHeight(
     options.nearClientAccount ?? bridgeParams.nearClientAccount,
-    nearAccount
+    nearProvider
   )
   const completedConfirmations = Math.max(0, syncedTo - eventEmittedAt)
   let proof
@@ -702,12 +707,14 @@ export async function checkSync (
       options.erc20LockerAbi ?? bridgeParams.erc20LockerAbi,
       provider
     )
-    const proofAlreadyUsed = await nearAccount.viewFunction(
-      options.nep141Factory ?? bridgeParams.nep141Factory,
-      'is_used_proof',
-      Buffer.from(proof),
-      { stringify: (args) => args }
-    )
+    const result = await nearProvider.query<CodeResult>({
+      request_type: 'call_function',
+      account_id: options.nep141Factory ?? bridgeParams.nep141Factory,
+      method_name: 'is_used_proof',
+      args_base64: Buffer.from(proof).toString('base64'),
+      finality: 'optimistic'
+    })
+    const proofAlreadyUsed = JSON.parse(Buffer.from(result.result).toString())
     if (proofAlreadyUsed) {
       if (options.callIndexer) {
         try {
@@ -772,7 +779,9 @@ export async function mint (
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearWallet = options.nearAccount ?? getNearWallet()
+  const isNajAccount = nearWallet instanceof Account
+  const browserRedirect = typeof window !== 'undefined' && (isNajAccount || nearWallet.type === 'browser')
 
   // Check if the transfer is finalized and get the proof if not
   transfer = await checkSync(transfer, options)
@@ -783,20 +792,38 @@ export async function mint (
   // checkStatus should wait for NEAR wallet redirect if it didn't happen yet.
   // On page load the dapp should clear urlParams if transactionHashes or errorCode are not present:
   // this will allow checkStatus to handle the transfer as failed because the NEAR transaction could not be processed.
-  if (typeof window !== 'undefined') urlParams.set({ minting: transfer.id })
-  if (typeof window !== 'undefined') transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
+  if (browserRedirect) urlParams.set({ minting: transfer.id })
+  if (browserRedirect) transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
 
-  const tx = await nearAccount.functionCall({
-    contractId: options.nep141Factory ?? bridgeParams.nep141Factory,
-    methodName: 'deposit',
-    args: proof!,
-    // 200Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
-    gas: new BN('200' + '0'.repeat(12)),
-    // We need to attach tokens because minting increases the contract state, by <600 bytes, which
-    // requires an additional 0.06 NEAR to be deposited to the account for state staking.
-    // Note technically 0.0537 NEAR should be enough, but we round it up to stay on the safe side.
-    attachedDeposit: new BN('100000000000000000000').mul(new BN('600'))
-  })
+  let tx
+  if (isNajAccount) {
+    tx = await nearWallet.functionCall({
+      contractId: options.nep141Factory ?? bridgeParams.nep141Factory,
+      methodName: 'deposit',
+      args: proof!,
+      // 200Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
+      gas: new BN('200' + '0'.repeat(12)),
+      // We need to attach tokens because minting increases the contract state, by <600 bytes, which
+      // requires an additional 0.06 NEAR to be deposited to the account for state staking.
+      // Note technically 0.0537 NEAR should be enough, but we round it up to stay on the safe side.
+      attachedDeposit: new BN('6' + '0'.repeat(22))
+    })
+  } else {
+    tx = await nearWallet.signAndSendTransaction({
+      receiverId: options.nep141Factory ?? bridgeParams.nep141Factory,
+      actions: [
+        {
+          type: 'FunctionCall',
+          params: {
+            methodName: 'deposit',
+            args: proof!,
+            gas: '200' + '0'.repeat(12),
+            deposit: '6' + '0'.repeat(22)
+          }
+        }
+      ]
+    })
+  }
 
   return {
     ...transfer,
@@ -817,75 +844,86 @@ export async function checkMint (
   transfer: Transfer,
   options?: {
     nearAccount?: Account
+    nearProvider?: najProviders.Provider
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const id = urlParams.get('minting') as string | null
-  // NOTE: when a single tx is executed, transactionHashes is equal to that hash
-  const txHash = urlParams.get('transactionHashes') as string | null
-  const errorCode = urlParams.get('errorCode') as string | null
-  const clearParams = ['minting', 'transactionHashes', 'errorCode', 'errorMessage']
-  if (!id) {
-    // The user closed the tab and never rejected or approved the tx from Near wallet.
-    // This doesn't protect agains the user broadcasting a tx and closing the tab before
-    // redirect. So the dapp has no way of knowing the status of that transaction.
-    // Set status to FAILED so that it can be retried
-    const newError = `A finalization transaction was initiated but could not be verified.
-      Click 'Retry' to make sure the transfer is finalized.`
-    console.error(newError)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [...transfer.errors, newError]
+  let txHash: string
+  let clearParams
+  if (transfer.mintHashes.length === 0) {
+    const id = urlParams.get('minting') as string | null
+    // NOTE: when a single tx is executed, transactionHashes is equal to that hash
+    const transactionHashes = urlParams.get('transactionHashes') as string | null
+    const errorCode = urlParams.get('errorCode') as string | null
+    clearParams = ['minting', 'transactionHashes', 'errorCode', 'errorMessage']
+    if (!id) {
+      // The user closed the tab and never rejected or approved the tx from Near wallet.
+      // This doesn't protect agains the user broadcasting a tx and closing the tab before
+      // redirect. So the dapp has no way of knowing the status of that transaction.
+      // Set status to FAILED so that it can be retried
+      const newError = `A finalization transaction was initiated but could not be verified.
+        Click 'Retry' to make sure the transfer is finalized.`
+      console.error(newError)
+      return {
+        ...transfer,
+        status: status.FAILED,
+        errors: [...transfer.errors, newError]
+      }
     }
-  }
-  if (id !== transfer.id) {
-    // Another minting transaction cannot be in progress, ie if checkMint is called on
-    // an in progess mint then the transfer ids must be equal or the url callback is invalid.
-    const newError = `Couldn't determine transaction outcome.
-      Got transfer id '${id} in URL, expected '${transfer.id}`
-    console.error(newError)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [...transfer.errors, newError]
+    if (id !== transfer.id) {
+      // Another minting transaction cannot be in progress, ie if checkMint is called on
+      // an in progess mint then the transfer ids must be equal or the url callback is invalid.
+      const newError = `Couldn't determine transaction outcome.
+        Got transfer id '${id} in URL, expected '${transfer.id}`
+      console.error(newError)
+      return {
+        ...transfer,
+        status: status.FAILED,
+        errors: [...transfer.errors, newError]
+      }
     }
-  }
-  if (errorCode) {
-    // If errorCode, then the redirect succeded but the tx was rejected/failed
-    // so clear url params
-    urlParams.clear(...clearParams)
-    const newError = 'Error from wallet: ' + errorCode
-    console.error(newError)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [...transfer.errors, newError]
+    if (errorCode) {
+      // If errorCode, then the redirect succeded but the tx was rejected/failed
+      // so clear url params
+      urlParams.clear(...clearParams)
+      const newError = 'Error from wallet: ' + errorCode
+      console.error(newError)
+      return {
+        ...transfer,
+        status: status.FAILED,
+        errors: [...transfer.errors, newError]
+      }
     }
-  }
-  if (!txHash) {
-    // If checkMint is called before mint sig wallet redirect,
-    // log the error but don't mark as FAILED and don't clear url params
-    // as the wallet redirect has not happened yet
-    const newError = 'Tx hash not received: pending redirect or wallet error'
-    console.log(newError)
-    return transfer
-  }
-  if (txHash.includes(',')) {
-    urlParams.clear(...clearParams)
-    const newError = 'Error from wallet: expected single txHash, got: ' + txHash
-    console.error(newError)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [...transfer.errors, newError]
+    if (!transactionHashes) {
+      // If checkMint is called before mint sig wallet redirect,
+      // log the error but don't mark as FAILED and don't clear url params
+      // as the wallet redirect has not happened yet
+      const newError = 'Tx hash not received: pending redirect or wallet error'
+      console.log(newError)
+      return transfer
     }
+    if (transactionHashes.includes(',')) {
+      urlParams.clear(...clearParams)
+      const newError = 'Error from wallet: expected single txHash, got: ' + transactionHashes
+      console.error(newError)
+      return {
+        ...transfer,
+        status: status.FAILED,
+        errors: [...transfer.errors, newError]
+      }
+    }
+    txHash = transactionHashes
+  } else {
+    txHash = last(transfer.mintHashes)
   }
 
   const decodedTxHash = utils.serialize.base_decode(txHash)
-  const nearAccount = options.nearAccount ?? await getNearAccount()
-  const mintTx = await nearAccount.connection.provider.txStatus(
-    decodedTxHash, nearAccount.accountId
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
+  const mintTx = await nearProvider.txStatus(
+    decodedTxHash, options?.nearAccount?.accountId ?? 'todo'
   )
 
   // @ts-expect-error : wallet returns errorCode
@@ -897,7 +935,7 @@ export async function checkMint (
   // Check status of tx broadcasted by wallet
   // @ts-expect-error : wallet returns errorCode
   if (mintTx.status.Failure) {
-    urlParams.clear(...clearParams)
+    if (clearParams) urlParams.clear(...clearParams)
     const error = `NEAR transaction failed: ${txHash}`
     console.error(error)
     return {
@@ -910,7 +948,7 @@ export async function checkMint (
 
   // Clear urlParams at the end so that if the provider connection throws,
   // checkStatus will be able to process it again in the next loop.
-  urlParams.clear(...clearParams)
+  if (clearParams) urlParams.clear(...clearParams)
 
   return {
     ...transfer,

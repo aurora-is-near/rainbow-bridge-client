@@ -874,7 +874,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.5"],\
             ["ethers", "npm:5.6.9"],\
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],\
-            ["near-api-js", "npm:0.43.1"],\
+            ["near-api-js", "npm:0.45.1"],\
             ["promisfy", "npm:1.2.0"],\
             ["rlp", "npm:2.2.7"]\
           ],\
@@ -896,7 +896,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.5"],\
             ["ethers", "npm:5.6.9"],\
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],\
-            ["near-api-js", "npm:0.43.1"],\
+            ["near-api-js", "npm:0.45.1"],\
             ["promisfy", "npm:1.2.0"],\
             ["rlp", "npm:2.2.7"]\
           ],\
@@ -918,7 +918,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.5"],\
             ["ethers", "npm:5.6.9"],\
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],\
-            ["near-api-js", "npm:0.43.1"],\
+            ["near-api-js", "npm:0.45.1"],\
             ["promisfy", "npm:1.2.0"],\
             ["rlp", "npm:2.2.7"]\
           ],\
@@ -935,7 +935,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["bn.js", "npm:5.2.1"],\
             ["decimal.js", "npm:10.3.1"],\
             ["ethers", "npm:5.6.9"],\
-            ["near-api-js", "npm:0.43.1"]\
+            ["near-api-js", "npm:0.45.1"]\
           ],\
           "linkType": "SOFT"\
         }]\
@@ -955,7 +955,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.5"],\
             ["ethers", "npm:5.6.9"],\
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],\
-            ["near-api-js", "npm:0.43.1"],\
+            ["near-api-js", "npm:0.45.1"],\
             ["promisfy", "npm:1.2.0"],\
             ["rlp", "npm:2.2.7"]\
           ],\
@@ -977,7 +977,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.5"],\
             ["ethers", "npm:5.6.9"],\
             ["find-replacement-tx", "workspace:packages/find-replacement-tx"],\
-            ["near-api-js", "npm:0.43.1"],\
+            ["near-api-js", "npm:0.45.1"],\
             ["promisfy", "npm:1.2.0"],\
             ["rlp", "npm:2.2.7"]\
           ],\
@@ -1013,7 +1013,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["ethereumjs-util", "npm:7.1.5"],\
             ["ethers", "npm:5.6.9"],\
             ["lite-merkle-patricia-tree", "workspace:packages/lite-merkle-patricia-tree"],\
-            ["near-api-js", "npm:0.43.1"],\
+            ["near-api-js", "npm:0.45.1"],\
             ["web3-utils", "npm:1.7.3"]\
           ],\
           "linkType": "SOFT"\
@@ -2161,10 +2161,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]\
       ]],\
       ["borsh", [\
-        ["npm:0.6.0", {\
-          "packageLocation": "./.yarn/cache/borsh-npm-0.6.0-6778871c77-633986769e.zip/node_modules/borsh/",\
+        ["npm:0.7.0", {\
+          "packageLocation": "./.yarn/cache/borsh-npm-0.7.0-c3e1c21bb3-e98bfb5f7c.zip/node_modules/borsh/",\
           "packageDependencies": [\
-            ["borsh", "npm:0.6.0"],\
+            ["borsh", "npm:0.7.0"],\
             ["bn.js", "npm:5.2.1"],\
             ["bs58", "npm:4.0.1"],\
             ["text-encoding-utf-8", "npm:1.0.2"]\
@@ -6602,19 +6602,19 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]\
       ]],\
       ["near-api-js", [\
-        ["npm:0.43.1", {\
-          "packageLocation": "./.yarn/cache/near-api-js-npm-0.43.1-b11ba846cd-eb54d333dc.zip/node_modules/near-api-js/",\
+        ["npm:0.45.1", {\
+          "packageLocation": "./.yarn/cache/near-api-js-npm-0.45.1-aed2730960-b684e16c6a.zip/node_modules/near-api-js/",\
           "packageDependencies": [\
-            ["near-api-js", "npm:0.43.1"],\
+            ["near-api-js", "npm:0.45.1"],\
             ["bn.js", "npm:5.2.0"],\
-            ["borsh", "npm:0.6.0"],\
+            ["borsh", "npm:0.7.0"],\
             ["bs58", "npm:4.0.1"],\
             ["depd", "npm:2.0.0"],\
             ["error-polyfill", "npm:0.1.3"],\
             ["http-errors", "npm:1.8.1"],\
             ["js-sha256", "npm:0.9.0"],\
             ["mustache", "npm:4.2.0"],\
-            ["node-fetch", "virtual:b11ba846cd0b4e98113fe17d4df196a723747cec42e7c852e8aaefea03233064830445d6a4ce5b8c3fbbd4ae789b78f3cf511678e350e44548b2e6519c96605c#npm:2.6.7"],\
+            ["node-fetch", "virtual:aed27309604101a9733065511b17277043653622f6470042b7de2cf3dde3125176bbe739fdd615b50dc950d79f30b0b48ed55e35a78f94efd9602383ce6a1b3a#npm:2.6.7"],\
             ["text-encoding-utf-8", "npm:1.0.2"],\
             ["tweetnacl", "npm:1.0.3"]\
           ],\
@@ -6666,10 +6666,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           ],\
           "linkType": "SOFT"\
         }],\
-        ["virtual:b11ba846cd0b4e98113fe17d4df196a723747cec42e7c852e8aaefea03233064830445d6a4ce5b8c3fbbd4ae789b78f3cf511678e350e44548b2e6519c96605c#npm:2.6.7", {\
-          "packageLocation": "./.yarn/__virtual__/node-fetch-virtual-6cd2b269d3/0/cache/node-fetch-npm-2.6.7-777aa2a6df-8d816ffd1e.zip/node_modules/node-fetch/",\
+        ["virtual:aed27309604101a9733065511b17277043653622f6470042b7de2cf3dde3125176bbe739fdd615b50dc950d79f30b0b48ed55e35a78f94efd9602383ce6a1b3a#npm:2.6.7", {\
+          "packageLocation": "./.yarn/__virtual__/node-fetch-virtual-7a7a7c27e5/0/cache/node-fetch-npm-2.6.7-777aa2a6df-8d816ffd1e.zip/node_modules/node-fetch/",\
           "packageDependencies": [\
-            ["node-fetch", "virtual:b11ba846cd0b4e98113fe17d4df196a723747cec42e7c852e8aaefea03233064830445d6a4ce5b8c3fbbd4ae789b78f3cf511678e350e44548b2e6519c96605c#npm:2.6.7"],\
+            ["node-fetch", "virtual:aed27309604101a9733065511b17277043653622f6470042b7de2cf3dde3125176bbe739fdd615b50dc950d79f30b0b48ed55e35a78f94efd9602383ce6a1b3a#npm:2.6.7"],\
             ["@types/encoding", null],\
             ["encoding", null],\
             ["whatwg-url", "npm:5.0.0"]\

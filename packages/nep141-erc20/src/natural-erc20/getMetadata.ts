@@ -1,6 +1,6 @@
 import { ethers } from 'ethers'
-import { Account } from 'near-api-js'
-import { getEthProvider, getBridgeParams, getNearAccount } from '@near-eth/client/dist/utils'
+import { Account, providers as najProviders } from 'near-api-js'
+import { getEthProvider, getBridgeParams, getNearProvider } from '@near-eth/client/dist/utils'
 import { erc20, nep141 } from '@near-eth/utils'
 import getNep141Address from '../bridged-nep141/getAddress'
 
@@ -39,6 +39,7 @@ async function getIcon (
     erc20Address: string
     options?: {
       nearAccount?: Account
+      nearProvider?: najProviders.Provider
       nep141Address?: string
       nep141Factory?: string
     }
@@ -49,9 +50,12 @@ async function getIcon (
 
   let icon
   try {
-    const nearAccount = options.nearAccount ?? await getNearAccount()
+    const nearProvider =
+      options.nearProvider ??
+      options.nearAccount?.connection.provider ??
+      getNearProvider()
     const nep141Address = options.nep141Address ?? getNep141Address({ erc20Address, options })
-    const metadata = await nep141.getMetadata({ nep141Address, nearAccount })
+    const metadata = await nep141.getMetadata({ nep141Address, nearProvider })
     icon = metadata.icon
   } catch (error) {
     console.warn(error)
@@ -124,6 +128,7 @@ export default async function getMetadata (
       provider?: ethers.providers.Provider
       erc20Abi?: string
       nearAccount?: Account
+      nearProvider?: najProviders.Provider
       nep141Address?: string
       nep141Factory?: string
     }

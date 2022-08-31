@@ -1,6 +1,6 @@
 import { ethers } from 'ethers'
-import { Account } from 'near-api-js'
-import { getEthProvider, getBridgeParams, getNearAccount } from '@near-eth/client/dist/utils'
+import { Account, providers as najProviders } from 'near-api-js'
+import { getEthProvider, getBridgeParams, getNearProvider } from '@near-eth/client/dist/utils'
 import { erc20, nep141 } from '@near-eth/utils'
 
 const erc20Decimals: {[key: string]: number} = {}
@@ -38,6 +38,7 @@ async function getIcon (
     erc20Address: string
     options?: {
       nearAccount?: Account
+      nearProvider?: najProviders.Provider
       nep141Address?: string
       nep141Factory?: string
     }
@@ -49,10 +50,13 @@ async function getIcon (
 
   let icon
   try {
-    const nearAccount = options.nearAccount ?? await getNearAccount()
+    const nearProvider =
+      options.nearProvider ??
+      options.nearAccount?.connection.provider ??
+      getNearProvider()
     const nep141Factory: string = options.nep141Factory ?? bridgeParams.nep141Factory
     const nep141Address = erc20Address.replace('0x', '').toLowerCase() + '.' + nep141Factory
-    const metadata = await nep141.getMetadata({ nep141Address, nearAccount })
+    const metadata = await nep141.getMetadata({ nep141Address, nearProvider })
     icon = metadata.icon
   } catch (error) {
     console.warn(error)
@@ -115,6 +119,10 @@ export async function getSymbol (
  * @param params.options Optional arguments
  * @param params.options.provider Ethereum provider to use
  * @param params.options.erc20Abi ERC-20 ABI to use
+ * @param params.options.nearAccount Connected NEAR wallet account to use.
+ * @param params.options.nearProvider NEAR provider.
+ * @param params.options.nep141Address Birdged NEP-141 token address on NEAR.
+ * @param params.options.nep141Factory Bridge token factory account on NEAR.
  *
  * @returns Metadata information
  */
@@ -125,6 +133,7 @@ export default async function getMetadata (
       provider?: ethers.providers.Provider
       erc20Abi?: string
       nearAccount?: Account
+      nearProvider?: najProviders.Provider
       nep141Address?: string
       nep141Factory?: string
     }

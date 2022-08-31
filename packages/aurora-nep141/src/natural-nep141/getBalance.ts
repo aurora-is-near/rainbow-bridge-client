@@ -1,5 +1,5 @@
-import { getNearAccount } from '@near-eth/client/dist/utils'
-import { Account } from 'near-api-js'
+import { getNearProvider } from '@near-eth/client/dist/utils'
+import { Account, providers as najProviders } from 'near-api-js'
 import { nep141 } from '@near-eth/utils'
 
 /**
@@ -19,11 +19,15 @@ export default async function getBalance (
     owner: string
     options?: {
       nearAccount?: Account
+      nearProvider?: najProviders.Provider
     }
   }
 ): Promise<string> {
   options = options ?? {}
-  const nearAccount = options.nearAccount ?? await getNearAccount()
-  const balanceAsString = await nep141.getBalance({ nep141Address, owner, nearAccount })
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
+  const balanceAsString = await nep141.getBalance({ nep141Address, owner, nearProvider })
   return balanceAsString
 }

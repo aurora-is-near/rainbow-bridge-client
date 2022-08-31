@@ -1,7 +1,7 @@
 import BN from 'bn.js'
 import bs58 from 'bs58'
 import { ethers } from 'ethers'
-import { Account, utils } from 'near-api-js'
+import { Account, utils, providers as najProviders } from 'near-api-js'
 import { FinalExecutionOutcome } from 'near-api-js/lib/providers'
 import {
   deserialize as deserializeBorsh,
@@ -13,7 +13,7 @@ import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { track, untrack } from '@near-eth/client'
 import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof, buildIndexerTxQuery, findFinalizationTxOnEthereum } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
-import { getEthProvider, getNearAccount, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
+import { getEthProvider, getNearWallet, getNearProvider, getNearAccountId, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 
 export const SOURCE_NETWORK = 'near'
 export const DESTINATION_NETWORK = 'ethereum'
@@ -65,6 +65,7 @@ export interface TransferOptions {
   sendToEthereumSyncInterval?: number
   ethChainId?: number
   nearAccount?: Account
+  nearProvider?: najProviders.Provider
   ethClientAddress?: string
   ethClientAbi?: string
   auroraEvmAccount?: string
@@ -259,10 +260,13 @@ export async function recover (
   options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
   const bridgeParams = getBridgeParams()
   const decodedTxHash = utils.serialize.base_decode(burnTxHash)
-  const burnTx = await nearAccount.connection.provider.txStatus(
+  const burnTx = await nearProvider.txStatus(
     // TODO: when multiple shards, the sender should be known in order to query txStatus
     decodedTxHash, sender
   )
@@ -326,11 +330,11 @@ export async function recover (
     burnTx,
     sender,
     options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
-    nearAccount
+    nearProvider
   )
 
   // @ts-expect-error TODO
-  const txBlock = await nearAccount.connection.provider.block({ blockId: burnTx.transaction_outcome.block_hash })
+  const txBlock = await nearProvider.block({ blockId: burnTx.transaction_outcome.block_hash })
 
   // various attributes stored as arrays, to keep history of retries
   const transfer = {
@@ -363,13 +367,13 @@ export async function recover (
  * @param burnTx
  * @param sender
  * @param sourceToken
- * @param nearAccount
+ * @param nearProvider
  */
 export async function parseWithdrawReceipt (
   burnTx: FinalExecutionOutcome,
   sender: string,
   sourceToken: string,
-  nearAccount: Account
+  nearProvider: najProviders.Provider
 ): Promise<{id: string, blockHeight: number }> {
   const receiptIds = burnTx.transaction_outcome.outcome.receipt_ids
 
@@ -428,9 +432,7 @@ export async function parseWithdrawReceipt (
     // @ts-expect-error TODO
     .block_hash
 
-  const receiptBlock = await nearAccount.connection.provider.block({
-    blockId: txReceiptBlockHash
-  })
+  const receiptBlock = await nearProvider.block({ blockId: txReceiptBlockHash })
   const receiptBlockHeight = Number(receiptBlock.header.height)
   return { id: withdrawReceiptId, blockHeight: receiptBlockHeight }
 }
@@ -464,8 +466,7 @@ export async function initiate (
   const destinationTokenName = symbol
   const sourceTokenName = 'n' + symbol
   const sourceToken = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
-  const nearAccount = options.nearAccount ?? await getNearAccount()
-  const sender = options.sender ?? nearAccount.accountId
+  const sender = options.sender ?? await getNearAccountId()
 
   // various attributes stored as arrays, to keep history of retries
   let transfer = {
@@ -485,6 +486,8 @@ export async function initiate (
 
   try {
     transfer = await burn(transfer, options)
+    // Track for injected NEAR wallet (Sender)
+    if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
   } catch (error) {
     if (error.message.includes('Failed to redirect to sign transaction')) {
       // Increase time to redirect to wallet before alerting an error
@@ -508,7 +511,9 @@ export async function burn (
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearWallet = options.nearAccount ?? getNearWallet()
+  const isNajAccount = nearWallet instanceof Account
+  const browserRedirect = typeof window !== 'undefined' && (isNajAccount || nearWallet.type === 'browser')
 
   // eslint-disable-next-line @typescript-eslint/no-extraneous-class
   class BorshWithdrawArgs {
@@ -538,17 +543,35 @@ export async function burn (
   // checkStatus should wait for NEAR wallet redirect if it didn't happen yet.
   // On page load the dapp should clear urlParams if transactionHashes or errorCode are not present:
   // this will allow checkStatus to handle the transfer as failed because the NEAR transaction could not be processed.
-  if (typeof window !== 'undefined') urlParams.set({ withdrawing: transfer.id })
-  if (typeof window !== 'undefined') transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
+  if (browserRedirect) urlParams.set({ withdrawing: transfer.id })
+  if (browserRedirect) transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
 
-  const tx = await nearAccount.functionCall({
-    contractId: transfer.sourceToken,
-    methodName: 'withdraw',
-    args: serializedArgs,
-    // 100Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
-    gas: new BN('100' + '0'.repeat(12)),
-    attachedDeposit: new BN('1')
-  })
+  let tx
+  if (isNajAccount) {
+    tx = await nearWallet.functionCall({
+      contractId: transfer.sourceToken,
+      methodName: 'withdraw',
+      args: serializedArgs,
+      // 100Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
+      gas: new BN('100' + '0'.repeat(12)),
+      attachedDeposit: new BN('1')
+    })
+  } else {
+    tx = await nearWallet.signAndSendTransaction({
+      receiverId: transfer.sourceToken,
+      actions: [
+        {
+          type: 'FunctionCall',
+          params: {
+            methodName: 'withdraw',
+            args: serializedArgs,
+            gas: '100' + '0'.repeat(12),
+            deposit: '1'
+          }
+        }
+      ]
+    })
+  }
 
   return {
     ...transfer,
@@ -569,74 +592,85 @@ export async function checkBurn (
   transfer: Transfer,
   options?: {
     nearAccount?: Account
+    nearProvider?: najProviders.Provider
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const id = urlParams.get('withdrawing') as string | null
-  // NOTE: when a single tx is executed, transactionHashes is equal to that hash
-  const txHash = urlParams.get('transactionHashes') as string | null
-  const errorCode = urlParams.get('errorCode') as string | null
-  const clearParams = ['withdrawing', 'transactionHashes', 'errorCode', 'errorMessage']
-  if (!id) {
-    // The user closed the tab and never rejected or approved the tx from Near wallet.
-    // This doesn't protect agains the user broadcasting a tx and closing the tab before
-    // redirect. So the dapp has no way of knowing the status of that transaction.
-    // Set status to FAILED so that it can be retried
-    const newError = `A transaction was initiated but could not be verified.
-      Click 'Rescan the blockchain' to check if a transfer was created.`
-    console.error(newError)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [...transfer.errors, newError]
+  let txHash: string
+  let clearParams
+  if (transfer.burnHashes.length === 0) {
+    const id = urlParams.get('withdrawing') as string | null
+    // NOTE: when a single tx is executed, transactionHashes is equal to that hash
+    const transactionHashes = urlParams.get('transactionHashes') as string | null
+    const errorCode = urlParams.get('errorCode') as string | null
+    clearParams = ['withdrawing', 'transactionHashes', 'errorCode', 'errorMessage']
+    if (!id) {
+      // The user closed the tab and never rejected or approved the tx from Near wallet.
+      // This doesn't protect agains the user broadcasting a tx and closing the tab before
+      // redirect. So the dapp has no way of knowing the status of that transaction.
+      // Set status to FAILED so that it can be retried
+      const newError = `A transaction was initiated but could not be verified.
+        Click 'Rescan the blockchain' to check if a transfer was created.`
+      console.error(newError)
+      return {
+        ...transfer,
+        status: status.FAILED,
+        errors: [...transfer.errors, newError]
+      }
     }
-  }
-  if (id !== transfer.id) {
-    // Another burn transaction cannot be in progress, ie if checkBurn is called on
-    // an in process burn then the transfer ids must be equal or the url callback is invalid.
-    const newError = `Couldn't determine transaction outcome.
-      Got transfer id '${id} in URL, expected '${transfer.id}`
-    console.error(newError)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [...transfer.errors, newError]
+    if (id !== transfer.id) {
+      // Another burn transaction cannot be in progress, ie if checkBurn is called on
+      // an in process burn then the transfer ids must be equal or the url callback is invalid.
+      const newError = `Couldn't determine transaction outcome.
+        Got transfer id '${id} in URL, expected '${transfer.id}`
+      console.error(newError)
+      return {
+        ...transfer,
+        status: status.FAILED,
+        errors: [...transfer.errors, newError]
+      }
     }
-  }
-  if (errorCode) {
-    // If errorCode, then the redirect succeded but the tx was rejected/failed
-    // so clear url params
-    urlParams.clear(...clearParams)
-    const newError = 'Error from wallet: ' + errorCode
-    console.error(newError)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [...transfer.errors, newError]
+    if (errorCode) {
+      // If errorCode, then the redirect succeded but the tx was rejected/failed
+      // so clear url params
+      urlParams.clear(...clearParams)
+      const newError = 'Error from wallet: ' + errorCode
+      console.error(newError)
+      return {
+        ...transfer,
+        status: status.FAILED,
+        errors: [...transfer.errors, newError]
+      }
     }
-  }
-  if (!txHash) {
-    // If checkBurn is called before burn sig wallet redirect
-    // log the error but don't mark as FAILED and don't clear url params
-    // as the wallet redirect has not happened yet
-    const newError = 'Burn tx hash not received: pending redirect or wallet error'
-    console.log(newError)
-    return transfer
-  }
-  if (txHash.includes(',')) {
-    urlParams.clear(...clearParams)
-    const newError = 'Error from wallet: expected single txHash, got: ' + txHash
-    console.error(newError)
-    return {
-      ...transfer,
-      status: status.FAILED,
-      errors: [...transfer.errors, newError]
+    if (!transactionHashes) {
+      // If checkBurn is called before burn sig wallet redirect
+      // log the error but don't mark as FAILED and don't clear url params
+      // as the wallet redirect has not happened yet
+      const newError = 'Burn tx hash not received: pending redirect or wallet error'
+      console.log(newError)
+      return transfer
     }
+    if (transactionHashes.includes(',')) {
+      urlParams.clear(...clearParams)
+      const newError = 'Error from wallet: expected single txHash, got: ' + transactionHashes
+      console.error(newError)
+      return {
+        ...transfer,
+        status: status.FAILED,
+        errors: [...transfer.errors, newError]
+      }
+    }
+    txHash = transactionHashes
+  } else {
+    txHash = last(transfer.burnHashes)
   }
 
   const decodedTxHash = utils.serialize.base_decode(txHash)
-  const nearAccount = options.nearAccount ?? await getNearAccount()
-  const burnTx = await nearAccount.connection.provider.txStatus(
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
+  const burnTx = await nearProvider.txStatus(
     // use transfer.sender instead of nearAccount.accountId so that a burn
     // tx hash can be recovered even if it is not made by the logged in account
     decodedTxHash, transfer.sender
@@ -651,7 +685,7 @@ export async function checkBurn (
   // Check status of tx broadcasted by wallet
   // @ts-expect-error : wallet returns errorCode
   if (burnTx.status.Failure) {
-    urlParams.clear(...clearParams)
+    if (clearParams) urlParams.clear(...clearParams)
     const error = `NEAR transaction failed: ${txHash}`
     console.error(error)
     return {
@@ -664,10 +698,10 @@ export async function checkBurn (
 
   let withdrawReceipt
   try {
-    withdrawReceipt = await parseWithdrawReceipt(burnTx, transfer.sender, transfer.sourceToken, nearAccount)
+    withdrawReceipt = await parseWithdrawReceipt(burnTx, transfer.sender, transfer.sourceToken, nearProvider)
   } catch (e) {
     if (e instanceof TransferError) {
-      urlParams.clear(...clearParams)
+      if (clearParams) urlParams.clear(...clearParams)
       return {
         ...transfer,
         errors: [...transfer.errors, e.message],
@@ -681,12 +715,12 @@ export async function checkBurn (
   }
 
   // @ts-expect-error TODO
-  const txBlock = await nearAccount.connection.provider.block({ blockId: burnTx.transaction_outcome.block_hash })
+  const txBlock = await nearProvider.block({ blockId: burnTx.transaction_outcome.block_hash })
   const startTime = new Date(txBlock.header.timestamp / 10 ** 6).toISOString()
 
   // Clear urlParams at the end so that if the provider connection throws,
   // checkStatus will be able to process it again in the next loop.
-  urlParams.clear(...clearParams)
+  if (clearParams) urlParams.clear(...clearParams)
 
   return {
     ...transfer,
@@ -709,14 +743,18 @@ export async function checkFinality (
   transfer: Transfer,
   options?: {
     nearAccount?: Account
+    nearProvider?: najProviders.Provider
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
 
   const withdrawReceiptBlockHeight = last(transfer.burnReceiptBlockHeights)
   const latestFinalizedBlock = Number((
-    await nearAccount.connection.provider.block({ finality: 'final' })
+    await nearProvider.block({ finality: 'final' })
   ).header.height)
 
   if (latestFinalizedBlock <= withdrawReceiptBlockHeight) {
@@ -773,13 +811,16 @@ export async function checkSync (
   )
   let proof
 
-  const nearAccount = options.nearAccount ?? await getNearAccount()
+  const nearProvider =
+    options.nearProvider ??
+    options.nearAccount?.connection.provider ??
+    getNearProvider()
   if (nearOnEthClientBlockHeight > withdrawBlockHeight) {
     proof = await findNearProof(
       last(transfer.burnReceiptIds),
       options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
       nearOnEthClientBlockHeight,
-      nearAccount,
+      nearProvider,
       provider,
       options.ethClientAddress ?? bridgeParams.ethClientAddress,
       options.ethClientAbi ?? bridgeParams.ethClientAbi

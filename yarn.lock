@@ -713,7 +713,7 @@ __metadata:
     ethereumjs-util: ^7.0.10
     ethers: ^5.6.9
     find-replacement-tx: "workspace:*"
-    near-api-js: ^0.43.0
+    near-api-js: ^0.45.1
     promisfy: ^1.2.0
     rlp: ^2.2.6
   languageName: unknown
@@ -733,7 +733,7 @@ __metadata:
     ethereumjs-util: ^7.0.10
     ethers: ^5.6.9
     find-replacement-tx: "workspace:*"
-    near-api-js: ^0.43.0
+    near-api-js: ^0.45.1
     promisfy: ^1.2.0
     rlp: ^2.2.6
   languageName: unknown
@@ -753,7 +753,7 @@ __metadata:
     ethereumjs-util: ^7.0.10
     ethers: ^5.6.9
     find-replacement-tx: "workspace:*"
-    near-api-js: ^0.43.0
+    near-api-js: ^0.45.1
     promisfy: ^1.2.0
     rlp: ^2.2.6
   languageName: unknown
@@ -768,7 +768,7 @@ __metadata:
     bn.js: ^5.1.3
     decimal.js: ^10.2.1
     ethers: ^5.6.9
-    near-api-js: ^0.43.0
+    near-api-js: ^0.45.1
   languageName: unknown
   linkType: soft
 
@@ -786,7 +786,7 @@ __metadata:
     ethereumjs-util: ^7.0.10
     ethers: ^5.6.9
     find-replacement-tx: "workspace:*"
-    near-api-js: ^0.43.0
+    near-api-js: ^0.45.1
     promisfy: ^1.2.0
     rlp: ^2.2.6
   languageName: unknown
@@ -806,7 +806,7 @@ __metadata:
     ethereumjs-util: ^7.0.10
     ethers: ^5.6.9
     find-replacement-tx: "workspace:*"
-    near-api-js: ^0.43.0
+    near-api-js: ^0.45.1
     promisfy: ^1.2.0
     rlp: ^2.2.6
   languageName: unknown
@@ -838,7 +838,7 @@ __metadata:
     ethereumjs-util: ^7.0.10
     ethers: ^5.6.9
     lite-merkle-patricia-tree: "workspace:*"
-    near-api-js: ^0.43.0
+    near-api-js: ^0.45.1
     web3-utils: ^1.3.4
   languageName: unknown
   linkType: soft
@@ -1765,14 +1765,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"borsh@npm:^0.6.0":
-  version: 0.6.0
-  resolution: "borsh@npm:0.6.0"
+"borsh@npm:^0.7.0":
+  version: 0.7.0
+  resolution: "borsh@npm:0.7.0"
   dependencies:
     bn.js: ^5.2.0
     bs58: ^4.0.0
     text-encoding-utf-8: ^1.0.2
-  checksum: 633986769e931dd9d156c0d52a315cd3bb0546c24df84e28fa04859cccbebd9107f1621bd594d4a63ba23c7cda2931a8d97e54952ee766a097d3c2434f80b009
+  checksum: e98bfb5f7cfb820819c2870b884dac58dd4b4ce6a86c286c8fbf5c9ca582e73a8c6094df67e81a28c418ff07a309c6b118b2e27fdfea83fd92b8100c741da0b5
   languageName: node
   linkType: hard
 
@@ -5606,12 +5606,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"near-api-js@npm:^0.43.0":
-  version: 0.43.1
-  resolution: "near-api-js@npm:0.43.1"
+"near-api-js@npm:^0.45.1":
+  version: 0.45.1
+  resolution: "near-api-js@npm:0.45.1"
   dependencies:
     bn.js: 5.2.0
-    borsh: ^0.6.0
+    borsh: ^0.7.0
     bs58: ^4.0.0
     depd: ^2.0.0
     error-polyfill: ^0.1.3
@@ -5621,7 +5621,7 @@ __metadata:
     node-fetch: ^2.6.1
     text-encoding-utf-8: ^1.0.2
     tweetnacl: ^1.0.1
-  checksum: eb54d333dc359146304a9c661bece8b4d76fadc813515041f4ff19297b82ae4eb48877e606413bfa5b93d8eeb3c5373be061f3fca96482f8ee6a223b6d839141
+  checksum: b684e16c6a0b845bed98ff273a992e6a7d04287ed90c6b2cf3b4bad30f62a906b0e2f6fa0776e4fc8d47bb46d2620f41e20fe909c7b2472e96dedf75fa8b4598
   languageName: node
   linkType: hard
 

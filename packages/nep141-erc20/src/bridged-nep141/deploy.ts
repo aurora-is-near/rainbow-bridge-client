@@ -1,7 +1,7 @@
 import BN from 'bn.js'
 import { Account } from 'near-api-js'
 import { FinalExecutionOutcome } from 'near-api-js/lib/providers'
-import { getNearAccount, getBridgeParams } from '@near-eth/client/dist/utils'
+import { getNearWallet, getBridgeParams } from '@near-eth/client/dist/utils'
 import { urlParams } from '@near-eth/utils'
 
 /**
@@ -51,28 +51,43 @@ export default async function deployBridgeToken (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const nep141Factory: string = options.nep141Factory ?? bridgeParams.nep141Factory
-  const nearAccount = options.nearAccount ?? await getNearAccount()
-  if (typeof window !== 'undefined') urlParams.set({ bridging: erc20Address })
+  const nearWallet = options.nearAccount ?? getNearWallet()
+  const isNajAccount = nearWallet instanceof Account
+  const browserRedirect = typeof window !== 'undefined' && (isNajAccount || nearWallet.type === 'browser')
+  if (browserRedirect) urlParams.set({ bridging: erc20Address })
 
-  // causes redirect to NEAR Wallet
-  const tx = await nearAccount.functionCall({
-    contractId: nep141Factory,
-    methodName: 'deploy_bridge_token',
-    args: { address: erc20Address.replace('0x', '') },
+  let tx
+  if (isNajAccount) {
+    tx = await nearWallet.functionCall({
+      contractId: nep141Factory,
+      methodName: 'deploy_bridge_token',
+      args: { address: erc20Address.replace('0x', '') },
 
-    // Default gas limit used by near-api-js is 3e13, but this tx fails with
-    // that number. Doubling it works. Maybe slightly less would also work,
-    // but at min gas price of 100M yN, this will only amount to 0.006 NEAR,
-    // which is already negligible compared to the deposit.
-    gas: new BN(3e13).mul(new BN(2)),
+      gas: new BN('60' + '0'.repeat(12)),
 
-    // Attach a deposit to compensate the BridgeTokenFactory contract for the
-    // storage costs associated with deploying the new BridgeToken contract.
-    // 3N for the base fee, plus .02 for for storing the name of the contract
-    // Might not need full .02, but need more than .01, error message did not
-    // include needed amount at time of writing.
-    // new BN(utils.format.parseNearAmount('3.02'))
-    attachedDeposit: new BN('302' + '0'.repeat(22))
-  })
+      // Attach a deposit to compensate the BridgeTokenFactory contract for the
+      // storage costs associated with deploying the new BridgeToken contract.
+      // 3N for the base fee, plus .02 for for storing the name of the contract
+      // Might not need full .02, but need more than .01, error message did not
+      // include needed amount at time of writing.
+      // new BN(utils.format.parseNearAmount('3.02'))
+      attachedDeposit: new BN('302' + '0'.repeat(22))
+    })
+  } else {
+    tx = await nearWallet.signAndSendTransaction({
+      receiverId: nep141Factory,
+      actions: [
+        {
+          type: 'FunctionCall',
+          params: {
+            methodName: 'deploy_bridge_token',
+            args: { address: erc20Address.replace('0x', '') },
+            gas: '60' + '0'.repeat(12),
+            deposit: '302' + '0'.repeat(22)
+          }
+        }
+      ]
+    })
+  }
   return tx
 }

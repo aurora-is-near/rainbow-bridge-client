@@ -9,6 +9,7 @@ Monorepo containing Aurora-maintained libraries for using the Rainbow Bridge fro
 
 | Packages | Version |
 | :------- | :------ |
+| <a href="https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/rainbow">@near-eth/rainbow</a> | <a href="https://www.npmjs.com/package/@near-eth/rainbow"><img alt="@near-eth/rainbow Version" src="https://img.shields.io/npm/v/@near-eth/rainbow"></a> |
 | <a href="https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/client">@near-eth/client</a> | <a href="https://www.npmjs.com/package/@near-eth/client"><img alt="@near-eth/client Version" src="https://img.shields.io/npm/v/@near-eth/client"></a> |
 | <a href="https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/nep141-erc20">@near-eth/nep141-erc20</a> | <a href="https://www.npmjs.com/package/@near-eth/nep141-erc20"><img alt="@near-eth/nep141-erc20 Version" src="https://img.shields.io/npm/v/@near-eth/nep141-erc20"></a> |
 | <a href="https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/near-ether">@near-eth/near-ether</a> | <a href="https://www.npmjs.com/package/@near-eth/near-ether"><img alt="@near-eth/near-ether Version" src="https://img.shields.io/npm/v/@near-eth/near-ether"></a> |

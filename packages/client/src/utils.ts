@@ -1,12 +1,30 @@
-import { ConnectedWalletAccount, WalletConnection } from 'near-api-js'
+import {
+  ConnectedWalletAccount,
+  WalletConnection,
+  providers as najProviders
+} from 'near-api-js'
 import { Decimal } from 'decimal.js'
-import { ethers } from 'ethers'
+import { providers as ethersProviders } from 'ethers'
 
-let ethProvider: ethers.providers.JsonRpcProvider
+let ethProvider: ethersProviders.JsonRpcProvider
 let nearConnection: WalletConnection
-let auroraProvider: ethers.providers.JsonRpcProvider
-let signerProvider: ethers.providers.JsonRpcProvider | ethers.providers.Web3Provider
+let auroraProvider: ethersProviders.JsonRpcProvider
+let signerProvider: ethersProviders.JsonRpcProvider | ethersProviders.Web3Provider
+let nearProvider: najProviders.Provider
+let nearWallet: NearWalletBehaviour
 let bridgeParams: any
+
+interface NearWalletBehaviour {
+  type: string
+  getAccounts: () => Promise<Array<{ accountId: string }>>
+  signAndSendTransaction: ({
+    receiverId,
+    actions
+  }: {
+    receiverId: string
+    actions: any[]
+  }) => Promise<any>
+}
 
 /**
  * Set ethProvider
@@ -25,7 +43,9 @@ let bridgeParams: any
  *
  * @returns `provider`
  */
-export function setEthProvider (provider: ethers.providers.JsonRpcProvider): any {
+export function setEthProvider (
+  provider: ethersProviders.JsonRpcProvider
+): ethersProviders.JsonRpcProvider {
   ethProvider = provider
   // TODO: verify provider meets expectations
   return ethProvider
@@ -48,7 +68,9 @@ export function setEthProvider (provider: ethers.providers.JsonRpcProvider): any
  *
  * @returns `provider`
  */
-export function setAuroraProvider (provider: ethers.providers.JsonRpcProvider): any {
+export function setAuroraProvider (
+  provider: ethersProviders.JsonRpcProvider
+): ethersProviders.JsonRpcProvider {
   auroraProvider = provider
   // TODO: verify provider meets expectations
   return auroraProvider
@@ -72,10 +94,68 @@ export function setAuroraProvider (provider: ethers.providers.JsonRpcProvider): 
  *
  * @returns `provider`
  */
-export function setSignerProvider (provider: ethers.providers.JsonRpcProvider | ethers.providers.Web3Provider): any {
+export function setSignerProvider (
+  provider: ethersProviders.JsonRpcProvider | ethersProviders.Web3Provider
+): ethersProviders.JsonRpcProvider | ethersProviders.Web3Provider {
   signerProvider = provider
   // TODO: verify provider meets expectations
   return signerProvider
+}
+
+/**
+ * Set nearProvider
+ *
+ * This must be called by apps that use @near-eth/client before performing any
+ * transfer operations with @near-eth/client itself or with connector libraries
+ * such as @near-eth/nep141-erc20.
+ *
+ * Example:
+ *
+ *     import { providers } from 'near-api-js'
+ *     import { setNearProvider } from '@near-eth/client'
+ *     setNearProvider(new providers.JsonRpcProvider({ url }))
+ *
+ * @param provider Near Provider
+ *
+ * @returns `provider`
+ */
+export function setNearProvider (
+  provider: najProviders.Provider
+): najProviders.Provider {
+  nearProvider = provider
+  // TODO: verify provider meets expectations
+  return nearProvider
+}
+
+/**
+ * Set wallet-selector NEAR wallet
+ *
+ * This must be called by apps that use @near-eth/client before performing any
+ * transfer operations with @near-eth/client itself or with connector libraries
+ * such as @near-eth/nep141-erc20.
+ *
+ * Example:
+ *
+ *     import { setNearWallet } from '@near-eth/client'
+ *     import { setupWalletSelector } from "@near-wallet-selector/core"
+ *     import { setupMyNearWallet } from "@near-wallet-selector/my-near-wallet"
+ *     import { setupSender } from "@near-wallet-selector/sender"
+ *
+ *     const selector = await setupWalletSelector({
+ *       network: "testnet",
+ *       debug: true,
+ *       modules: [setupMyNearWallet(), setupSender()]
+ *     })
+ *     setNearWallet(await selector.wallet())
+ *
+ * @param wallet Near Wallet signer
+ *
+ * @returns `wallet`
+ */
+export function setNearWallet (wallet: NearWalletBehaviour): NearWalletBehaviour {
+  nearWallet = wallet
+  // TODO: verify provider meets expectations
+  return nearWallet
 }
 
 /**
@@ -113,16 +193,33 @@ export function setNearConnection (connection: WalletConnection): WalletConnecti
  *
  * @returns an Ethereum Provider for use with ethers.js
  */
-export function getEthProvider (): ethers.providers.JsonRpcProvider {
+export function getEthProvider (): ethersProviders.JsonRpcProvider {
   return ethProvider
 }
 
-export function getAuroraProvider (): ethers.providers.JsonRpcProvider {
+export function getAuroraProvider (): ethersProviders.JsonRpcProvider {
   return auroraProvider
 }
 
-export function getSignerProvider (): ethers.providers.JsonRpcProvider {
+export function getSignerProvider (): ethersProviders.JsonRpcProvider {
   return signerProvider
+}
+
+export function getNearProvider (): najProviders.Provider {
+  if (nearProvider) return nearProvider
+  else return (getNearAccount()).connection.provider
+}
+
+export function getNearWallet (): NearWalletBehaviour | ConnectedWalletAccount {
+  if (nearWallet) return nearWallet
+  // Backward compatibility
+  else return getNearAccount()
+}
+
+export async function getNearAccountId (): Promise<string> {
+  if (nearWallet) return (await nearWallet.getAccounts())[0]!.accountId
+  // Backward compatibility
+  else return (getNearAccount().accountId)
 }
 
 /**
@@ -131,74 +228,17 @@ export function getSignerProvider (): ethers.providers.JsonRpcProvider {
  * Internal function, only expected to be used by @near-eth/nep141-erc20 and
  * other connector libraries that interoperate with @near-eth/client. If you
  * are an app developer, you can ignore this function.
- *
  * Ensures that app called `setNearConnection`
- *
- * If `authAgainst` supplied and user is not signed in, will redirect user to
- * NEAR Wallet to sign in against `authAgainst` contract.
- *
- * If provided `strict: true`, will ENSURE that user is signed in against
- * `authAgainst` contract, and not just any contract address.
- *
- * @param params Object with named arguments
- * @param params.authAgainst [undefined] string (optional) The address of a NEAR contract
- *   to authenticate against. If provided, will trigger a page redirect to NEAR
- *   Wallet if the user is not authenticated against ANY contract, whether this
- *   contract or not.
- * @param params.strict [false] boolean (optional) Will trigger a page redirect to NEAR
- *   Wallet if the user is not authenticated against the specific contract
- *   provided in `authAgainst`.
  *
  * @returns WalletAccount a NEAR account object, when it doesn't trigger a page redirect.
  */
-export async function getNearAccount (
-  { authAgainst, strict = false }: { authAgainst?: string, strict?: boolean } =
-  { authAgainst: undefined, strict: false }
-): Promise<ConnectedWalletAccount> {
+export function getNearAccount (): ConnectedWalletAccount {
   if (!nearConnection) {
     throw new Error(
       'Must `setNearConnection(new WalletConnection(near))` prior to calling anything from `@near-eth/client` or connector libraries'
     )
   }
-
-  if (!authAgainst) return nearConnection.account()
-
-  if (!nearConnection.getAccountId()) {
-    await nearConnection.requestSignIn(authAgainst)
-  }
-  if (strict && !(await nearAuthedAgainst(authAgainst))) {
-    nearConnection.signOut()
-    await nearConnection.requestSignIn(authAgainst)
-  }
-
   return nearConnection.account()
-}
-
-/**
- * Check that user is authenticated against the given `contract`.
- *
- * Put another way, make sure that current browser session has a FunctionCall
- * Access Key that allows it to call the given `contract` on behalf of the
- * current user.
- *
- * @param contract The address of a NEAR contract
- * @returns boolean True if the user is authenticated against this contract.
- */
-export async function nearAuthedAgainst (contract: string): Promise<boolean> {
-  if (!contract) {
-    throw new Error(
-      `nearAuthedAgainst expects a valid NEAR contract address.
-      Got: \`${contract}\``
-    )
-  }
-
-  if (!nearConnection.getAccountId()) return false
-
-  const { accessKey } = await nearConnection.account().findAccessKey(contract, []) as any
-
-  // TODO: this logic may break with FullAccess keys
-  const authedAgainst = accessKey?.accessKey.permission.FunctionCall.receiver_id
-  return authedAgainst === contract
 }
 
 export function formatLargeNum (n: string, decimals = 18): Decimal {

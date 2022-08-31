@@ -1,4 +1,5 @@
-import { Account } from 'near-api-js'
+import { providers as najProviders } from 'near-api-js'
+import { CodeResult } from 'near-api-js/lib/providers/provider'
 import {
   deserialize as deserializeBorsh
 } from 'near-api-js/lib/utils/serialize'
@@ -25,16 +26,15 @@ function deserializeEthOnNearClient (raw: Buffer): any {
 
 export async function ethOnNearSyncHeight (
   nearClientAccount: string,
-  nearAccount: Account
+  nearProvider: najProviders.Provider
 ): Promise<number> {
-  // near-api-js requires instantiating an "account" object, even though view
-  // functions require no signature and therefore no associated account, so the
-  // account name passed in doesn't matter.
-  const deserialized = await nearAccount.viewFunction(
-    nearClientAccount,
-    'last_block_number',
-    {},
-    { parse: deserializeEthOnNearClient }
-  )
+  const result = await nearProvider.query<CodeResult>({
+    request_type: 'call_function',
+    account_id: nearClientAccount,
+    method_name: 'last_block_number',
+    args_base64: '',
+    finality: 'optimistic'
+  })
+  const deserialized = deserializeEthOnNearClient(Buffer.from(result.result))
   return deserialized.last_block_number.toNumber()
 }

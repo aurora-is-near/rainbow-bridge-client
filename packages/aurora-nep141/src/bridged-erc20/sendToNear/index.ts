@@ -1,5 +1,7 @@
+import BN from 'bn.js'
+import { getNearWallet, getNearAccountId } from '@near-eth/client/dist/utils'
 import { ethers } from 'ethers'
-import { Account } from 'near-api-js'
+import { Account, providers as najProviders } from 'near-api-js'
 import { getAuroraProvider, getSignerProvider, getBridgeParams, track } from '@near-eth/client'
 import { TransactionInfo, TransferStatus } from '@near-eth/client/dist/types'
 import * as status from '@near-eth/client/dist/statuses'
@@ -106,6 +108,7 @@ export async function findAllTransfers (
       auroraErc20Abi?: string
       auroraEvmAccount?: string
       nearAccount?: Account
+      nearProvider?: najProviders.Provider
       decimals?: number
       symbol?: string
     }
@@ -177,6 +180,7 @@ export async function recover (
     nep141Address?: string
     auroraEvmAccount?: string
     nearAccount?: Account
+    nearProvider?: najProviders.Provider
     decimals?: number
     symbol?: string
   }
@@ -296,6 +300,54 @@ export async function checkBurn (
   }
 }
 
+export async function payNep141Storage (
+  { nep141Address, storageDeposit, storageAccount, options }: {
+    nep141Address: string
+    storageDeposit: string
+    storageAccount: string
+    options?: {
+      nearAccount?: Account
+    }
+  }
+): Promise<najProviders.FinalExecutionOutcome> {
+  options = options ?? {}
+  const nearWallet = options.nearAccount ?? getNearWallet()
+  const isNajAccount = nearWallet instanceof Account
+  const accountId = storageAccount ?? await getNearAccountId()
+  let tx
+  if (isNajAccount) {
+    tx = await nearWallet.functionCall({
+      contractId: nep141Address,
+      methodName: 'storage_deposit',
+      args: {
+        account_id: accountId,
+        registration_only: true
+      },
+      gas: new BN('100' + '0'.repeat(12)),
+      attachedDeposit: new BN(storageDeposit)
+    })
+  } else {
+    tx = await nearWallet.signAndSendTransaction({
+      receiverId: nep141Address,
+      actions: [
+        {
+          type: 'FunctionCall',
+          params: {
+            methodName: 'storage_deposit',
+            args: {
+              account_id: accountId,
+              registration_only: true
+            },
+            gas: '100' + '0'.repeat(12),
+            deposit: storageDeposit
+          }
+        }
+      ]
+    })
+  }
+  return tx
+}
+
 export async function sendToNear (
   { nep141Address, amount, recipient, options }: {
     nep141Address: string
@@ -311,6 +363,7 @@ export async function sendToNear (
       auroraErc20Address?: string
       signer?: ethers.Signer
       nearAccount?: Account
+      nearProvider?: najProviders.Provider
       auroraEvmAccount?: string
     }
   }

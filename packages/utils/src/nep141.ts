@@ -1,29 +1,35 @@
-import { Account } from 'near-api-js'
+import { providers as najProviders } from 'near-api-js'
+import { CodeResult } from 'near-api-js/lib/providers/provider'
 
 export async function getMetadata (
-  { nep141Address, nearAccount }: {
+  { nep141Address, nearProvider }: {
     nep141Address: string
-    nearAccount: Account
+    nearProvider: najProviders.Provider
   }
 ): Promise<{symbol: string, decimals: number, name: string, icon: string}> {
-  const metadata = await nearAccount.viewFunction(
-    nep141Address,
-    'ft_metadata'
-  )
-  return metadata
+  const result = await nearProvider.query<CodeResult>({
+    request_type: 'call_function',
+    account_id: nep141Address,
+    method_name: 'ft_metadata',
+    args_base64: '',
+    finality: 'optimistic'
+  })
+  return JSON.parse(Buffer.from(result.result).toString())
 }
 
 export async function getBalance (
-  { nep141Address, owner, nearAccount }: {
+  { nep141Address, owner, nearProvider }: {
     nep141Address: string
     owner: string
-    nearAccount: Account
+    nearProvider: najProviders.Provider
   }
 ): Promise<string> {
-  const balanceAsString = await nearAccount.viewFunction(
-    nep141Address,
-    'ft_balance_of',
-    { account_id: owner }
-  )
-  return balanceAsString
+  const result = await nearProvider.query<CodeResult>({
+    request_type: 'call_function',
+    account_id: nep141Address,
+    method_name: 'ft_balance_of',
+    args_base64: Buffer.from(JSON.stringify({ account_id: owner })).toString('base64'),
+    finality: 'optimistic'
+  })
+  return JSON.parse(Buffer.from(result.result).toString())
 }

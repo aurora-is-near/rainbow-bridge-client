@@ -16,12 +16,17 @@ export {
   getBridgeParams,
   getEthProvider,
   getNearAccount,
+  getNearProvider,
+  getNearWallet,
+  getNearAccountId,
   getSignerProvider,
   setAuroraProvider,
   setBridgeParams,
   setEthProvider,
   setNearConnection,
-  setSignerProvider
+  setSignerProvider,
+  setNearProvider,
+  setNearWallet
 } from './utils'
 export {
   DecoratedTransfer,
