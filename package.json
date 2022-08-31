@@ -39,6 +39,6 @@
   "workspaces": [
     "packages/*"
   ],
-  "packageManager": "yarn@3.2.1",
+  "packageManager": "yarn@3.2.3",
   "stableVersion": "2.4.0"
 }
