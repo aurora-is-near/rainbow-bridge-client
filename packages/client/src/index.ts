@@ -239,11 +239,17 @@ async function checkPendingTransferSync (): Promise<void> {
 /*
  * Check statuses of all inProgress transfers, and update them accordingly.
  *
- * Can provide a `loop` frequency, in milliseconds, to call repeatedly while
- * inProgress transfers remain
+ * @param loop frequency, in milliseconds, to call repeatedly while inProgress transfers remain.
+ * @param otp One time pass to allow updating storage on page load even when it is locked.
+ *
+ * `otp` is used when multiple tabs are open and a transaction is made with a NEAR browser wallet.
+ * The bridge app can lock the localStorage (lockBridgeTransfersStorage)
+ * before the redirect so that other tabs will not update transfers based on missing urlParams.
+ * On page load (after browser wallet redirect), checkStatusAll is called with otp to update the transfer from urlParams while the lock is still there for other tabs.
+ * The lock can then be removed (unlockBridgeTransfersStorage).
  */
 export async function checkStatusAll (
-  { loop }: { loop?: number } = { loop: undefined }
+  { loop, otp }: { loop?: number, otp?: boolean } = { loop: undefined, otp: false }
 ): Promise<void> {
   if (loop !== undefined && !Number.isInteger(loop)) {
     throw new Error('`loop` must be frequency, in milliseconds')
@@ -252,12 +258,12 @@ export async function checkStatusAll (
   await checkPendingTransferRemovals()
   await checkPendingTransferSync()
 
-  const inProgress = await get({
+  const inProgress = get({
     filter: t => t.status === status.IN_PROGRESS
   })
 
   // Check & update statuses for all in parallel
-  await Promise.all(inProgress.map(async (t: Transfer) => await checkStatus(t.id)))
+  await Promise.all(inProgress.map(async (t: Transfer) => await checkStatus(t.id, otp ?? false)))
 
   // loop, if told to loop
   if (loop !== undefined) {
@@ -347,8 +353,14 @@ export async function untrack (transferId: string): Promise<void> {
   }
 }
 
+export const TRANSFERS_LOCK_KEY = 'rainbow-bridge-transfers-lock'
+export const TRANSFERS_LOCKED = 'locked'
+
+export const lockBridgeTransfersStorage = (): void => localStorage.setItem(TRANSFERS_LOCK_KEY, TRANSFERS_LOCKED)
+export const unlockBridgeTransfersStorage = (): void => localStorage.setItem(TRANSFERS_LOCK_KEY, '')
+
 // Check the status of a single transfer.
-async function checkStatus (id: string): Promise<void> {
+async function checkStatus (id: string, otp: boolean): Promise<void> {
   let transfer = storage.get(id)
   if (!transfer) {
     throw new Error(`Cannot find and act on transfer with id ${id}`)
@@ -359,7 +371,12 @@ async function checkStatus (id: string): Promise<void> {
   if (transfer.status === status.IN_PROGRESS) {
     try {
       transfer = await type.checkStatus(transfer)
-      await storage.update(transfer)
+      // Update browser storage when it is not locked or with one time pass.
+      if (typeof window !== 'undefined' &&
+        (otp || localStorage.getItem(TRANSFERS_LOCK_KEY) !== TRANSFERS_LOCKED)
+      ) {
+        await storage.update(transfer)
+      }
     } catch (e) {
       console.error(e)
     }
