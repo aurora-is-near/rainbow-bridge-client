@@ -1,6 +1,6 @@
 {
   "name": "@near-eth/near-ether",
-  "version": "2.3.0-rc.1",
+  "version": "2.3.0",
   "license": "(MIT AND Apache-2.0)",
   "main": "dist/index.js",
   "files": [
@@ -32,6 +32,5 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/aurora-is-near/rainbow-bridge-client/tree/main/packages/near-ether"
-  },
-  "stableVersion": "2.2.0"
+  }
 }

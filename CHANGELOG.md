@@ -1,3 +1,22 @@
+# [2.5.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.4.0...v2.5.0) (2022-09-20)
+
+
+### Bug Fixes
+
+* Remove $NEAR deposit to deploy to Aurora. ([a006872](https://github.com/aurora-is-near/rainbow-bridge-client/commit/a0068726d199db3e30c9f5dac57aa99f74acb5ad))
+* Use args_base64 from indexer (replace json). ([378b1e0](https://github.com/aurora-is-near/rainbow-bridge-client/commit/378b1e0d4fd6e6721742a4f40561db2c750b04af))
+
+
+### Features
+
+* Add @near-eth/rainbow package. ([578b01c](https://github.com/aurora-is-near/rainbow-bridge-client/commit/578b01c1b24680b2fc22105a9ab3c686403f5b84))
+* Add payNep141Storage, getBalance returns AccountBalance. ([a9b5031](https://github.com/aurora-is-near/rainbow-bridge-client/commit/a9b50311f58a4281b3d14010e5fa3fd9d4ae1a78))
+* Add storage lock for multi tab conflict with near tx. ([228cff2](https://github.com/aurora-is-near/rainbow-bridge-client/commit/228cff25ef2c4a5ef7a3a4556a1039f8dc4e3a88))
+* Support injected NEAR wallet (Sender). ([0e5dd64](https://github.com/aurora-is-near/rainbow-bridge-client/commit/0e5dd648e98155c08793e7d17230e338b767f356))
+* Support near-wallet-selector, backward compatible. ([746b297](https://github.com/aurora-is-near/rainbow-bridge-client/commit/746b297ab29d20284608432fb585c9f3780668ed))
+
+
+
 # [2.4.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.3.0...v2.4.0) (2021-12-21)
 
 
