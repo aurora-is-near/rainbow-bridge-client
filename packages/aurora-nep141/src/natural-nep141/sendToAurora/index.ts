@@ -124,7 +124,7 @@ export async function findAllTransfers (
     nep141Address: string
     callIndexer: (query: string) => Promise<[{
       originated_from_transaction_hash: string
-      args: { method_name: string, args_json: { msg: string, amount: string, receiver_id: string } }
+      args: { method_name: string, args_base64: string }
     }]>
     options?: {
       auroraEvmAccount?: string
@@ -157,7 +157,10 @@ export async function findAllTransfers (
   const decimals = options.decimals ?? metadata.decimals
   const transfers = await Promise.all(transactions
     .filter(tx => tx.args.method_name === 'ft_transfer_call')
-    .filter(tx => tx.args.args_json.receiver_id === auroraEvmAccount && regex.test(tx.args.args_json.msg))
+    .filter(tx => {
+      const argsJson = JSON.parse(Buffer.from(tx.args.args_base64, 'base64').toString())
+      return argsJson.receiver_id === auroraEvmAccount && regex.test(argsJson.msg)
+    })
     .map(async (tx): Promise<null | Transfer> => {
       const lockTx = await nearProvider.txStatus(
         tx.originated_from_transaction_hash, sender
@@ -174,8 +177,9 @@ export async function findAllTransfers (
       }
       // @ts-expect-error TODO
       const txBlock = await nearProvider.block({ blockId: lockTx.transaction_outcome.block_hash })
-      const amount = tx.args.args_json.amount.toString()
-      const msg = tx.args.args_json.msg
+      const argsJson = JSON.parse(Buffer.from(tx.args.args_base64, 'base64').toString())
+      const amount = argsJson.amount.toString()
+      const msg: string = argsJson.msg
       const recipient = nep141Address === auroraEvmAccount ? '0x' + msg.slice(msg.length - 40) : '0x' + msg
       if (amount !== successValue) return null
       return {
@@ -204,7 +208,7 @@ export async function recover (
   callIndexer: (query: string) => Promise<[{
     included_in_block_timestamp: string
     receipt_predecessor_account_id: string
-    args: { method_name: string, args_json: { msg: string, amount: string, sender_id: string } }
+    args: { method_name: string, args_base64: string }
   }]>,
   options?: {
     nearAccount?: Account
@@ -226,11 +230,12 @@ export async function recover (
       AND receiver_account_id = '${auroraEvmAccount}'
     )`
   )
-  const [lockToAuroraActionReceipt] = actionReceipts.filter(
+  const [lockToAuroraActionReceipt] = actionReceipts.filter(r => {
+    const argsJson = JSON.parse(Buffer.from(r.args.args_base64, 'base64').toString())
     // When sending nETH, msg = near_sender:eth_addr
     // When sending other nep141, msg = eth_addr
-    r => r.args.method_name === 'ft_on_transfer' && /^[a-f0-9]{40}$/.test(r.args.args_json.msg.slice(r.args.args_json.msg.length - 40))
-  )
+    return r.args.method_name === 'ft_on_transfer' && /^[a-f0-9]{40}$/.test(argsJson.msg.slice(argsJson.msg.length - 40))
+  })
   if (!lockToAuroraActionReceipt) {
     throw new Error(`Failed to verify ${auroraEvmAccount} ft_on_transfer action receipt: ${JSON.stringify(actionReceipts)}`)
   }
@@ -243,23 +248,24 @@ export async function recover (
   }
   const symbol = options.symbol ?? metadata.symbol
   const decimals = options.decimals ?? metadata.decimals
-  let sender = lockToAuroraActionReceipt.args.args_json.sender_id
+  const argsJson = JSON.parse(Buffer.from(lockToAuroraActionReceipt.args.args_base64, 'base64').toString())
+  const msg: string = argsJson.msg
+  let sender = argsJson.sender_id
   if (sender === auroraEvmAccount) {
-    const msg = lockToAuroraActionReceipt.args.args_json.msg
-    sender = msg.substr(0, msg.indexOf(':'))
+    sender = msg.slice(0, msg.indexOf(':'))
   }
   return {
     type: TRANSFER_TYPE,
     id: Math.random().toString().slice(2),
     startTime: new Date(Number(lockToAuroraActionReceipt.included_in_block_timestamp) / 10 ** 6).toISOString(),
-    amount: lockToAuroraActionReceipt.args.args_json.amount,
+    amount: argsJson.amount,
     decimals,
     symbol,
     sourceToken: nep141Address,
     sourceTokenName: metadata.symbol,
     destinationTokenName: 'a' + metadata.symbol,
     sender,
-    recipient: '0x' + lockToAuroraActionReceipt.args.args_json.msg.slice(lockToAuroraActionReceipt.args.args_json.msg.length - 40),
+    recipient: '0x' + msg.slice(msg.length - 40),
     status: status.COMPLETE,
     completedStep: LOCK,
     errors: [],
