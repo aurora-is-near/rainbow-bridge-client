@@ -506,10 +506,10 @@ setBridgeParams({
   etherExitToEthereumPrecompile: '0xb0bD02F6a392aF548bDf1CfAeE5dFa0EefcC8EaB',
   etherExitToNearPrecompile: '0xE9217BC70B7ED1f598ddD3199e80b093fA71124F',
   // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/nearOnEthClient.abi
-  ethClientAddress: '0x3be7Df8dB39996a837041bb8Ee0dAdf60F767038',
+  ethClientAddress: '0x3fefc5a4b1c02f21cbc8d3613643ba0635b9a873',
   // https://github.com/aurora-is-near/rainbow-bridge/tree/master/contracts/eth
   ethClientAbi: process.env.ethNearOnEthClientAbi,
-  nearClientAccount: 'client.bridge.near',
+  nearClientAccount: 'client-eth2.bridge.near',
   // https://github.com/aurora-is-near/near-erc20-connector
   eNEARAddress: '0x85F17Cf997934a597031b2E18a9aB6ebD4B9f6a4',
   // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/eNEAR.abi
@@ -553,7 +553,7 @@ setBridgeParams({
   ethClientAddress: '0x37C2d89b55Bfd95532637554711441017eFabFef',
   // https://github.com/aurora-is-near/rainbow-bridge/tree/master/contracts/eth
   ethClientAbi: process.env.ethNearOnEthClientAbi,
-  nearClientAccount: 'client6.goerli.testnet',
+  nearClientAccount: 'client-eth2.goerli.testnet',
   // https://github.com/aurora-is-near/near-erc20-connector
   eNEARAddress: '0xe6b7C088Da1c2BfCf84aaE03fd6DE3C4f28629dA',
   // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/eNEAR.abi
