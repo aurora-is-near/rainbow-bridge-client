@@ -1,0 +1,6 @@
+releases:
+  "@near-eth/aurora-nep141": patch
+  "@near-eth/rainbow": patch
+
+declined:
+  - rainbow-bridge-client-monorepo
