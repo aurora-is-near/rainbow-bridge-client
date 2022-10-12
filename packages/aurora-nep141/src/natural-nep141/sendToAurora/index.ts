@@ -158,8 +158,13 @@ export async function findAllTransfers (
   const transfers = await Promise.all(transactions
     .filter(tx => tx.args.method_name === 'ft_transfer_call')
     .filter(tx => {
-      const argsJson = JSON.parse(Buffer.from(tx.args.args_base64, 'base64').toString())
-      return argsJson.receiver_id === auroraEvmAccount && regex.test(argsJson.msg)
+      try {
+        const argsJson = JSON.parse(Buffer.from(tx.args.args_base64, 'base64').toString())
+        return argsJson.receiver_id === auroraEvmAccount && regex.test(argsJson.msg)
+      } catch (error) {
+        // JSON.parse will fail on receipts without JSON args: those are not bridge transfers.
+        return false
+      }
     })
     .map(async (tx): Promise<null | Transfer> => {
       const lockTx = await nearProvider.txStatus(
@@ -231,10 +236,15 @@ export async function recover (
     )`
   )
   const [lockToAuroraActionReceipt] = actionReceipts.filter(r => {
-    const argsJson = JSON.parse(Buffer.from(r.args.args_base64, 'base64').toString())
-    // When sending nETH, msg = near_sender:eth_addr
-    // When sending other nep141, msg = eth_addr
-    return r.args.method_name === 'ft_on_transfer' && /^[a-f0-9]{40}$/.test(argsJson.msg.slice(argsJson.msg.length - 40))
+    try {
+      const argsJson = JSON.parse(Buffer.from(r.args.args_base64, 'base64').toString())
+      // When sending nETH, msg = near_sender:eth_addr
+      // When sending other nep141, msg = eth_addr
+      return r.args.method_name === 'ft_on_transfer' && /^[a-f0-9]{40}$/.test(argsJson.msg.slice(argsJson.msg.length - 40))
+    } catch (error) {
+      // JSON.parse will fail on receipts without JSON args: those are not bridge transfers.
+      return false
+    }
   })
   if (!lockToAuroraActionReceipt) {
     throw new Error(`Failed to verify ${auroraEvmAccount} ft_on_transfer action receipt: ${JSON.stringify(actionReceipts)}`)
