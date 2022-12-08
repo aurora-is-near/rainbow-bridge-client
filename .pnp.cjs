@@ -3240,10 +3240,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]\
       ]],\
       ["decode-uri-component", [\
-        ["npm:0.2.0", {\
-          "packageLocation": "./.yarn/cache/decode-uri-component-npm-0.2.0-5bcc0f3597-f3749344ab.zip/node_modules/decode-uri-component/",\
+        ["npm:0.2.2", {\
+          "packageLocation": "./.yarn/cache/decode-uri-component-npm-0.2.2-e22e2aa917-95476a7d28.zip/node_modules/decode-uri-component/",\
           "packageDependencies": [\
-            ["decode-uri-component", "npm:0.2.0"]\
+            ["decode-uri-component", "npm:0.2.2"]\
           ],\
           "linkType": "HARD"\
         }]\
@@ -7378,7 +7378,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageLocation": "./.yarn/cache/query-string-npm-5.1.1-86edac70d6-4ac760d977.zip/node_modules/query-string/",\
           "packageDependencies": [\
             ["query-string", "npm:5.1.1"],\
-            ["decode-uri-component", "npm:0.2.0"],\
+            ["decode-uri-component", "npm:0.2.2"],\
             ["object-assign", "npm:4.1.1"],\
             ["strict-uri-encode", "npm:1.1.0"]\
           ],\
