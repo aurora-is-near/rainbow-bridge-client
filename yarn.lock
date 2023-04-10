@@ -834,7 +834,7 @@ __metadata:
     "@types/bs58": ^4.0.1
     "@types/node": ^14.14.28
     bs58: ^4.0.1
-    eth-object: "aurora-is-near/eth-object#383b6ea68c7050bea4cab6950c1d5a7fa553e72b"
+    eth-object: "aurora-is-near/eth-object#a84d1420fdde87a768b96c6a3b3d0ee435998f72"
     ethereumjs-util: ^7.0.10
     ethers: ^5.6.9
     lite-merkle-patricia-tree: "workspace:*"
@@ -3412,14 +3412,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eth-object@aurora-is-near/eth-object#383b6ea68c7050bea4cab6950c1d5a7fa553e72b":
+"eth-object@aurora-is-near/eth-object#a84d1420fdde87a768b96c6a3b3d0ee435998f72":
   version: 1.0.3
-  resolution: "eth-object@https://github.com/aurora-is-near/eth-object.git#commit=383b6ea68c7050bea4cab6950c1d5a7fa553e72b"
+  resolution: "eth-object@https://github.com/aurora-is-near/eth-object.git#commit=a84d1420fdde87a768b96c6a3b3d0ee435998f72"
   dependencies:
     eth-util-lite: "near/eth-util-lite#master"
     ethereumjs-util: ^7.0.3
     web3: ^1.2.9
-  checksum: b1458c6d9fc8c81fc4029a1f0e8b1b3f6e52bdb6575dac4e40551fd64064a753d43e419eb0ded04997e4e747b100e97151422f60c3c0c05c6b6cd3a428970296
+  checksum: 73dbda92b23abe1837a507fd8617185622614b0465a8a425edf89eb1c14407b9bedddf53efa9128e632014982ac91b84107647e9d141f03e834b5cb155be4198
   languageName: node
   linkType: hard
 
