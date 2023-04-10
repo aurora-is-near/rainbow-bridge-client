@@ -1009,7 +1009,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
             ["@types/bs58", "npm:4.0.1"],\
             ["@types/node", "npm:14.18.21"],\
             ["bs58", "npm:4.0.1"],\
-            ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=383b6ea68c7050bea4cab6950c1d5a7fa553e72b"],\
+            ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=a84d1420fdde87a768b96c6a3b3d0ee435998f72"],\
             ["ethereumjs-util", "npm:7.1.5"],\
             ["ethers", "npm:5.6.9"],\
             ["lite-merkle-patricia-tree", "workspace:packages/lite-merkle-patricia-tree"],\
@@ -4170,10 +4170,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]\
       ]],\
       ["eth-object", [\
-        ["https://github.com/aurora-is-near/eth-object.git#commit=383b6ea68c7050bea4cab6950c1d5a7fa553e72b", {\
-          "packageLocation": "./.yarn/cache/eth-object-https-3cc76790dc-b1458c6d9f.zip/node_modules/eth-object/",\
+        ["https://github.com/aurora-is-near/eth-object.git#commit=a84d1420fdde87a768b96c6a3b3d0ee435998f72", {\
+          "packageLocation": "./.yarn/cache/eth-object-https-92b7f2442a-73dbda92b2.zip/node_modules/eth-object/",\
           "packageDependencies": [\
-            ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=383b6ea68c7050bea4cab6950c1d5a7fa553e72b"],\
+            ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=a84d1420fdde87a768b96c6a3b3d0ee435998f72"],\
             ["eth-util-lite", "https://github.com/near/eth-util-lite.git#commit=ae0210cbe127b4d43ba01fd7cd4898d1a3f6c96a"],\
             ["ethereumjs-util", "npm:7.1.5"],\
             ["web3", "npm:1.7.3"]\
