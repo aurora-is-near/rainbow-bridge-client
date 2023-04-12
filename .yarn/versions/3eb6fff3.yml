@@ -1,9 +1,0 @@
-releases:
-  "@near-eth/aurora-erc20": minor
-  "@near-eth/aurora-ether": minor
-  "@near-eth/aurora-nep141": minor
-  "@near-eth/near-ether": minor
-  "@near-eth/nep141-erc20": minor
-  "@near-eth/rainbow": minor
-  "@near-eth/utils": minor
-  rainbow-bridge-client-monorepo: minor

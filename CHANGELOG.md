@@ -1,3 +1,17 @@
+# [2.6.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.5.0...v2.6.0) (2023-04-12)
+
+
+### Bug Fixes
+
+* Neth to Aurora recovery without json args receipts. ([ae526cc](https://github.com/aurora-is-near/rainbow-bridge-client/commit/ae526cc3f2acbf379993c440641542ad5b0375c2))
+
+
+### Features
+
+* Upgrade eth-object for Ethereum Shapella withdrawals fork. ([4728f56](https://github.com/aurora-is-near/rainbow-bridge-client/commit/4728f56609c10d6176cbdc2da65c111df39f18ac))
+
+
+
 # [2.5.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.4.0...v2.5.0) (2022-09-20)
 
 

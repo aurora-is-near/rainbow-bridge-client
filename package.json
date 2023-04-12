@@ -1,7 +1,7 @@
 {
   "name": "rainbow-bridge-client-monorepo",
   "license": "(MIT AND Apache-2.0)",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "private": true,
   "scripts": {
     "build": "yarn workspaces foreach -pt run build",
