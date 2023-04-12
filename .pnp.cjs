@@ -2976,10 +2976,10 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
         }]\
       ]],\
       ["cookiejar", [\
-        ["npm:2.1.3", {\
-          "packageLocation": "./.yarn/cache/cookiejar-npm-2.1.3-ec18b65dd0-88259983eb.zip/node_modules/cookiejar/",\
+        ["npm:2.1.4", {\
+          "packageLocation": "./.yarn/cache/cookiejar-npm-2.1.4-e418c49b9e-c444211196.zip/node_modules/cookiejar/",\
           "packageDependencies": [\
-            ["cookiejar", "npm:2.1.3"]\
+            ["cookiejar", "npm:2.1.4"]\
           ],\
           "linkType": "HARD"\
         }]\
@@ -9437,7 +9437,7 @@ function $$SETUP_STATE(hydrateRuntimeState, basePath) {
           "packageLocation": "./.yarn/cache/xhr2-cookies-npm-1.1.0-3c53c13f2e-6a9fc45f34.zip/node_modules/xhr2-cookies/",\
           "packageDependencies": [\
             ["xhr2-cookies", "npm:1.1.0"],\
-            ["cookiejar", "npm:2.1.3"]\
+            ["cookiejar", "npm:2.1.4"]\
           ],\
           "linkType": "HARD"\
         }]\
