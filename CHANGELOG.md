@@ -1,3 +1,12 @@
+## [2.6.1](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.6.0...v2.6.1) (2023-06-20)
+
+
+### Bug Fixes
+
+* Remove signer's provider in checkSync. ([70a5b54](https://github.com/aurora-is-near/rainbow-bridge-client/commit/70a5b54a1b358fea79142ed3bc5b4ae8419e3aa7))
+
+
+
 # [2.6.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.5.0...v2.6.0) (2023-04-12)
 
 
