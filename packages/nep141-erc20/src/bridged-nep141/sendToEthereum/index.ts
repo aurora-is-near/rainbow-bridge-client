@@ -909,8 +909,16 @@ export async function unlock (
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getSignerProvider()
 
+  const ethChainId: number = (await provider.getNetwork()).chainId
+  const expectedChainId: number = options.ethChainId ?? bridgeParams.ethChainId
+  if (ethChainId !== expectedChainId) {
+    throw new Error(
+      `Wrong eth network for checkSync, expected: ${expectedChainId}, got: ${ethChainId}`
+    )
+  }
+
   // Build burn proof
-  transfer = await checkSync(transfer, { ...options, provider })
+  transfer = await checkSync(transfer, options)
   if (transfer.status !== status.ACTION_NEEDED) return transfer
   const proof = transfer.proof
 
