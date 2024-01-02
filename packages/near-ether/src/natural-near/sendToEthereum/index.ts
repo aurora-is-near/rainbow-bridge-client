@@ -283,60 +283,25 @@ export async function recover (
     throw new Error(`Lock transaction failed: ${lockTxHash}`)
   }
 
-  // Get lock event information from successValue
-  // @ts-expect-error TODO
-  const successValue: string = lockTx.status.SuccessValue
-  if (!successValue) {
-    throw new Error(
-      `Invalid lockTx successValue: '${successValue}'
-      Full lock transaction: ${JSON.stringify(lockTx)}`
-    )
-  }
+  const lockReceipt = await parseLockReceipt(
+    lockTx,
+    options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
+    nearProvider
+  )
 
-  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-  class LockEvent {
-    constructor (args: any) {
-      Object.assign(this, args)
-    }
-  }
-  const SCHEMA = new Map([
-    [LockEvent, {
-      kind: 'struct',
-      fields: [
-        ['flag', 'u8'],
-        ['amount', 'u128'],
-        ['recipient', [20]]
-      ]
-    }]
-  ])
-  const lockEvent = deserializeBorsh(
-    SCHEMA, LockEvent, Buffer.from(successValue, 'base64')
-  ) as { amount: BN, recipient: Uint8Array }
-
-  const amount = lockEvent.amount.toString()
-  const recipient = '0x' + Buffer.from(lockEvent.recipient).toString('hex')
+  const { amount, recipient } = lockReceipt.event
   const symbol = 'NEAR'
   const destinationTokenName = symbol
   const sourceTokenName = symbol
   const sourceToken = symbol
   const decimals = 24
 
-  const lockReceipt = await parseLockReceipt(
-    lockTx,
-    sender,
-    options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
-    nearProvider
-  )
-
-  // @ts-expect-error TODO
-  const txBlock = await nearProvider.block({ blockId: lockTx.transaction_outcome.block_hash })
-
   // various attributes stored as arrays, to keep history of retries
   const transfer = {
     ...transferDraft,
 
     id: Math.random().toString().slice(2),
-    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
+    startTime: new Date(lockReceipt.blockTimestamp / 10 ** 6).toISOString(),
     amount,
     completedStep: LOCK,
     destinationTokenName,
@@ -360,78 +325,48 @@ export async function recover (
  * Parse the lock receipt id and block height needed to complete
  * the step LOCK
  * @param lockTx
- * @param sender
  * @param nativeNEARLockerAddress
  * @param nearProvider
  */
 export async function parseLockReceipt (
   lockTx: FinalExecutionOutcome,
-  sender: string,
   nativeNEARLockerAddress: string,
   nearProvider: najProviders.Provider
-): Promise<{id: string, blockHeight: number }> {
-  const receiptIds = lockTx.transaction_outcome.outcome.receipt_ids
-
-  if (receiptIds.length !== 1) {
-    throw new TransferError(
-      `Lock expects only one receipt, got ${receiptIds.length}.
-      Full lock transaction: ${JSON.stringify(lockTx)}`
-    )
+): Promise<{id: string, blockHeight: number, blockTimestamp: number, event: { amount: string, recipient: string }}> {
+  // @ts-expect-error
+  const bridgeReceipt: any = lockTx.receipts_outcome.find(r => r.outcome.executor_id === nativeNEARLockerAddress)
+  if (!bridgeReceipt) {
+    throw new Error(`Failed to parse bridge receipt for ${JSON.stringify(lockTx)}`)
   }
-
-  // Get receipt information for recording and building lock proof
-  const txReceiptId = receiptIds[0]
-  const successReceiptOutcome = lockTx.receipts_outcome
-    .find(r => r.id === txReceiptId)!
-    .outcome
-  // @ts-expect-error TODO
-  const successReceiptId = successReceiptOutcome.status.SuccessReceiptId
-  // @ts-expect-error TODO
-  const successReceiptExecutorId = successReceiptOutcome.executor_id
-
-  let lockReceiptId: string
-
-  // Check if this tx was made from a 2fa
-  switch (successReceiptExecutorId) {
-    case sender: {
-      // `confirm` transaction executed on 2fa account
-      const lockReceiptOutcome = lockTx.receipts_outcome
-        .find(r => r.id === successReceiptId)!
-        .outcome
-
-      lockReceiptId = successReceiptId
-
-      // @ts-expect-error TODO
-      const lockReceiptExecutorId: string = lockReceiptOutcome.executor_id
-      // Expect this receipt to be the 2fa FunctionCall
-      if (lockReceiptExecutorId !== nativeNEARLockerAddress) {
-        throw new TransferError(
-          `Unexpected receipt outcome format in 2fa transaction.
-          Expected nativeNEARLockerAddress '${nativeNEARLockerAddress}', got '${lockReceiptExecutorId}'
-          Full withdrawal transaction: ${JSON.stringify(lockTx)}`
-        )
-      }
-      break
+  const successValue = bridgeReceipt.outcome.status.SuccessValue
+  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+  class LockEvent {
+    constructor (args: any) {
+      Object.assign(this, args)
     }
-    case nativeNEARLockerAddress:
-      // `lock` called directly, successReceiptId is already correct, nothing to do
-      lockReceiptId = txReceiptId!
-      break
-    default:
-      throw new TransferError(
-        `Unexpected receipt outcome format.
-        Full withdrawal transaction: ${JSON.stringify(lockTx)}`
-      )
+  }
+  const SCHEMA = new Map([
+    [LockEvent, {
+      kind: 'struct',
+      fields: [
+        ['flag', 'u8'],
+        ['amount', 'u128'],
+        ['recipient', [20]]
+      ]
+    }]
+  ])
+  const rawEvent = deserializeBorsh(
+    SCHEMA, LockEvent, Buffer.from(successValue, 'base64')
+  ) as { amount: BN, recipient: Uint8Array }
+  const event = {
+    amount: rawEvent.amount.toString(),
+    recipient: '0x' + Buffer.from(rawEvent.recipient).toString('hex')
   }
 
-  const txReceiptBlockHash = lockTx.receipts_outcome
-    .find(r => r.id === lockReceiptId)!
-    // @ts-expect-error TODO
-    .block_hash
-
-  const receiptBlock = await nearProvider.block({ blockId: txReceiptBlockHash })
-  const receiptBlockHeight = Number(receiptBlock.header.height)
-  return { id: lockReceiptId, blockHeight: receiptBlockHeight }
+  const receiptBlock = await nearProvider.block({ blockId: bridgeReceipt.block_hash })
+  const blockHeight = Number(receiptBlock.header.height)
+  const blockTimestamp = Number(receiptBlock.header.timestamp)
+  return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
 }
 
 /**
@@ -683,7 +618,6 @@ export async function checkLock (
   try {
     lockReceipt = await parseLockReceipt(
       lockTx,
-      transfer.sender,
       options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
       nearProvider
     )
@@ -702,9 +636,7 @@ export async function checkLock (
     throw e
   }
 
-  // @ts-expect-error TODO
-  const txBlock = await nearProvider.block({ blockId: lockTx.transaction_outcome.block_hash })
-  const startTime = new Date(txBlock.header.timestamp / 10 ** 6).toISOString()
+  const startTime = new Date(lockReceipt.blockTimestamp / 10 ** 6).toISOString()
 
   // Clear urlParams at the end so that if the provider connection throws,
   // checkStatus will be able to process it again in the next loop.

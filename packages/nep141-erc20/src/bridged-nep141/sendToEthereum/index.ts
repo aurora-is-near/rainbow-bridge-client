@@ -296,57 +296,22 @@ export async function recover (
     throw new Error(`Withdraw transaction failed: ${withdrawTxHash}`)
   }
 
-  // Get withdraw event information from successValue
-  // @ts-expect-error TODO
-  const successValue: string = withdrawTx.status.SuccessValue
-  if (!successValue) {
-    throw new Error(
-      `Invalid withdrawTx successValue: '${successValue}'
-      Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
-    )
-  }
+  const nep141Factory = options.nep141Factory ?? getBridgeParams().nep141Factory
+  const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, nep141Factory, nearProvider)
 
-  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-  class WithdrawEvent {
-    constructor (args: any) {
-      Object.assign(this, args)
-    }
-  }
-  const SCHEMA = new Map([
-    [WithdrawEvent, {
-      kind: 'struct',
-      fields: [
-        ['flag', 'u8'],
-        ['amount', 'u128'],
-        ['token', [20]],
-        ['recipient', [20]]
-      ]
-    }]
-  ])
-  const withdrawEvent = deserializeBorsh(
-    SCHEMA, WithdrawEvent, Buffer.from(successValue, 'base64')
-  ) as { amount: BN, token: Uint8Array, recipient: Uint8Array}
-
-  const amount = withdrawEvent.amount.toString()
-  const recipient = '0x' + Buffer.from(withdrawEvent.recipient).toString('hex')
-  const erc20Address = '0x' + Buffer.from(withdrawEvent.token).toString('hex')
+  const { amount, recipient, token: erc20Address } = withdrawReceipt.event
   const symbol = options.symbol ?? await getSymbol({ erc20Address, options })
   const destinationTokenName = symbol
   const sourceTokenName = 'n' + symbol
   const sourceToken = getNep141Address({ erc20Address, options })
   const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
 
-  const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, sender, sourceToken, nearProvider)
-
-  // @ts-expect-error TODO
-  const txBlock = await nearProvider.block({ blockId: withdrawTx.transaction_outcome.block_hash })
-
   // various attributes stored as arrays, to keep history of retries
   const transfer = {
     ...transferDraft,
 
     id: Math.random().toString().slice(2),
-    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
+    startTime: new Date(withdrawReceipt.blockTimestamp / 10 ** 6).toISOString(),
     amount,
     completedStep: WITHDRAW,
     destinationTokenName,
@@ -370,80 +335,50 @@ export async function recover (
  * Parse the withdraw receipt id and block height needed to complete
  * the step WITHDRAW
  * @param withdrawTx
- * @param sender
- * @param sourceToken
+ * @param nep141Factory
  * @param nearProvider
  */
 export async function parseWithdrawReceipt (
   withdrawTx: FinalExecutionOutcome,
-  sender: string,
-  sourceToken: string,
+  nep141Factory: string,
   nearProvider: najProviders.Provider
-): Promise<{id: string, blockHeight: number }> {
-  const receiptIds = withdrawTx.transaction_outcome.outcome.receipt_ids
-
-  if (receiptIds.length !== 1) {
-    throw new TransferError(
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      `Withdrawal expects only one receipt, got ${receiptIds.length}.
-      Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
-    )
+): Promise<{id: string, blockHeight: number, blockTimestamp: number, event: { amount: string, token: string, recipient: string }}> {
+  // @ts-expect-error
+  const bridgeReceipt: any = withdrawTx.receipts_outcome.find(r => r.outcome.executor_id === nep141Factory)
+  if (!bridgeReceipt) {
+    throw new Error(`Failed to parse bridge receipt for ${JSON.stringify(withdrawTx)}`)
   }
-
-  // Get receipt information for recording and building withdraw proof
-  const txReceiptId = receiptIds[0]
-  const successReceiptOutcome = withdrawTx.receipts_outcome
-    .find(r => r.id === txReceiptId)!
-    .outcome
-  // @ts-expect-error TODO
-  const successReceiptId = successReceiptOutcome.status.SuccessReceiptId
-  // @ts-expect-error TODO
-  const successReceiptExecutorId = successReceiptOutcome.executor_id
-
-  let withdrawReceiptId: string
-
-  // Check if this tx was made from a 2fa
-  switch (successReceiptExecutorId) {
-    case sender: {
-      // `confirm` transaction executed on 2fa account
-      const withdrawReceiptOutcome = withdrawTx.receipts_outcome
-        .find(r => r.id === successReceiptId)!
-        .outcome
-
-      // @ts-expect-error TODO
-      withdrawReceiptId = withdrawReceiptOutcome.status.SuccessReceiptId
-
-      // @ts-expect-error TODO
-      const withdrawReceiptExecutorId: string = withdrawReceiptOutcome.executor_id
-      // Expect this receipt to be the 2fa FunctionCall
-      if (withdrawReceiptExecutorId !== sourceToken) {
-        throw new TransferError(
-          `Unexpected receipt outcome format in 2fa transaction.
-          Expected sourceToken '${sourceToken}', got '${withdrawReceiptExecutorId}'
-          Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
-        )
-      }
-      break
+  const successValue = bridgeReceipt.outcome.status.SuccessValue
+  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+  class WithdrawEvent {
+    constructor (args: any) {
+      Object.assign(this, args)
     }
-    case sourceToken:
-      // `withdraw` called directly, successReceiptId is already correct, nothing to do
-      withdrawReceiptId = successReceiptId
-      break
-    default:
-      throw new TransferError(
-        `Unexpected receipt outcome format.
-        Full withdrawal transaction: ${JSON.stringify(withdrawTx)}`
-      )
+  }
+  const SCHEMA = new Map([
+    [WithdrawEvent, {
+      kind: 'struct',
+      fields: [
+        ['flag', 'u8'],
+        ['amount', 'u128'],
+        ['token', [20]],
+        ['recipient', [20]]
+      ]
+    }]
+  ])
+  const rawEvent = deserializeBorsh(
+    SCHEMA, WithdrawEvent, Buffer.from(successValue, 'base64')
+  ) as { amount: BN, token: Uint8Array, recipient: Uint8Array}
+  const event = {
+    amount: rawEvent.amount.toString(),
+    token: '0x' + Buffer.from(rawEvent.token).toString('hex'),
+    recipient: '0x' + Buffer.from(rawEvent.recipient).toString('hex')
   }
 
-  const txReceiptBlockHash = withdrawTx.receipts_outcome
-    .find(r => r.id === withdrawReceiptId)!
-    // @ts-expect-error TODO
-    .block_hash
-
-  const receiptBlock = await nearProvider.block({ blockId: txReceiptBlockHash })
-  const receiptBlockHeight = Number(receiptBlock.header.height)
-  return { id: withdrawReceiptId, blockHeight: receiptBlockHeight }
+  const receiptBlock = await nearProvider.block({ blockId: bridgeReceipt.block_hash })
+  const blockHeight = Number(receiptBlock.header.height)
+  const blockTimestamp = Number(receiptBlock.header.timestamp)
+  return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
 }
 
 /**
@@ -596,6 +531,7 @@ export async function checkWithdraw (
   options?: {
     nearAccount?: Account
     nearProvider?: najProviders.Provider
+    nep141Factory?: string
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -700,8 +636,9 @@ export async function checkWithdraw (
   }
 
   let withdrawReceipt
+  const nep141Factory = options.nep141Factory ?? getBridgeParams().nep141Factory
   try {
-    withdrawReceipt = await parseWithdrawReceipt(withdrawTx, transfer.sender, transfer.sourceToken, nearProvider)
+    withdrawReceipt = await parseWithdrawReceipt(withdrawTx, nep141Factory, nearProvider)
   } catch (e) {
     if (e instanceof TransferError) {
       if (clearParams) urlParams.clear(...clearParams)
@@ -717,9 +654,7 @@ export async function checkWithdraw (
     throw e
   }
 
-  // @ts-expect-error TODO
-  const txBlock = await nearProvider.block({ blockId: withdrawTx.transaction_outcome.block_hash })
-  const startTime = new Date(txBlock.header.timestamp / 10 ** 6).toISOString()
+  const startTime = new Date(withdrawReceipt.blockTimestamp / 10 ** 6).toISOString()
 
   // Clear urlParams at the end so that if the provider connection throws,
   // checkStatus will be able to process it again in the next loop.
