@@ -1,7 +1,7 @@
 import { borshifyOutcomeProof, nearOnEthSyncHeight, findNearProof, findFinalizationTxOnEthereum } from '@near-eth/utils'
 import { ethers } from 'ethers'
 import bs58 from 'bs58'
-import { utils, Account, providers as najProviders } from 'near-api-js'
+import { Account, providers as najProviders } from 'near-api-js'
 import BN from 'bn.js'
 import {
   deserialize as deserializeBorsh
@@ -288,33 +288,17 @@ export async function recover (
     options.nearAccount?.connection.provider ??
     getNearProvider()
 
-  let nearBurnTxHash
-  let decodedTxHash
-  let auroraTxHash
-  let auroraSender = 'NA'
-  if (/^0x[A-Fa-f0-9]{64}$/.test(burnTxHash)) {
-    const auroraProvider = options.auroraProvider ?? getAuroraProvider()
-    // Ethers formats the receipts and removes nearTransactionHash
-    const auroraBurnReceipt = await auroraProvider.send('eth_getTransactionReceipt', [burnTxHash])
-    decodedTxHash = Buffer.from(auroraBurnReceipt.nearTransactionHash.slice(2), 'hex')
-    nearBurnTxHash = bs58.encode(decodedTxHash)
-    const exitLog: ethers.providers.Log = auroraBurnReceipt.logs.find(
-      (log: ethers.providers.Log) => log.topics[0] === EXIT_TO_ETHEREUM_SIGNATURE
-    )
-    auroraSender = '0x' + exitLog.topics[1]!.slice(26)
-    auroraTxHash = burnTxHash
-  } else {
-    nearBurnTxHash = burnTxHash
-    decodedTxHash = utils.serialize.base_decode(nearBurnTxHash)
-  }
+  const auroraProvider = options.auroraProvider ?? getAuroraProvider()
+  // Ethers formats the receipts and removes nearTransactionHash
+  const auroraBurnReceipt = await auroraProvider.send('eth_getTransactionReceipt', [burnTxHash])
+  const decodedTxHash = Buffer.from(auroraBurnReceipt.nearTransactionHash.slice(2), 'hex')
+  const nearBurnTxHash = bs58.encode(decodedTxHash)
+  const exitLog: ethers.providers.Log = auroraBurnReceipt.logs.find(
+    (log: ethers.providers.Log) => log.topics[0] === EXIT_TO_ETHEREUM_SIGNATURE
+  )
+  const auroraSender = '0x' + exitLog.topics[1]!.slice(26)
 
   const burnTx = await nearProvider.txStatus(decodedTxHash, sender)
-
-  if (!auroraTxHash) {
-    auroraTxHash = ethers.utils.keccak256(
-      Buffer.from(burnTx.transaction.actions[0].FunctionCall.args, 'base64')
-    )
-  }
 
   // @ts-expect-error TODO
   if (burnTx.status.Unknown) {
@@ -359,7 +343,7 @@ export async function recover (
     sourceTokenName,
     symbol,
     decimals,
-    burnHashes: [auroraTxHash],
+    burnHashes: [burnTxHash],
     nearBurnHashes: [nearBurnTxHash],
     nearBurnReceiptIds: [nearBurnReceipt.id],
     nearBurnReceiptBlockHeights: [nearBurnReceipt.blockHeight]
