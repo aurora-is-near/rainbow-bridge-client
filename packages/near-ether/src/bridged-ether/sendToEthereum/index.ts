@@ -283,65 +283,29 @@ export async function recover (
     throw new Error(`Burn transaction failed: ${burnTxHash}`)
   }
 
-  // Get burn event information from successValue
-  // @ts-expect-error TODO
-  const successValue: string = burnTx.status.SuccessValue
-  if (!successValue) {
+  const auroraEvmAccount = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
+  const withdrawReceipt = await parseWithdrawReceipt(burnTx, auroraEvmAccount, nearProvider)
+
+  const { amount, recipient, etherCustodian } = withdrawReceipt.event
+  const etherCustodianAddress: string = options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress
+  if (etherCustodian.toLowerCase() !== etherCustodianAddress.toLowerCase()) {
     throw new Error(
-      `Invalid burnTx successValue: '${successValue}'
-      Full withdrawal transaction: ${JSON.stringify(burnTx)}`
+      `Unexpected ether custodian: got ${etherCustodian},
+      expected ${etherCustodianAddress}`
     )
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-  class WithdrawEvent {
-    constructor (args: any) {
-      Object.assign(this, args)
-    }
-  }
-  const SCHEMA = new Map([
-    [WithdrawEvent, {
-      kind: 'struct',
-      fields: [
-        ['amount', 'u128'],
-        ['recipient_id', [20]],
-        ['eth_custodian_address', [20]]
-      ]
-    }]
-  ])
-  const withdrawEvent = deserializeBorsh(
-    SCHEMA, WithdrawEvent, Buffer.from(successValue, 'base64')
-  ) as { amount: BN, recipient_id: Uint8Array, eth_custodian_address: Uint8Array}
-
-  const amount = withdrawEvent.amount.toString()
-  const recipient = '0x' + Buffer.from(withdrawEvent.recipient_id).toString('hex')
-  const etherCustodian = '0x' + Buffer.from(withdrawEvent.eth_custodian_address).toString('hex')
-  const etherCustodianAddress = options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress
-  if (etherCustodian !== etherCustodianAddress.toLowerCase()) {
-    throw new Error('Failed to verify ETH custodian address.')
   }
   const symbol = 'ETH'
   const destinationTokenName = symbol
   const sourceTokenName = 'n' + symbol
-  const sourceToken = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
+  const sourceToken = auroraEvmAccount
   const decimals = 18
-
-  const withdrawReceipt = await parseWithdrawReceipt(
-    burnTx,
-    sender,
-    options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
-    nearProvider
-  )
-
-  // @ts-expect-error TODO
-  const txBlock = await nearProvider.block({ blockId: burnTx.transaction_outcome.block_hash })
 
   // various attributes stored as arrays, to keep history of retries
   const transfer = {
     ...transferDraft,
 
     id: Math.random().toString().slice(2),
-    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
+    startTime: new Date(withdrawReceipt.blockTimestamp / 10 ** 6).toISOString(),
     amount: amount.toString(),
     completedStep: BURN,
     destinationTokenName,
@@ -365,76 +329,49 @@ export async function recover (
  * Parse the burn receipt id and block height needed to complete
  * the step BURN
  * @param burnTx
- * @param sender
- * @param sourceToken
+ * @param auroraEvmAccount
  * @param nearProvider
  */
 export async function parseWithdrawReceipt (
   burnTx: FinalExecutionOutcome,
-  sender: string,
-  sourceToken: string,
+  auroraEvmAccount: string,
   nearProvider: najProviders.Provider
-): Promise<{id: string, blockHeight: number }> {
-  const receiptIds = burnTx.transaction_outcome.outcome.receipt_ids
-
-  if (receiptIds.length !== 1) {
-    throw new TransferError(
-      `Withdrawal expects only one receipt, got ${receiptIds.length}.
-      Full withdrawal transaction: ${JSON.stringify(burnTx)}`
-    )
+): Promise<{id: string, blockHeight: number, blockTimestamp: number, event: { amount: string, recipient: string, etherCustodian: string }}> {
+  // @ts-expect-error
+  const bridgeReceipt: any = burnTx.receipts_outcome.find(r => r.outcome.executor_id === auroraEvmAccount)
+  if (!bridgeReceipt) {
+    throw new Error(`Failed to parse bridge receipt for ${JSON.stringify(burnTx)}`)
   }
-
-  // Get receipt information for recording and building burn proof
-  const successReceiptId = receiptIds[0]
-  const successReceiptOutcome = burnTx.receipts_outcome
-    .find(r => r.id === successReceiptId)!
-    .outcome
-  // @ts-expect-error TODO
-  const successReceiptExecutorId = successReceiptOutcome.executor_id
-
-  let withdrawReceiptId: string
-
-  // Check if this tx was made from a 2fa
-  switch (successReceiptExecutorId) {
-    case sender: {
-      // `confirm` transaction executed on 2fa account
-      // @ts-expect-error TODO
-      withdrawReceiptId = successReceiptOutcome.status.SuccessReceiptId
-      const withdrawReceiptOutcome = burnTx.receipts_outcome
-        .find(r => r.id === withdrawReceiptId)!
-        .outcome
-
-      // @ts-expect-error TODO
-      const withdrawReceiptExecutorId: string = withdrawReceiptOutcome.executor_id
-      // Expect this receipt to be the 2fa FunctionCall
-      if (withdrawReceiptExecutorId !== sourceToken) {
-        throw new TransferError(
-          `Unexpected receipt outcome format in 2fa transaction.
-          Expected sourceToken '${sourceToken}', got '${withdrawReceiptExecutorId}'
-          Full withdrawal transaction: ${JSON.stringify(burnTx)}`
-        )
-      }
-      break
+  const successValue = bridgeReceipt.outcome.status.SuccessValue
+  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+  class WithdrawEvent {
+    constructor (args: any) {
+      Object.assign(this, args)
     }
-    case sourceToken:
-      // `burn` called directly, successReceiptId is already correct, nothing to do
-      withdrawReceiptId = successReceiptId!
-      break
-    default:
-      throw new TransferError(
-        `Unexpected receipt outcome format.
-        Full withdrawal transaction: ${JSON.stringify(burnTx)}`
-      )
+  }
+  const SCHEMA = new Map([
+    [WithdrawEvent, {
+      kind: 'struct',
+      fields: [
+        ['amount', 'u128'],
+        ['recipient_id', [20]],
+        ['eth_custodian_address', [20]]
+      ]
+    }]
+  ])
+  const rawEvent = deserializeBorsh(
+    SCHEMA, WithdrawEvent, Buffer.from(successValue, 'base64')
+  ) as { amount: BN, recipient_id: Uint8Array, eth_custodian_address: Uint8Array}
+  const event = {
+    amount: rawEvent.amount.toString(),
+    recipient: '0x' + Buffer.from(rawEvent.recipient_id).toString('hex'),
+    etherCustodian: '0x' + Buffer.from(rawEvent.eth_custodian_address).toString('hex')
   }
 
-  const txReceiptBlockHash = burnTx.receipts_outcome
-    .find(r => r.id === withdrawReceiptId)!
-    // @ts-expect-error TODO
-    .block_hash
-
-  const receiptBlock = await nearProvider.block({ blockId: txReceiptBlockHash })
-  const receiptBlockHeight = Number(receiptBlock.header.height)
-  return { id: withdrawReceiptId, blockHeight: receiptBlockHeight }
+  const receiptBlock = await nearProvider.block({ blockId: bridgeReceipt.block_hash })
+  const blockHeight = Number(receiptBlock.header.height)
+  const blockTimestamp = Number(receiptBlock.header.timestamp)
+  return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
 }
 
 /**
@@ -593,6 +530,7 @@ export async function checkBurn (
   options?: {
     nearAccount?: Account
     nearProvider?: najProviders.Provider
+    auroraEvmAccount?: string
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -698,7 +636,8 @@ export async function checkBurn (
 
   let withdrawReceipt
   try {
-    withdrawReceipt = await parseWithdrawReceipt(burnTx, transfer.sender, transfer.sourceToken, nearProvider)
+    const auroraEvmAccount = options.auroraEvmAccount ?? getBridgeParams().auroraEvmAccount
+    withdrawReceipt = await parseWithdrawReceipt(burnTx, auroraEvmAccount, nearProvider)
   } catch (e) {
     if (e instanceof TransferError) {
       if (clearParams) urlParams.clear(...clearParams)
@@ -714,9 +653,7 @@ export async function checkBurn (
     throw e
   }
 
-  // @ts-expect-error TODO
-  const txBlock = await nearProvider.block({ blockId: burnTx.transaction_outcome.block_hash })
-  const startTime = new Date(txBlock.header.timestamp / 10 ** 6).toISOString()
+  const startTime = new Date(withdrawReceipt.blockTimestamp / 10 ** 6).toISOString()
 
   // Clear urlParams at the end so that if the provider connection throws,
   // checkStatus will be able to process it again in the next loop.

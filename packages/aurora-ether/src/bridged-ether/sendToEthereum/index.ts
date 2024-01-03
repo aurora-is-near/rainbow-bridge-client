@@ -1,7 +1,7 @@
 import { borshifyOutcomeProof, nearOnEthSyncHeight, findNearProof, findFinalizationTxOnEthereum } from '@near-eth/utils'
 import { ethers } from 'ethers'
 import bs58 from 'bs58'
-import { utils, Account, providers as najProviders } from 'near-api-js'
+import { Account, providers as najProviders } from 'near-api-js'
 import BN from 'bn.js'
 import {
   deserialize as deserializeBorsh
@@ -191,31 +191,41 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
 export async function parseBurnReceipt (
   nearBurnTx: FinalExecutionOutcome,
   nearProvider: najProviders.Provider
-): Promise<{id: string, blockHeight: number }> {
-  const receiptIds = nearBurnTx.transaction_outcome.outcome.receipt_ids
-
-  if (receiptIds.length !== 1) {
-    throw new TransferError(
-      `Burn expects only one receipt, got ${receiptIds.length}.
-      Full withdrawal transaction: ${JSON.stringify(nearBurnTx)}`
-    )
+): Promise<{id: string, blockHeight: number, blockTimestamp: number, event: { amount: string, recipient: string, etherCustodian: string }}> {
+  const bridgeReceipt: any = nearBurnTx.receipts_outcome[1]
+  if (!bridgeReceipt) {
+    throw new Error(`Failed to parse bridge receipt for ${JSON.stringify(nearBurnTx)}`)
+  }
+  const successValue = bridgeReceipt.outcome.status.SuccessValue
+  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+  class BurnEvent {
+    constructor (args: any) {
+      Object.assign(this, args)
+    }
+  }
+  const SCHEMA = new Map([
+    [BurnEvent, {
+      kind: 'struct',
+      fields: [
+        ['amount', 'u128'],
+        ['recipient_id', [20]],
+        ['eth_custodian_address', [20]]
+      ]
+    }]
+  ])
+  const rawEvent = deserializeBorsh(
+    SCHEMA, BurnEvent, Buffer.from(successValue, 'base64')
+  ) as { amount: BN, recipient_id: Uint8Array, eth_custodian_address: Uint8Array}
+  const event = {
+    amount: rawEvent.amount.toString(),
+    recipient: '0x' + Buffer.from(rawEvent.recipient_id).toString('hex'),
+    etherCustodian: '0x' + Buffer.from(rawEvent.eth_custodian_address).toString('hex')
   }
 
-  // Get receipt information for recording and building burn proof
-  const txReceiptId = receiptIds[0]
-  const successReceiptOutcome = nearBurnTx.receipts_outcome
-    .find(r => r.id === txReceiptId)!
-    .outcome
-  const burnReceiptId = successReceiptOutcome.receipt_ids[0]!
-
-  const txReceiptBlockHash = nearBurnTx.receipts_outcome
-    .find(r => r.id === burnReceiptId)!
-    // @ts-expect-error TODO
-    .block_hash
-
-  const receiptBlock = await nearProvider.block({ blockId: txReceiptBlockHash })
-  const receiptBlockHeight = Number(receiptBlock.header.height)
-  return { id: burnReceiptId, blockHeight: receiptBlockHeight }
+  const receiptBlock = await nearProvider.block({ blockId: bridgeReceipt.block_hash })
+  const blockHeight = Number(receiptBlock.header.height)
+  const blockTimestamp = Number(receiptBlock.header.timestamp)
+  return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
 }
 
 export async function findAllTransactions (
@@ -278,33 +288,17 @@ export async function recover (
     options.nearAccount?.connection.provider ??
     getNearProvider()
 
-  let nearBurnTxHash
-  let decodedTxHash
-  let auroraTxHash
-  let auroraSender = 'NA'
-  if (/^0x[A-Fa-f0-9]{64}$/.test(burnTxHash)) {
-    const auroraProvider = options.auroraProvider ?? getAuroraProvider()
-    // Ethers formats the receipts and removes nearTransactionHash
-    const auroraBurnReceipt = await auroraProvider.send('eth_getTransactionReceipt', [burnTxHash])
-    decodedTxHash = Buffer.from(auroraBurnReceipt.nearTransactionHash.slice(2), 'hex')
-    nearBurnTxHash = bs58.encode(decodedTxHash)
-    const exitLog: ethers.providers.Log = auroraBurnReceipt.logs.find(
-      (log: ethers.providers.Log) => log.topics[0] === EXIT_TO_ETHEREUM_SIGNATURE
-    )
-    auroraSender = '0x' + exitLog.topics[1]!.slice(26)
-    auroraTxHash = burnTxHash
-  } else {
-    nearBurnTxHash = burnTxHash
-    decodedTxHash = utils.serialize.base_decode(nearBurnTxHash)
-  }
+  const auroraProvider = options.auroraProvider ?? getAuroraProvider()
+  // Ethers formats the receipts and removes nearTransactionHash
+  const auroraBurnReceipt = await auroraProvider.send('eth_getTransactionReceipt', [burnTxHash])
+  const decodedTxHash = Buffer.from(auroraBurnReceipt.nearTransactionHash.slice(2), 'hex')
+  const nearBurnTxHash = bs58.encode(decodedTxHash)
+  const exitLog: ethers.providers.Log = auroraBurnReceipt.logs.find(
+    (log: ethers.providers.Log) => log.topics[0] === EXIT_TO_ETHEREUM_SIGNATURE
+  )
+  const auroraSender = '0x' + exitLog.topics[1]!.slice(26)
 
   const burnTx = await nearProvider.txStatus(decodedTxHash, sender)
-
-  if (!auroraTxHash) {
-    auroraTxHash = ethers.utils.keccak256(
-      Buffer.from(burnTx.transaction.actions[0].FunctionCall.args, 'base64')
-    )
-  }
 
   // @ts-expect-error TODO
   if (burnTx.status.Unknown) {
@@ -318,57 +312,28 @@ export async function recover (
     throw new Error(`Withdraw transaction failed: ${nearBurnTxHash}`)
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-  class BurnEvent {
-    constructor (args: any) {
-      Object.assign(this, args)
-    }
-  }
-  const SCHEMA = new Map([
-    [BurnEvent, {
-      kind: 'struct',
-      fields: [
-        ['amount', 'u128'],
-        ['recipient_id', [20]],
-        ['eth_custodian_address', [20]]
-      ]
-    }]
-  ])
-  // @ts-expect-error TODO
-  const withdrawResult = burnTx.receipts_outcome[1].outcome.status.SuccessValue
-  const burnEvent = deserializeBorsh(
-    SCHEMA, BurnEvent, Buffer.from(withdrawResult, 'base64')
-  ) as { amount: BN, recipient_id: Uint8Array, eth_custodian_address: Uint8Array}
+  const nearBurnReceipt = await parseBurnReceipt(burnTx, nearProvider)
 
-  const amount = burnEvent.amount.toString()
-  const recipient = '0x' + Buffer.from(burnEvent.recipient_id).toString('hex')
-  const etherCustodian = Buffer.from(burnEvent.eth_custodian_address).toString('hex')
-
+  const { amount, recipient, etherCustodian } = nearBurnReceipt.event
   const etherCustodianAddress: string = options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress
-  if (etherCustodian !== etherCustodianAddress.slice(2).toLowerCase()) {
+  if (etherCustodian.toLowerCase() !== etherCustodianAddress.toLowerCase()) {
     throw new Error(
-      `Unexpected ether custodian: got${etherCustodian},
+      `Unexpected ether custodian: got ${etherCustodian},
       expected ${etherCustodianAddress}`
     )
   }
-
   const symbol = 'ETH'
   const destinationTokenName = symbol
   const decimals = 18
   const sourceTokenName = 'a' + symbol
   const sourceToken = symbol
 
-  const nearBurnReceipt = await parseBurnReceipt(burnTx, nearProvider)
-
-  // @ts-expect-error TODO
-  const txBlock = await nearProvider.block({ blockId: burnTx.transaction_outcome.block_hash })
-
   // various attributes stored as arrays, to keep history of retries
   const transfer = {
     ...transferDraft,
 
     id: Math.random().toString().slice(2),
-    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
+    startTime: new Date(nearBurnReceipt.blockTimestamp / 10 ** 6).toISOString(),
     amount,
     completedStep: BURN,
     destinationTokenName,
@@ -378,7 +343,7 @@ export async function recover (
     sourceTokenName,
     symbol,
     decimals,
-    burnHashes: [auroraTxHash],
+    burnHashes: [burnTxHash],
     nearBurnHashes: [nearBurnTxHash],
     nearBurnReceiptIds: [nearBurnReceipt.id],
     nearBurnReceiptBlockHeights: [nearBurnReceipt.blockHeight]
@@ -640,14 +605,11 @@ export async function checkBurn (
     throw e
   }
 
-  // @ts-expect-error TODO
-  const txBlock = await nearProvider.block({ blockId: nearBurnTx.transaction_outcome.block_hash })
-
   return {
     ...transfer,
     status: status.IN_PROGRESS,
     completedStep: BURN,
-    startTime: new Date(txBlock.header.timestamp / 10 ** 6).toISOString(),
+    startTime: new Date(nearBurnReceipt.blockTimestamp / 10 ** 6).toISOString(),
     burnReceipts: [...transfer.burnReceipts, burnReceipt],
     nearBurnHashes: [...transfer.nearBurnHashes, nearBurnHash],
     nearBurnReceiptIds: [...transfer.nearBurnReceiptIds, nearBurnReceipt.id],
