@@ -3,33 +3,47 @@ import bs58 from 'bs58'
 
 export class SearchError extends Error {}
 
+export interface ExplorerIndexerResult {
+  originated_from_transaction_hash: string
+  included_in_block_timestamp: string
+}
+
 export async function findFinalizationTxOnNear ({
   proof,
   connectorAccount,
   eventRelayerAccount,
   finalizationMethod,
+  ethTxHash,
   callIndexer
 }: {
-  proof: string
-  connectorAccount: string
-  eventRelayerAccount: string
-  finalizationMethod: string
-  callIndexer: (query: string) => Promise<Array<{originated_from_transaction_hash: string, included_in_block_timestamp: string}>>
+  proof?: string
+  connectorAccount?: string
+  eventRelayerAccount?: string
+  finalizationMethod?: string
+  ethTxHash?: string
+  callIndexer: (query: string) => Promise<ExplorerIndexerResult[] | string>
 }): Promise<{ transactions: string[], timestamps: number[] }> {
-  const query = `SELECT public.receipts.originated_from_transaction_hash, public.receipts.included_in_block_timestamp
-    FROM public.receipts
-    JOIN public.action_receipt_actions
-    ON public.action_receipt_actions.receipt_id = public.receipts.receipt_id
-    WHERE (receipt_predecessor_account_id = '${eventRelayerAccount}'
-      AND receipt_receiver_account_id = '${connectorAccount}'
-      AND args ->> 'method_name' = '${finalizationMethod}'
-      AND args ->> 'args_base64' = '${proof}'
-    )`
-  // NOTE: Generally only 1 result is returned, but allow multiple in case finalization attempts are made.
-  const results = await callIndexer(query)
-  const transactions = results.map(tx => tx.originated_from_transaction_hash)
-  const timestamps = results.map(tx => Number(tx.included_in_block_timestamp))
-  return { transactions, timestamps }
+  if (ethTxHash) {
+    const nearTxHash = await callIndexer(ethTxHash) as string
+    return { transactions: [nearTxHash], timestamps: [] }
+  } else if (proof && connectorAccount && eventRelayerAccount && finalizationMethod) {
+    const query = `SELECT public.receipts.originated_from_transaction_hash, public.receipts.included_in_block_timestamp
+      FROM public.receipts
+      JOIN public.action_receipt_actions
+      ON public.action_receipt_actions.receipt_id = public.receipts.receipt_id
+      WHERE (receipt_predecessor_account_id = '${eventRelayerAccount}'
+        AND receipt_receiver_account_id = '${connectorAccount}'
+        AND args ->> 'method_name' = '${finalizationMethod}'
+        AND args ->> 'args_base64' = '${proof}'
+      )`
+    // NOTE: Generally only 1 result is returned, but allow multiple in case finalization attempts are made.
+    const results = await callIndexer(query) as ExplorerIndexerResult[]
+    const transactions = results.map(tx => tx.originated_from_transaction_hash)
+    const timestamps = results.map(tx => Number(tx.included_in_block_timestamp))
+    return { transactions, timestamps }
+  } else {
+    throw new Error('Expected ethTxHash or sql query params')
+  }
 }
 
 async function proofAlreadyUsed (

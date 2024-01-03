@@ -7,7 +7,7 @@ import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getNearWallet, getNearProvider, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
-import { urlParams, ethOnNearSyncHeight, findEthProof, findFinalizationTxOnNear } from '@near-eth/utils'
+import { urlParams, ethOnNearSyncHeight, findEthProof, findFinalizationTxOnNear, ExplorerIndexerResult } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 
 export const SOURCE_NETWORK = 'ethereum'
@@ -57,7 +57,7 @@ export interface TransferOptions {
   nearAccount?: Account
   nearProvider?: najProviders.Provider
   nearClientAccount?: string
-  callIndexer?: (query: string) => Promise<Array<{originated_from_transaction_hash: string, included_in_block_timestamp: string}>>
+  callIndexer?: (query: string) => Promise<ExplorerIndexerResult[] | string>
   eventRelayerAccount?: string
 }
 
@@ -542,6 +542,7 @@ export async function checkSync (
             connectorAccount: options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
             eventRelayerAccount: options.eventRelayerAccount ?? bridgeParams.eventRelayerAccount,
             finalizationMethod: 'finalise_eth_to_near_transfer',
+            ethTxHash: burnReceipt.transactionHash,
             callIndexer: options.callIndexer
           })
           let finishTime: string | undefined
