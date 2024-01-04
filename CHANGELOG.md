@@ -1,3 +1,17 @@
+## [2.6.2](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.6.1...v2.6.2) (2024-01-04)
+
+
+### Bug Fixes
+
+* Better NEAR receipt parsing. ([#90](https://github.com/aurora-is-near/rainbow-bridge-client/issues/90)) ([c134739](https://github.com/aurora-is-near/rainbow-bridge-client/commit/c134739208f14528d3cfaa089ae5c08319779575))
+
+
+### Features
+
+* Find finalization tx using monitoring indexer. ([#91](https://github.com/aurora-is-near/rainbow-bridge-client/issues/91)) ([6d2d883](https://github.com/aurora-is-near/rainbow-bridge-client/commit/6d2d883e0713ba56f74fb9d1f1a87a3430af7f93))
+
+
+
 ## [2.6.1](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.6.0...v2.6.1) (2023-06-20)
 
 
