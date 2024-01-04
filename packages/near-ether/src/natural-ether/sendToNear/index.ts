@@ -8,7 +8,7 @@ import * as status from '@near-eth/client/dist/statuses'
 import { getEthProvider, getSignerProvider, getNearWallet, getNearProvider, formatLargeNum, getBridgeParams } from '@near-eth/client/dist/utils'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
-import { urlParams, ethOnNearSyncHeight, findEthProof, findFinalizationTxOnNear } from '@near-eth/utils'
+import { urlParams, ethOnNearSyncHeight, findEthProof, findFinalizationTxOnNear, ExplorerIndexerResult } from '@near-eth/utils'
 
 export const SOURCE_NETWORK = 'ethereum'
 export const DESTINATION_NETWORK = 'near'
@@ -58,7 +58,7 @@ export interface TransferOptions {
   nearAccount?: Account
   nearProvider?: najProviders.Provider
   nearClientAccount?: string
-  callIndexer?: (query: string) => Promise<Array<{originated_from_transaction_hash: string, included_in_block_timestamp: string}>>
+  callIndexer?: (query: string) => Promise<ExplorerIndexerResult[] | string>
   eventRelayerAccount?: string
 }
 
@@ -546,6 +546,7 @@ export async function checkSync (
             connectorAccount: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
             eventRelayerAccount: options.eventRelayerAccount ?? bridgeParams.eventRelayerAccount,
             finalizationMethod: 'deposit',
+            ethTxHash: lockReceipt.transactionHash,
             callIndexer: options.callIndexer
           })
           let finishTime: string | undefined

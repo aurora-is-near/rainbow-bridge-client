@@ -7,7 +7,7 @@ import { CodeResult } from 'near-api-js/lib/providers/provider'
 import { getEthProvider, getSignerProvider, getNearProvider, formatLargeNum, getBridgeParams } from '@near-eth/client/dist/utils'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
-import { ethOnNearSyncHeight, findEthProof, findFinalizationTxOnNear } from '@near-eth/utils'
+import { ethOnNearSyncHeight, findEthProof, findFinalizationTxOnNear, ExplorerIndexerResult } from '@near-eth/utils'
 import { getDecimals, getSymbol } from '../getMetadata'
 
 export const SOURCE_NETWORK = 'ethereum'
@@ -68,7 +68,7 @@ export interface TransferOptions {
   maxFindEthProofInterval?: number
   nearClientAccount?: string
   auroraEvmAccount?: string
-  callIndexer?: (query: string) => Promise<Array<{originated_from_transaction_hash: string, included_in_block_timestamp: string}>>
+  callIndexer?: (query: string) => Promise<ExplorerIndexerResult[] | string>
   eventRelayerAccount?: string
 }
 
@@ -696,6 +696,7 @@ export async function checkSync (
             connectorAccount: options.nep141Factory ?? bridgeParams.nep141Factory,
             eventRelayerAccount: options.eventRelayerAccount ?? bridgeParams.eventRelayerAccount,
             finalizationMethod: 'deposit',
+            ethTxHash: lockReceipt.transactionHash,
             callIndexer: options.callIndexer
           })
           let finishTime: string | undefined
