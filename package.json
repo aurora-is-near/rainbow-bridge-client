@@ -4,7 +4,7 @@
   "version": "2.6.2",
   "private": true,
   "scripts": {
-    "build": "yarn workspaces foreach -pt run build",
+    "build": "yarn workspaces foreach -Apt run build",
     "lint": "eslint packages/**/src",
     "lint:fix": "eslint packages/**/src --fix",
     "commitlint": "commitlint --from HEAD~1 --to HEAD --verbose",
@@ -39,5 +39,5 @@
   "workspaces": [
     "packages/*"
   ],
-  "packageManager": "yarn@3.2.3"
+  "packageManager": "yarn@4.0.2"
 }
