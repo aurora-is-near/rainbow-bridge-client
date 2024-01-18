@@ -1,3 +1,12 @@
+## [2.6.3](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.6.2...v2.6.3) (2024-01-18)
+
+
+### Bug Fixes
+
+* Cancun upgrade eth-object and yarn. ([#92](https://github.com/aurora-is-near/rainbow-bridge-client/issues/92)) ([b75f902](https://github.com/aurora-is-near/rainbow-bridge-client/commit/b75f902612c81f01aeb4b31c69d118055e38151b))
+
+
+
 ## [2.6.2](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.6.1...v2.6.2) (2024-01-04)
 
 
