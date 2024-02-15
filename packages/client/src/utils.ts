@@ -9,6 +9,9 @@ import { providers as ethersProviders } from 'ethers'
 let ethProvider: ethersProviders.JsonRpcProvider
 let nearConnection: WalletConnection
 let auroraProvider: ethersProviders.JsonRpcProvider
+type AuroraEvmAccount = string
+interface AuroraCloudProviders { [key: AuroraEvmAccount]: ethersProviders.JsonRpcProvider }
+let auroraCloudProviders: AuroraCloudProviders
 let signerProvider: ethersProviders.JsonRpcProvider | ethersProviders.Web3Provider
 let nearProvider: najProviders.Provider
 let nearWallet: NearWalletBehaviour
@@ -74,6 +77,30 @@ export function setAuroraProvider (
   auroraProvider = provider
   // TODO: verify provider meets expectations
   return auroraProvider
+}
+
+/**
+ * Set cloudProviders
+ *
+ * This must be called by apps that use @near-eth/client before performing any
+ * transfer operations with @near-eth/client itself or with connector libraries
+ * such as @near-eth/aurora-erc20.
+ *
+ * Example:
+ *
+ *     import { ethers } from 'ethers'
+ *     import { setAuroraCloudProviders } from '@near-eth/client'
+ *     setAuroraCloudProviders({ "example-silo.near": new ethers.providers.JsonRpcProvider(url) })
+ *
+ * @param cloudProviders Object of Aurora evm engine accounts to their respective provider.
+ *
+ * @returns `auroraCloudProviders`
+ */
+export function setAuroraCloudProviders (
+  cloudProviders: AuroraCloudProviders
+): AuroraCloudProviders {
+  auroraCloudProviders = cloudProviders
+  return auroraCloudProviders
 }
 
 /**
@@ -199,6 +226,19 @@ export function getEthProvider (): ethersProviders.JsonRpcProvider {
 
 export function getAuroraProvider (): ethersProviders.JsonRpcProvider {
   return auroraProvider
+}
+
+export function getAuroraCloudProvider (
+  { auroraEvmAccount }: { auroraEvmAccount?: AuroraEvmAccount }
+): ethersProviders.JsonRpcProvider {
+  if (!auroraEvmAccount || auroraEvmAccount === 'aurora') return getAuroraProvider()
+  const cloudProvider = auroraCloudProviders[auroraEvmAccount]
+  if (!cloudProvider) {
+    throw new Error(
+      'Must `setAuroraCloudProviders({ "example-silo.near": new ethers.providers.JsonRpcProvider(url) })` prior to calling getAuroraCloudProvider'
+    )
+  }
+  return cloudProvider
 }
 
 export function getSignerProvider (): ethersProviders.JsonRpcProvider {

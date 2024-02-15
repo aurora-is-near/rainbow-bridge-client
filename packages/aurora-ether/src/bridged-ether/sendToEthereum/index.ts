@@ -13,7 +13,7 @@ import * as status from '@near-eth/client/dist/statuses'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import {
   getSignerProvider,
-  getAuroraProvider,
+  getAuroraCloudProvider,
   getEthProvider,
   getNearProvider,
   formatLargeNum,
@@ -66,6 +66,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
+  auroraEvmAccount?: string
 }
 
 export interface TransferOptions {
@@ -80,6 +81,7 @@ export interface TransferOptions {
   ethClientAbi?: string
   auroraProvider?: ethers.providers.JsonRpcProvider
   auroraEvmAccount?: string
+  symbol?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -236,12 +238,13 @@ export async function findAllTransactions (
     options?: {
       provider?: ethers.providers.Provider
       etherExitToEthereumPrecompile?: string
+      auroraEvmAccount?: string
     }
   }
 ): Promise<string[]> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: options?.auroraEvmAccount })
 
   const filter = {
     address: options.etherExitToEthereumPrecompile ?? bridgeParams.etherExitToEthereumPrecompile,
@@ -288,7 +291,7 @@ export async function recover (
     options.nearAccount?.connection.provider ??
     getNearProvider()
 
-  const auroraProvider = options.auroraProvider ?? getAuroraProvider()
+  const auroraProvider = options.auroraProvider ?? getAuroraCloudProvider({ auroraEvmAccount: options?.auroraEvmAccount })
   // Ethers formats the receipts and removes nearTransactionHash
   const auroraBurnReceipt = await auroraProvider.send('eth_getTransactionReceipt', [burnTxHash])
   const decodedTxHash = Buffer.from(auroraBurnReceipt.nearTransactionHash.slice(2), 'hex')
@@ -322,7 +325,8 @@ export async function recover (
       expected ${etherCustodianAddress}`
     )
   }
-  const symbol = 'ETH'
+  // A silo might not use ETH as its base currency.
+  const symbol = options.symbol ?? 'ETH'
   const destinationTokenName = symbol
   const decimals = 18
   const sourceTokenName = 'a' + symbol
@@ -343,6 +347,7 @@ export async function recover (
     sourceTokenName,
     symbol,
     decimals,
+    auroraEvmAccount: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
     burnHashes: [burnTxHash],
     nearBurnHashes: [nearBurnTxHash],
     nearBurnReceiptIds: [nearBurnReceipt.id],
@@ -367,6 +372,7 @@ export async function recover (
  * @param params.options.auroraChainId Aurora chain id of the bridge.
  * @param params.options.provider Ethereum provider to use.
  * @param params.options.etherExitToEthereumPrecompile Aurora ether exit to Ethereum precompile address.
+ * @param params.options.auroraEvmAccount NEAR account of the silo to witdraw from.
  * @param params.options.signer Ethers signer to use.
  * @returns The created transfer object.
  */
@@ -381,6 +387,7 @@ export async function initiate (
       auroraChainId?: number
       provider?: ethers.providers.JsonRpcProvider
       etherExitToEthereumPrecompile?: string
+      auroraEvmAccount?: string
       signer?: ethers.Signer
     }
   }
@@ -397,7 +404,7 @@ export async function initiate (
   const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
 
   // various attributes stored as arrays, to keep history of retries
-  let transfer = {
+  let transfer: Transfer = {
     ...transferDraft,
 
     id: Math.random().toString().slice(2),
@@ -408,6 +415,7 @@ export async function initiate (
     sender,
     sourceToken,
     sourceTokenName,
+    auroraEvmAccount: options.auroraEvmAccount ?? getBridgeParams().auroraEvmAccount,
     symbol,
     decimals
   }
@@ -499,7 +507,7 @@ export async function checkBurn (
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: transfer.auroraEvmAccount })
 
   const burnHash = last(transfer.burnHashes)
 
@@ -699,7 +707,8 @@ export async function checkSync (
   if (nearOnEthClientBlockHeight > burnBlockHeight) {
     proof = await findNearProof(
       last(transfer.nearBurnReceiptIds),
-      options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
+      // NOTE: options.auroraEvmAccount cannot be used because checkSync can be called by recover using a different silo's auroraEvmAccount.
+      bridgeParams.auroraEvmAccount,
       nearOnEthClientBlockHeight,
       nearProvider,
       provider,

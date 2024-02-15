@@ -29,6 +29,7 @@ export interface Transfer extends TransactionInfo, TransferDraft {
   sender: string
   sourceTokenName: string
   symbol: string
+  auroraEvmAccount?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -194,6 +195,7 @@ export async function findAllTransfers (
         amount,
         decimals,
         symbol,
+        auroraEvmAccount,
         sourceToken: nep141Address,
         sourceTokenName: metadata.symbol,
         destinationTokenName: 'a' + metadata.symbol,
@@ -271,6 +273,7 @@ export async function recover (
     amount: argsJson.amount,
     decimals,
     symbol,
+    auroraEvmAccount,
     sourceToken: nep141Address,
     sourceTokenName: metadata.symbol,
     destinationTokenName: 'a' + metadata.symbol,
@@ -381,13 +384,14 @@ export async function sendToAurora (
   const sourceToken = nep141Address
   const sender = options.sender ?? await getNearAccountId()
 
-  let transfer = {
+  let transfer: Transfer = {
     ...transferDraft,
     id: Math.random().toString().slice(2),
     startTime: new Date().toISOString(),
     amount: amount.toString(),
     decimals,
     symbol,
+    auroraEvmAccount: options.auroraEvmAccount ?? getBridgeParams().auroraEvmAccount,
     sourceToken,
     sourceTokenName,
     destinationTokenName,
@@ -510,6 +514,7 @@ export async function wrapAndSendNearToAurora (
     amount: amount.toString(),
     decimals: 24,
     symbol,
+    auroraEvmAccount: options.auroraEvmAccount ?? getBridgeParams().auroraEvmAccount,
     sourceToken,
     sourceTokenName,
     destinationTokenName,

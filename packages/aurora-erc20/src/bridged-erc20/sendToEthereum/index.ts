@@ -18,7 +18,7 @@ import * as status from '@near-eth/client/dist/statuses'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import {
   getSignerProvider,
-  getAuroraProvider,
+  getAuroraCloudProvider,
   getEthProvider,
   getNearProvider,
   formatLargeNum,
@@ -73,6 +73,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
+  auroraEvmAccount?: string
 }
 
 export interface TransferOptions {
@@ -88,6 +89,7 @@ export interface TransferOptions {
   ethClientAddress?: string
   ethClientAbi?: string
   nep141Factory?: string
+  auroraEvmAccount?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -258,7 +260,7 @@ export async function findAllTransactions (
 ): Promise<string[]> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: options?.auroraEvmAccount })
   const auroraErc20Address = options.auroraErc20Address ?? await getAuroraErc20Address(
     { erc20Address, options }
   )
@@ -318,7 +320,7 @@ export async function recover (
     options.nearAccount?.connection.provider ??
     getNearProvider()
 
-  const auroraProvider = options.auroraProvider ?? getAuroraProvider()
+  const auroraProvider = options.auroraProvider ?? getAuroraCloudProvider({ auroraEvmAccount: options?.auroraEvmAccount })
   // Ethers formats the receipts and removes nearTransactionHash
   const auroraBurnReceipt = await auroraProvider.send('eth_getTransactionReceipt', [burnTxHash])
   const decodedTxHash = Buffer.from(auroraBurnReceipt.nearTransactionHash.slice(2), 'hex')
@@ -345,7 +347,8 @@ export async function recover (
     throw new Error(`Withdraw transaction failed: ${burnTxHash}`)
   }
 
-  const nep141Factory = options.nep141Factory ?? getBridgeParams().nep141Factory
+  const bridgeParams = getBridgeParams()
+  const nep141Factory = options.nep141Factory ?? bridgeParams.nep141Factory
   const nearBurnReceipt = await parseBurnReceipt(burnTx, nep141Factory, nearProvider)
 
   const { amount, recipient, token: erc20Address } = nearBurnReceipt.event
@@ -372,6 +375,7 @@ export async function recover (
     sourceToken,
     symbol,
     decimals,
+    auroraEvmAccount: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
     burnHashes: [burnTxHash],
     nearBurnHashes: [nearBurnTxHash],
     nearBurnReceiptIds: [nearBurnReceipt.id],
@@ -395,9 +399,9 @@ export async function recover (
  * @param params.options.auroraChainId Aurora chain id of the bridge.
  * @param params.options.auroraErc20Abi Aurora ERC-20 abi to call withdrawToEthereum.
  * @param params.options.auroraErc20Address params.erc20Address's address on Aurora.
- * @param options.auroraEvmAccount Aurora account on NEAR.
+ * @param params.options.auroraEvmAccount Aurora Cloud silo account on NEAR.
  * @param params.options.nep141Factory ERC-20 connector factory to determine the NEAR address.
- * @param options.provider Aurora provider to use.
+ * @param params.options.provider Aurora provider to use.
  * @param params.options.nearAccount Connected NEAR wallet account to use.
  * @param params.options.nearProvider NEAR provider.
  * @param params.options.signer Ethers signer to use.
@@ -442,7 +446,7 @@ export async function initiate (
   const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
 
   // various attributes stored as arrays, to keep history of retries
-  let transfer = {
+  let transfer: Transfer = {
     ...transferDraft,
 
     id: Math.random().toString().slice(2),
@@ -453,6 +457,7 @@ export async function initiate (
     sender,
     sourceToken: auroraErc20Address,
     sourceTokenName,
+    auroraEvmAccount: options.auroraEvmAccount ?? getBridgeParams().auroraEvmAccount,
     symbol,
     decimals
   }
@@ -534,7 +539,7 @@ export async function checkBurn (
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: transfer.auroraEvmAccount })
 
   const burnHash = last(transfer.burnHashes)
 

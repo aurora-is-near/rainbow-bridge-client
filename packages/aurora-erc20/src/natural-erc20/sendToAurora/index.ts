@@ -53,6 +53,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
+  auroraEvmAccount?: string
 }
 
 export interface TransferOptions {
@@ -272,6 +273,7 @@ export async function recover (
     sourceTokenName,
     symbol,
     decimals,
+    auroraEvmAccount: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
     status: status.IN_PROGRESS,
     lockHashes: [lockTxHash],
     lockReceipts: [receipt]
@@ -299,7 +301,7 @@ export async function recover (
  * @param params.options.erc20LockerAddress Rainbow bridge ERC-20 token locker address.
  * @param params.options.erc20LockerAbi Rainbow bridge ERC-20 token locker abi.
  * @param params.options.erc20Abi Standard ERC-20 token abi.
- * @param options.auroraEvmAccount Aurora account on NEAR.
+ * @param params.options.auroraEvmAccount Aurora Cloud silo account on NEAR.
  * @param params.options.signer Ethers signer to use.
  * @returns The created transfer object.
  */
@@ -333,7 +335,7 @@ export async function initiate (
   const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
 
   // various attributes stored as arrays, to keep history of retries
-  let transfer = {
+  let transfer: Transfer = {
     ...transferDraft,
 
     id: Math.random().toString().slice(2),
@@ -344,6 +346,7 @@ export async function initiate (
     sender,
     sourceToken: erc20Address,
     sourceTokenName,
+    auroraEvmAccount: options.auroraEvmAccount ?? getBridgeParams().auroraEvmAccount,
     symbol,
     decimals
   }

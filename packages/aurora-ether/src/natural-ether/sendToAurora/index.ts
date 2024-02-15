@@ -45,6 +45,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
+  auroraEvmAccount?: string
 }
 
 export interface TransferOptions {
@@ -253,6 +254,7 @@ export async function recover (
     sourceTokenName,
     symbol,
     decimals,
+    auroraEvmAccount: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
     status: status.IN_PROGRESS,
     lockHashes: [lockTxHash],
     lockReceipts: [receipt]
@@ -276,6 +278,7 @@ export async function recover (
  * @param params.options.provider Ethereum provider to use.
  * @param params.options.etherCustodianAddress Rainbow bridge ether custodian address.
  * @param params.options.etherCustodianAbi Rainbow bridge ether custodian abi.
+ * @param params.options.auroraEvmAccount Aurora Cloud silo account on NEAR.
  * @param params.options.signer Ethers signer to use.
  * @returns The created transfer object.
  */
@@ -291,6 +294,7 @@ export async function initiate (
       provider?: ethers.providers.JsonRpcProvider
       etherCustodianAddress?: string
       etherCustodianAbi?: string
+      auroraEvmAccount?: string
       signer?: ethers.Signer
     }
   }
@@ -307,7 +311,7 @@ export async function initiate (
   const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
 
   // various attributes stored as arrays, to keep history of retries
-  let transfer = {
+  let transfer: Transfer = {
     ...transferDraft,
 
     id: Math.random().toString().slice(2),
@@ -318,6 +322,7 @@ export async function initiate (
     sender,
     sourceToken,
     sourceTokenName,
+    auroraEvmAccount: options.auroraEvmAccount ?? getBridgeParams().auroraEvmAccount,
     symbol,
     decimals
   }
@@ -342,6 +347,7 @@ export async function lock (
     ethChainId?: number
     etherCustodianAddress?: string
     etherCustodianAbi?: string
+    auroraEvmAccount?: string
     signer?: ethers.Signer
   }
 ): Promise<Transfer> {
@@ -367,8 +373,10 @@ export async function lock (
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
   const safeReorgHeight = await provider.getBlockNumber() - 20
-  const pendingLockTx = await ethTokenLocker.depositToEVM(
-    transfer.recipient.slice(2).toLowerCase(), 0, { value: transfer.amount }
+
+  const auroraEvmAccount: string = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount ?? 'aurora'
+  const pendingLockTx = await ethTokenLocker.depositToNear(
+    `${auroraEvmAccount}:${transfer.recipient.slice(2).toLowerCase()}`, 0, { value: transfer.amount }
   )
 
   return {
@@ -510,7 +518,8 @@ export async function checkSync (
     )
     const result = await nearProvider.query<CodeResult>({
       request_type: 'call_function',
-      account_id: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
+      // NOTE: options.auroraEvmAccount cannot be used because checkSync can be called by recover using a different silo's auroraEvmAccount.
+      account_id: bridgeParams.auroraEvmAccount,
       method_name: 'is_used_proof',
       args_base64: Buffer.from(proof).toString('base64'),
       finality: 'optimistic'

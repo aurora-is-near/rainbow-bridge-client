@@ -2,7 +2,7 @@ import BN from 'bn.js'
 import { getNearWallet, getNearAccountId } from '@near-eth/client/dist/utils'
 import { ethers } from 'ethers'
 import { Account, providers as najProviders } from 'near-api-js'
-import { getAuroraProvider, getSignerProvider, getBridgeParams, track } from '@near-eth/client'
+import { getAuroraCloudProvider, getSignerProvider, getBridgeParams, track } from '@near-eth/client'
 import { TransactionInfo, TransferStatus } from '@near-eth/client/dist/types'
 import * as status from '@near-eth/client/dist/statuses'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
@@ -31,6 +31,7 @@ export interface Transfer extends TransactionInfo, TransferDraft {
   sourceTokenName: string
   symbol: string
   startTime?: string
+  auroraEvmAccount?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -116,7 +117,7 @@ export async function findAllTransfers (
 ): Promise<Transfer[]> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: options?.auroraEvmAccount })
   const auroraErc20Address = options.auroraErc20Address ?? await getAuroraErc20Address(
     { nep141Address, options }
   ) as string
@@ -133,7 +134,7 @@ export async function findAllTransfers (
   }))
   // Keep only transfers from Aurora to NEAR.
   const transferReceipts = receipts.filter((receipt) => receipt.logs.find(
-    (log) => log.topics[0] === EXIT_TO_NEAR_SIGNATURE
+    (log: any) => log.topics[0] === EXIT_TO_NEAR_SIGNATURE
   ))
   let metadata = { symbol: '', decimals: 0 }
   if (!options.symbol || !options.decimals) {
@@ -146,7 +147,7 @@ export async function findAllTransfers (
 
   const transfers = await Promise.all(transferReceipts.map(async (r) => {
     const txBlock = await provider.getBlock(r.blockHash)
-    const exitLog = r.logs.find(log => log.topics[0] === EXIT_TO_NEAR_SIGNATURE)!
+    const exitLog = r.logs.find((log: any) => log.topics[0] === EXIT_TO_NEAR_SIGNATURE)!
     const recipientHash: string = exitLog.topics[3]!
     const amount = ethers.BigNumber.from(exitLog.data).toString()
 
@@ -160,6 +161,7 @@ export async function findAllTransfers (
       amount,
       decimals,
       symbol,
+      auroraEvmAccount: options?.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
       sourceToken: auroraErc20Address,
       sourceTokenName,
       destinationTokenName,
@@ -186,11 +188,11 @@ export async function recover (
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: options?.auroraEvmAccount })
   const receipt = await provider.getTransactionReceipt(burnTxHash)
 
-  const exitLog: ethers.providers.Log = receipt.logs.find(log => log.topics[0] === EXIT_TO_NEAR_SIGNATURE)!
-  const burnLog: ethers.providers.Log = receipt.logs.find(log => log.topics[0] === BURN_SIGNATURE)!
+  const exitLog: ethers.providers.Log = receipt.logs.find((log: any) => log.topics[0] === EXIT_TO_NEAR_SIGNATURE)!
+  const burnLog: ethers.providers.Log = receipt.logs.find((log: any) => log.topics[0] === BURN_SIGNATURE)!
   const recipientHash: string = exitLog.topics[3]!
   const amount = ethers.BigNumber.from(exitLog.data).toString()
   const auroraErc20Address = '0x' + exitLog.topics[1]!.slice(26)
@@ -217,6 +219,7 @@ export async function recover (
     amount,
     decimals,
     symbol,
+    auroraEvmAccount: options.auroraEvmAccount ?? getBridgeParams().auroraEvmAccount,
     sourceToken: auroraErc20Address,
     sourceTokenName,
     destinationTokenName,
@@ -237,7 +240,7 @@ export async function checkBurn (
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: transfer.auroraEvmAccount })
   const ethChainId: number = (await provider.getNetwork()).chainId
   const expectedChainId: number = options.auroraChainId ?? bridgeParams.auroraChainId
   if (ethChainId !== expectedChainId) {
@@ -390,6 +393,7 @@ export async function sendToNear (
     amount: amount.toString(),
     decimals,
     symbol,
+    auroraEvmAccount: options.auroraEvmAccount ?? getBridgeParams().auroraEvmAccount,
     sourceToken: auroraErc20Address,
     sourceTokenName,
     destinationTokenName,
