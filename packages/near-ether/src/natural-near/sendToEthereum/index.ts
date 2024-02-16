@@ -2,15 +2,19 @@ import BN from 'bn.js'
 import bs58 from 'bs58'
 import { ethers } from 'ethers'
 import { Account, utils, providers as najProviders } from 'near-api-js'
-import { FinalExecutionOutcome } from 'near-api-js/lib/providers'
-import {
-  deserialize as deserializeBorsh
-} from 'near-api-js/lib/utils/serialize'
 import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { track, untrack } from '@near-eth/client'
-import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof, buildIndexerTxQuery, findFinalizationTxOnEthereum } from '@near-eth/utils'
+import {
+  borshifyOutcomeProof,
+  urlParams,
+  nearOnEthSyncHeight,
+  findNearProof,
+  buildIndexerTxQuery,
+  findFinalizationTxOnEthereum,
+  parseNEARLockReceipt
+} from '@near-eth/utils'
 import { getEthProvider, getNearWallet, getNearAccountId, getNearProvider, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 
@@ -283,7 +287,7 @@ export async function recover (
     throw new Error(`Lock transaction failed: ${lockTxHash}`)
   }
 
-  const lockReceipt = await parseLockReceipt(
+  const lockReceipt = await parseNEARLockReceipt(
     lockTx,
     options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
     nearProvider
@@ -319,54 +323,6 @@ export async function recover (
 
   // Check transfer status
   return await checkSync(transfer, options)
-}
-
-/**
- * Parse the lock receipt id and block height needed to complete
- * the step LOCK
- * @param lockTx
- * @param nativeNEARLockerAddress
- * @param nearProvider
- */
-export async function parseLockReceipt (
-  lockTx: FinalExecutionOutcome,
-  nativeNEARLockerAddress: string,
-  nearProvider: najProviders.Provider
-): Promise<{id: string, blockHeight: number, blockTimestamp: number, event: { amount: string, recipient: string }}> {
-  // @ts-expect-error
-  const bridgeReceipt: any = lockTx.receipts_outcome.find(r => r.outcome.executor_id === nativeNEARLockerAddress)
-  if (!bridgeReceipt) {
-    throw new Error(`Failed to parse bridge receipt for ${JSON.stringify(lockTx)}`)
-  }
-  const successValue = bridgeReceipt.outcome.status.SuccessValue
-  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-  class LockEvent {
-    constructor (args: any) {
-      Object.assign(this, args)
-    }
-  }
-  const SCHEMA = new Map([
-    [LockEvent, {
-      kind: 'struct',
-      fields: [
-        ['flag', 'u8'],
-        ['amount', 'u128'],
-        ['recipient', [20]]
-      ]
-    }]
-  ])
-  const rawEvent = deserializeBorsh(
-    SCHEMA, LockEvent, Buffer.from(successValue, 'base64')
-  ) as { amount: BN, recipient: Uint8Array }
-  const event = {
-    amount: rawEvent.amount.toString(),
-    recipient: '0x' + Buffer.from(rawEvent.recipient).toString('hex')
-  }
-
-  const receiptBlock = await nearProvider.block({ blockId: bridgeReceipt.block_hash })
-  const blockHeight = Number(receiptBlock.header.height)
-  const blockTimestamp = Number(receiptBlock.header.timestamp)
-  return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
 }
 
 /**
@@ -616,7 +572,7 @@ export async function checkLock (
 
   let lockReceipt
   try {
-    lockReceipt = await parseLockReceipt(
+    lockReceipt = await parseNEARLockReceipt(
       lockTx,
       options.nativeNEARLockerAddress ?? bridgeParams.nativeNEARLockerAddress,
       nearProvider

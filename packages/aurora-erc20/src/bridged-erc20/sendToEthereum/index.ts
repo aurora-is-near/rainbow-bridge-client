@@ -2,15 +2,12 @@ import {
   borshifyOutcomeProof,
   nearOnEthSyncHeight,
   findNearProof,
-  findFinalizationTxOnEthereum
+  findFinalizationTxOnEthereum,
+  parseNep141BurnReceipt,
+  parseETHBurnReceipt
 } from '@near-eth/utils'
 import { ethers } from 'ethers'
 import bs58 from 'bs58'
-import BN from 'bn.js'
-import {
-  deserialize as deserializeBorsh
-} from 'near-api-js/lib/utils/serialize'
-import { FinalExecutionOutcome } from 'near-api-js/lib/providers'
 import { Account, providers as najProviders } from 'near-api-js'
 import { track } from '@near-eth/client'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
@@ -194,56 +191,6 @@ export async function checkStatus (transfer: Transfer): Promise<Transfer> {
   }
 }
 
-/**
- * Parse the burn receipt id and block height needed to complete
- * the step BURN
- * @param nearBurnTx
- * @param nep141Factory
- * @param nearProvider
- */
-export async function parseBurnReceipt (
-  nearBurnTx: FinalExecutionOutcome,
-  nep141Factory: string,
-  nearProvider: najProviders.Provider
-): Promise<{id: string, blockHeight: number, blockTimestamp: number, event: { amount: string, token: string, recipient: string }}> {
-  // @ts-expect-error
-  const bridgeReceipt: any = nearBurnTx.receipts_outcome.find(r => r.outcome.executor_id === nep141Factory)
-  if (!bridgeReceipt) {
-    throw new Error(`Failed to parse bridge receipt for ${JSON.stringify(nearBurnTx)}`)
-  }
-  const successValue = bridgeReceipt.outcome.status.SuccessValue
-  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-  class BurnEvent {
-    constructor (args: any) {
-      Object.assign(this, args)
-    }
-  }
-  const SCHEMA = new Map([
-    [BurnEvent, {
-      kind: 'struct',
-      fields: [
-        ['flag', 'u8'],
-        ['amount', 'u128'],
-        ['token', [20]],
-        ['recipient', [20]]
-      ]
-    }]
-  ])
-  const rawEvent = deserializeBorsh(
-    SCHEMA, BurnEvent, Buffer.from(successValue, 'base64')
-  ) as { amount: BN, token: Uint8Array, recipient: Uint8Array }
-  const event = {
-    amount: rawEvent.amount.toString(),
-    token: '0x' + Buffer.from(rawEvent.token).toString('hex'),
-    recipient: '0x' + Buffer.from(rawEvent.recipient).toString('hex')
-  }
-
-  const receiptBlock = await nearProvider.block({ blockId: bridgeReceipt.block_hash })
-  const blockHeight = Number(receiptBlock.header.height)
-  const blockTimestamp = Number(receiptBlock.header.timestamp)
-  return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
-}
-
 export async function findAllTransactions (
   { fromBlock, toBlock, sender, erc20Address, options }: {
     fromBlock: number | string
@@ -349,11 +296,26 @@ export async function recover (
 
   const bridgeParams = getBridgeParams()
   const nep141Factory = options.nep141Factory ?? bridgeParams.nep141Factory
-  const nearBurnReceipt = await parseBurnReceipt(burnTx, nep141Factory, nearProvider)
-
-  const { amount, recipient, token: erc20Address } = nearBurnReceipt.event
-  const symbol = options.symbol ?? await getSymbol({ erc20Address, options })
-  const decimals = options.decimals ?? await getDecimals({ erc20Address, options })
+  let nearBurnReceipt, amount, recipient, symbol, decimals
+  if (options.symbol !== 'ETH') {
+    nearBurnReceipt = await parseNep141BurnReceipt(burnTx, nep141Factory, nearProvider)
+    amount = nearBurnReceipt.event.amount
+    recipient = nearBurnReceipt.event.recipient
+    const { token: erc20Address } = nearBurnReceipt.event
+    symbol = options.symbol ?? await getSymbol({ erc20Address, options })
+    decimals = options.decimals ?? await getDecimals({ erc20Address, options })
+  } else {
+    // Withdraw ERC-20 ETH from a silo which doesn't use ETH as native currency.
+    const auroraEvmAccount = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
+    nearBurnReceipt = await parseETHBurnReceipt(burnTx, auroraEvmAccount, nearProvider)
+    amount = nearBurnReceipt.event.amount
+    recipient = nearBurnReceipt.event.recipient
+    symbol = options.symbol
+    decimals = options.decimals
+    if (!symbol || !decimals || !auroraEvmAccount) {
+      throw new Error('Must provide symbol and decimals options to reciver ETH transfer from silo with different native currency')
+    }
+  }
   const sourceTokenName = 'a' + symbol
   const destinationTokenName = symbol
 
@@ -633,7 +595,12 @@ export async function checkBurn (
   let nearBurnReceipt
   const nep141Factory = options.nep141Factory ?? getBridgeParams().nep141Factory
   try {
-    nearBurnReceipt = await parseBurnReceipt(nearBurnTx, nep141Factory, nearProvider)
+    if (transfer.symbol !== 'ETH') {
+      nearBurnReceipt = await parseNep141BurnReceipt(nearBurnTx, nep141Factory, nearProvider)
+    } else {
+      // Withdraw ERC-20 ETH from a silo which doesn't use ETH as native currency.
+      nearBurnReceipt = await parseETHBurnReceipt(nearBurnTx, transfer.auroraEvmAccount ?? 'aurora', nearProvider)
+    }
   } catch (e) {
     if (e instanceof TransferError) {
       return {
@@ -746,7 +713,11 @@ export async function checkSync (
   if (nearOnEthClientBlockHeight > burnBlockHeight) {
     proof = await findNearProof(
       last(transfer.nearBurnReceiptIds),
-      options.nep141Factory ?? bridgeParams.nep141Factory,
+      // NOTE: If ETH is being transfered with @near-eth/aurora-erc20,
+      // it means that ETH is not the silo's native currency
+      transfer.symbol === 'ETH'
+        ? bridgeParams.auroraEvmAccount
+        : (options.nep141Factory ?? bridgeParams.nep141Factory),
       nearOnEthClientBlockHeight,
       nearProvider,
       provider,

@@ -2,15 +2,19 @@ import BN from 'bn.js'
 import bs58 from 'bs58'
 import { ethers } from 'ethers'
 import { Account, utils, providers as najProviders } from 'near-api-js'
-import { FinalExecutionOutcome } from 'near-api-js/lib/providers'
-import {
-  deserialize as deserializeBorsh
-} from 'near-api-js/lib/utils/serialize'
 import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { track, untrack } from '@near-eth/client'
-import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof, buildIndexerTxQuery, findFinalizationTxOnEthereum } from '@near-eth/utils'
+import {
+  borshifyOutcomeProof,
+  urlParams,
+  nearOnEthSyncHeight,
+  findNearProof,
+  buildIndexerTxQuery,
+  findFinalizationTxOnEthereum,
+  parseNep141BurnReceipt
+} from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 import { getEthProvider, getNearWallet, getNearAccountId, getNearProvider, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import getNep141Address from '../getAddress'
@@ -297,7 +301,7 @@ export async function recover (
   }
 
   const nep141Factory = options.nep141Factory ?? getBridgeParams().nep141Factory
-  const withdrawReceipt = await parseWithdrawReceipt(withdrawTx, nep141Factory, nearProvider)
+  const withdrawReceipt = await parseNep141BurnReceipt(withdrawTx, nep141Factory, nearProvider)
 
   const { amount, recipient, token: erc20Address } = withdrawReceipt.event
   const symbol = options.symbol ?? await getSymbol({ erc20Address, options })
@@ -329,56 +333,6 @@ export async function recover (
 
   // Check transfer status
   return await checkSync(transfer, options)
-}
-
-/**
- * Parse the withdraw receipt id and block height needed to complete
- * the step WITHDRAW
- * @param withdrawTx
- * @param nep141Factory
- * @param nearProvider
- */
-export async function parseWithdrawReceipt (
-  withdrawTx: FinalExecutionOutcome,
-  nep141Factory: string,
-  nearProvider: najProviders.Provider
-): Promise<{id: string, blockHeight: number, blockTimestamp: number, event: { amount: string, token: string, recipient: string }}> {
-  // @ts-expect-error
-  const bridgeReceipt: any = withdrawTx.receipts_outcome.find(r => r.outcome.executor_id === nep141Factory)
-  if (!bridgeReceipt) {
-    throw new Error(`Failed to parse bridge receipt for ${JSON.stringify(withdrawTx)}`)
-  }
-  const successValue = bridgeReceipt.outcome.status.SuccessValue
-  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-  class WithdrawEvent {
-    constructor (args: any) {
-      Object.assign(this, args)
-    }
-  }
-  const SCHEMA = new Map([
-    [WithdrawEvent, {
-      kind: 'struct',
-      fields: [
-        ['flag', 'u8'],
-        ['amount', 'u128'],
-        ['token', [20]],
-        ['recipient', [20]]
-      ]
-    }]
-  ])
-  const rawEvent = deserializeBorsh(
-    SCHEMA, WithdrawEvent, Buffer.from(successValue, 'base64')
-  ) as { amount: BN, token: Uint8Array, recipient: Uint8Array}
-  const event = {
-    amount: rawEvent.amount.toString(),
-    token: '0x' + Buffer.from(rawEvent.token).toString('hex'),
-    recipient: '0x' + Buffer.from(rawEvent.recipient).toString('hex')
-  }
-
-  const receiptBlock = await nearProvider.block({ blockId: bridgeReceipt.block_hash })
-  const blockHeight = Number(receiptBlock.header.height)
-  const blockTimestamp = Number(receiptBlock.header.timestamp)
-  return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
 }
 
 /**
@@ -638,7 +592,7 @@ export async function checkWithdraw (
   let withdrawReceipt
   const nep141Factory = options.nep141Factory ?? getBridgeParams().nep141Factory
   try {
-    withdrawReceipt = await parseWithdrawReceipt(withdrawTx, nep141Factory, nearProvider)
+    withdrawReceipt = await parseNep141BurnReceipt(withdrawTx, nep141Factory, nearProvider)
   } catch (e) {
     if (e instanceof TransferError) {
       if (clearParams) urlParams.clear(...clearParams)

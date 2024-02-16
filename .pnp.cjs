@@ -999,8 +999,10 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./packages/utils/",\
         "packageDependencies": [\
           ["@near-eth/utils", "workspace:packages/utils"],\
+          ["@types/bn.js", "npm:5.1.5"],\
           ["@types/bs58", "npm:4.0.1"],\
           ["@types/node", "npm:14.18.21"],\
+          ["bn.js", "npm:5.2.1"],\
           ["bs58", "npm:4.0.1"],\
           ["eth-object", "https://github.com/aurora-is-near/eth-object.git#commit=378b8dbf44a71f7049666cea5a16ab88d45aed06"],\
           ["ethereumjs-util", "npm:7.1.5"],\
@@ -1121,6 +1123,14 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./.yarn/cache/@types-bn.js-npm-5.1.0-4a0335ff4f-43d06b6f80.zip/node_modules/@types/bn.js/",\
         "packageDependencies": [\
           ["@types/bn.js", "npm:5.1.0"],\
+          ["@types/node", "npm:18.0.0"]\
+        ],\
+        "linkType": "HARD"\
+      }],\
+      ["npm:5.1.5", {\
+        "packageLocation": "./.yarn/cache/@types-bn.js-npm-5.1.5-c2195eccd3-9719330c86.zip/node_modules/@types/bn.js/",\
+        "packageDependencies": [\
+          ["@types/bn.js", "npm:5.1.5"],\
           ["@types/node", "npm:18.0.0"]\
         ],\
         "linkType": "HARD"\
