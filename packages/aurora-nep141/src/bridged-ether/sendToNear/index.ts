@@ -1,5 +1,5 @@
 import { ethers } from 'ethers'
-import { getAuroraProvider, getSignerProvider, getBridgeParams, track } from '@near-eth/client'
+import { getAuroraCloudProvider, getSignerProvider, getBridgeParams, track } from '@near-eth/client'
 import { TransactionInfo, TransferStatus } from '@near-eth/client/dist/types'
 import * as status from '@near-eth/client/dist/statuses'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
@@ -26,6 +26,7 @@ export interface Transfer extends TransactionInfo, TransferDraft {
   sourceTokenName: string
   symbol: string
   startTime?: string
+  auroraEvmAccount?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -99,12 +100,13 @@ export async function findAllTransfers (
     options?: {
       provider?: ethers.providers.Provider
       etherExitToNearPrecompile?: string
+      auroraEvmAccount?: string
     }
   }
 ): Promise<Transfer[]> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: options?.auroraEvmAccount })
 
   const filter = {
     address: options.etherExitToNearPrecompile ?? bridgeParams.etherExitToNearPrecompile,
@@ -131,6 +133,7 @@ export async function findAllTransfers (
       sourceTokenName: 'ETH',
       destinationTokenName: 'ETH',
       sender,
+      auroraEvmAccount: options?.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
       recipient: `NEAR account hash: ${recipientHash}`,
       burnHashes: [log.transactionHash],
       burnReceipts: []
@@ -145,10 +148,13 @@ export async function recover (
   options?: {
     provider?: ethers.providers.Provider
     etherExitToNearPrecompile?: string
+    decimals?: number
+    symbol?: string
+    auroraEvmAccount?: string
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: options.auroraEvmAccount })
   const bridgeParams = getBridgeParams()
   const receipt = await provider.getTransactionReceipt(burnTxHash)
 
@@ -164,6 +170,12 @@ export async function recover (
 
   const txBlock = await provider.getBlock(receipt.blockHash)
 
+  const symbol = options.symbol ?? 'ETH'
+  const destinationTokenName = symbol
+  const sourceTokenName = 'a' + symbol
+  const sourceToken = symbol
+  const decimals = options.decimals ?? 18
+
   const transfer = {
     id: Math.random().toString().slice(2),
     startTime: new Date(txBlock.timestamp * 1000).toISOString(),
@@ -172,12 +184,13 @@ export async function recover (
     completedStep: BURN,
     errors: [],
     amount,
-    decimals: 18,
-    symbol: 'ETH',
-    sourceToken: 'ETH',
-    sourceTokenName: 'ETH',
-    destinationTokenName: 'ETH',
+    decimals,
+    symbol,
+    sourceToken,
+    sourceTokenName,
+    destinationTokenName,
     sender,
+    auroraEvmAccount: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
     recipient: `NEAR account hash: ${recipientHash}`,
     burnHashes: [receipt.transactionHash],
     burnReceipts: []
@@ -194,7 +207,7 @@ export async function checkBurn (
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: transfer.auroraEvmAccount })
   const ethChainId: number = (await provider.getNetwork()).chainId
   const expectedChainId: number = options.auroraChainId ?? bridgeParams.auroraChainId
   if (ethChainId !== expectedChainId) {
@@ -265,10 +278,11 @@ export async function sendToNear (
       symbol?: string
       decimals?: number
       sender?: string
-      ethChainId?: number
+      auroraChainId?: number
       provider?: ethers.providers.JsonRpcProvider
       signer?: ethers.Signer
       etherExitToNearPrecompile?: string
+      auroraEvmAccount?: string
     }
   }
 ): Promise<Transfer> {
@@ -291,6 +305,7 @@ export async function sendToNear (
     sourceToken,
     sourceTokenName,
     destinationTokenName,
+    auroraEvmAccount: options.auroraEvmAccount ?? getBridgeParams().auroraEvmAccount,
     decimals,
     sender,
     recipient
