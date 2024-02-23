@@ -71,6 +71,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
   auroraEvmAccount?: string
+  auroraChainId?: string
 }
 
 export interface TransferOptions {
@@ -81,6 +82,7 @@ export interface TransferOptions {
   erc20Abi?: string
   sendToEthereumSyncInterval?: number
   ethChainId?: number
+  auroraChainId?: string
   nearAccount?: Account
   nearProvider?: najProviders.Provider
   ethClientAddress?: string
@@ -338,6 +340,7 @@ export async function recover (
     symbol,
     decimals,
     auroraEvmAccount: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
+    auroraChainId: options.auroraChainId ?? bridgeParams.auroraChainId,
     burnHashes: [burnTxHash],
     nearBurnHashes: [nearBurnTxHash],
     nearBurnReceiptIds: [nearBurnReceipt.id],
@@ -406,6 +409,7 @@ export async function initiate (
 
   const signer = options.signer ?? provider.getSigner()
   const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
+  const bridgeParams = getBridgeParams()
 
   // various attributes stored as arrays, to keep history of retries
   let transfer: Transfer = {
@@ -419,7 +423,8 @@ export async function initiate (
     sender,
     sourceToken: auroraErc20Address,
     sourceTokenName,
-    auroraEvmAccount: options.auroraEvmAccount ?? getBridgeParams().auroraEvmAccount,
+    auroraEvmAccount: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
+    auroraChainId: options.auroraChainId ?? bridgeParams.auroraChainId,
     symbol,
     decimals
   }
@@ -506,7 +511,7 @@ export async function checkBurn (
   const burnHash = last(transfer.burnHashes)
 
   const ethChainId: number = (await provider.getNetwork()).chainId
-  const expectedChainId: number = options.auroraChainId ?? bridgeParams.auroraChainId
+  const expectedChainId: number = options.auroraChainId ?? transfer.auroraChainId ?? bridgeParams.auroraChainId
   if (ethChainId !== expectedChainId) {
     throw new Error(
       `Wrong aurora network for checkLock, expected: ${expectedChainId}, got: ${ethChainId}`

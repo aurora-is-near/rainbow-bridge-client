@@ -27,6 +27,7 @@ export interface Transfer extends TransactionInfo, TransferDraft {
   symbol: string
   startTime?: string
   auroraEvmAccount?: string
+  auroraChainId?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -151,6 +152,7 @@ export async function recover (
     decimals?: number
     symbol?: string
     auroraEvmAccount?: string
+    auroraChainId?: number
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -191,6 +193,7 @@ export async function recover (
     destinationTokenName,
     sender,
     auroraEvmAccount: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
+    auroraChainId: options.auroraChainId ?? bridgeParams.auroraChainId,
     recipient: `NEAR account hash: ${recipientHash}`,
     burnHashes: [receipt.transactionHash],
     burnReceipts: []
@@ -209,7 +212,7 @@ export async function checkBurn (
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: transfer.auroraEvmAccount })
   const ethChainId: number = (await provider.getNetwork()).chainId
-  const expectedChainId: number = options.auroraChainId ?? bridgeParams.auroraChainId
+  const expectedChainId: number = options.auroraChainId ?? transfer.auroraChainId ?? bridgeParams.auroraChainId
   if (ethChainId !== expectedChainId) {
     throw new Error(
       `Wrong aurora network for checkBurn, expected: ${expectedChainId}, got: ${ethChainId}`
@@ -295,6 +298,7 @@ export async function sendToNear (
   const decimals = options.decimals ?? 18
   const signer = options.signer ?? provider.getSigner()
   const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
+  const bridgeParams = getBridgeParams()
 
   let transfer: Transfer = {
     ...transferDraft,
@@ -305,7 +309,8 @@ export async function sendToNear (
     sourceToken,
     sourceTokenName,
     destinationTokenName,
-    auroraEvmAccount: options.auroraEvmAccount ?? getBridgeParams().auroraEvmAccount,
+    auroraEvmAccount: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
+    auroraChainId: options.auroraChainId ?? bridgeParams.auroraChainId,
     decimals,
     sender,
     recipient
