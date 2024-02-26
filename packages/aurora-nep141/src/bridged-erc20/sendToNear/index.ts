@@ -372,6 +372,7 @@ export async function sendToNear (
       nearAccount?: Account
       nearProvider?: najProviders.Provider
       auroraEvmAccount?: string
+      unwrapWNear?: boolean
     }
   }
 ): Promise<Transfer> {
@@ -420,6 +421,7 @@ export async function burn (
     auroraChainId?: number
     auroraErc20Abi?: string
     signer?: ethers.Signer
+    unwrapWNear?: boolean
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -442,7 +444,7 @@ export async function burn (
   )
   const safeReorgHeight = await provider.getBlockNumber() - 20
   const tx = await erc20Contract.withdrawToNear(
-    Buffer.from(transfer.recipient),
+    Buffer.from(options.unwrapWNear ? transfer.recipient + ':unwrap' : transfer.recipient),
     transfer.amount,
     { gasLimit: 100000 }
   )
