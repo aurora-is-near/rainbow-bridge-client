@@ -1,3 +1,12 @@
+# [2.7.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.6.3...v2.7.0) (2024-02-28)
+
+
+### Features
+
+* Aurora Cloud silo support. ([#93](https://github.com/aurora-is-near/rainbow-bridge-client/issues/93)) ([c298534](https://github.com/aurora-is-near/rainbow-bridge-client/commit/c298534ba7a27a063009910ee0e0e2c581fdce58))
+
+
+
 ## [2.6.3](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.6.2...v2.6.3) (2024-01-18)
 
 

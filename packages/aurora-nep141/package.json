@@ -1,6 +1,6 @@
 {
   "name": "@near-eth/aurora-nep141",
-  "version": "1.4.2",
+  "version": "1.5.0",
   "license": "(MIT AND Apache-2.0)",
   "main": "dist/index.js",
   "files": [
