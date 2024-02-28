@@ -2,7 +2,7 @@ import BN from 'bn.js'
 import { getNearWallet, getNearAccountId } from '@near-eth/client/dist/utils'
 import { ethers } from 'ethers'
 import { Account, providers as najProviders } from 'near-api-js'
-import { getAuroraProvider, getSignerProvider, getBridgeParams, track } from '@near-eth/client'
+import { getAuroraCloudProvider, getSignerProvider, getBridgeParams, track } from '@near-eth/client'
 import { TransactionInfo, TransferStatus } from '@near-eth/client/dist/types'
 import * as status from '@near-eth/client/dist/statuses'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
@@ -31,6 +31,8 @@ export interface Transfer extends TransactionInfo, TransferDraft {
   sourceTokenName: string
   symbol: string
   startTime?: string
+  auroraEvmAccount?: string
+  auroraChainId?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -116,7 +118,7 @@ export async function findAllTransfers (
 ): Promise<Transfer[]> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: options?.auroraEvmAccount })
   const auroraErc20Address = options.auroraErc20Address ?? await getAuroraErc20Address(
     { nep141Address, options }
   ) as string
@@ -133,7 +135,7 @@ export async function findAllTransfers (
   }))
   // Keep only transfers from Aurora to NEAR.
   const transferReceipts = receipts.filter((receipt) => receipt.logs.find(
-    (log) => log.topics[0] === EXIT_TO_NEAR_SIGNATURE
+    log => log.topics[0] === EXIT_TO_NEAR_SIGNATURE
   ))
   let metadata = { symbol: '', decimals: 0 }
   if (!options.symbol || !options.decimals) {
@@ -160,6 +162,7 @@ export async function findAllTransfers (
       amount,
       decimals,
       symbol,
+      auroraEvmAccount: options?.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
       sourceToken: auroraErc20Address,
       sourceTokenName,
       destinationTokenName,
@@ -183,10 +186,11 @@ export async function recover (
     nearProvider?: najProviders.Provider
     decimals?: number
     symbol?: string
+    auroraChainId?: string
   }
 ): Promise<Transfer> {
   options = options ?? {}
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: options?.auroraEvmAccount })
   const receipt = await provider.getTransactionReceipt(burnTxHash)
 
   const exitLog: ethers.providers.Log = receipt.logs.find(log => log.topics[0] === EXIT_TO_NEAR_SIGNATURE)!
@@ -206,6 +210,7 @@ export async function recover (
   const destinationTokenName = symbol
   const decimals = options.decimals ?? metadata.decimals
   const txBlock = await provider.getBlock(receipt.blockHash)
+  const bridgeParams = getBridgeParams()
 
   const transfer = {
     id: Math.random().toString().slice(2),
@@ -217,6 +222,8 @@ export async function recover (
     amount,
     decimals,
     symbol,
+    auroraEvmAccount: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
+    auroraChainId: options.auroraChainId ?? bridgeParams.auroraChainId,
     sourceToken: auroraErc20Address,
     sourceTokenName,
     destinationTokenName,
@@ -237,9 +244,9 @@ export async function checkBurn (
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: transfer.auroraEvmAccount })
   const ethChainId: number = (await provider.getNetwork()).chainId
-  const expectedChainId: number = options.auroraChainId ?? bridgeParams.auroraChainId
+  const expectedChainId: number = options.auroraChainId ?? transfer.auroraChainId ?? bridgeParams.auroraChainId
   if (ethChainId !== expectedChainId) {
     throw new Error(
       `Wrong aurora network for checkBurn, expected: ${expectedChainId}, got: ${ethChainId}`
@@ -357,7 +364,7 @@ export async function sendToNear (
       symbol?: string
       decimals?: number
       sender?: string
-      ethChainId?: number
+      auroraChainId?: number
       provider?: ethers.providers.JsonRpcProvider
       auroraErc20Abi?: string
       auroraErc20Address?: string
@@ -365,6 +372,7 @@ export async function sendToNear (
       nearAccount?: Account
       nearProvider?: najProviders.Provider
       auroraEvmAccount?: string
+      unwrapWNear?: boolean
     }
   }
 ): Promise<Transfer> {
@@ -382,6 +390,7 @@ export async function sendToNear (
   const sender = options.sender ?? (await signer.getAddress()).toLowerCase()
   const auroraErc20Address = options.auroraErc20Address ?? await getAuroraErc20Address({ nep141Address, options })
   if (!auroraErc20Address) throw new Error(`Token not bridged: ${nep141Address}`)
+  const bridgeParams = getBridgeParams()
 
   let transfer: Transfer = {
     ...transferDraft,
@@ -390,6 +399,8 @@ export async function sendToNear (
     amount: amount.toString(),
     decimals,
     symbol,
+    auroraEvmAccount: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
+    auroraChainId: options.auroraChainId ?? bridgeParams.auroraChainId,
     sourceToken: auroraErc20Address,
     sourceTokenName,
     destinationTokenName,
@@ -410,6 +421,7 @@ export async function burn (
     auroraChainId?: number
     auroraErc20Abi?: string
     signer?: ethers.Signer
+    unwrapWNear?: boolean
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -432,7 +444,7 @@ export async function burn (
   )
   const safeReorgHeight = await provider.getBlockNumber() - 20
   const tx = await erc20Contract.withdrawToNear(
-    Buffer.from(transfer.recipient),
+    Buffer.from(options.unwrapWNear ? transfer.recipient + ':unwrap' : transfer.recipient),
     transfer.amount,
     { gasLimit: 100000 }
   )

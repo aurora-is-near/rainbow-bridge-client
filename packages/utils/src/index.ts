@@ -6,5 +6,11 @@ export { findFinalizationTxOnEthereum, findFinalizationTxOnNear, ExplorerIndexer
 export { borshifyOutcomeProof } from './borshify-proof'
 export { ethOnNearSyncHeight } from './ethOnNearClient'
 export { nearOnEthSyncHeight } from './nearOnEthClient'
-export { findEthProof, findNearProof } from './findProof'
+export {
+  findEthProof,
+  findNearProof,
+  parseETHBurnReceipt,
+  parseNEARLockReceipt,
+  parseNep141BurnReceipt
+} from './findProof'
 export { buildIndexerTxQuery } from './indexer'

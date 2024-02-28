@@ -2,16 +2,20 @@ import BN from 'bn.js'
 import bs58 from 'bs58'
 import { ethers } from 'ethers'
 import { Account, utils, providers as najProviders } from 'near-api-js'
-import { FinalExecutionOutcome } from 'near-api-js/lib/providers'
-import {
-  deserialize as deserializeBorsh,
-  serialize as serializeBorsh
-} from 'near-api-js/lib/utils/serialize'
+import { serialize as serializeBorsh } from 'near-api-js/lib/utils/serialize'
 import * as status from '@near-eth/client/dist/statuses'
 import { stepsFor } from '@near-eth/client/dist/i18nHelpers'
 import { TransferStatus, TransactionInfo } from '@near-eth/client/dist/types'
 import { track, untrack } from '@near-eth/client'
-import { borshifyOutcomeProof, urlParams, nearOnEthSyncHeight, findNearProof, buildIndexerTxQuery, findFinalizationTxOnEthereum } from '@near-eth/utils'
+import {
+  borshifyOutcomeProof,
+  urlParams,
+  nearOnEthSyncHeight,
+  findNearProof,
+  buildIndexerTxQuery,
+  findFinalizationTxOnEthereum,
+  parseETHBurnReceipt
+} from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 import { getEthProvider, getNearWallet, getNearProvider, getNearAccountId, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 
@@ -284,9 +288,12 @@ export async function recover (
   }
 
   const auroraEvmAccount = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
-  const withdrawReceipt = await parseWithdrawReceipt(burnTx, auroraEvmAccount, nearProvider)
 
-  const { amount, recipient, etherCustodian } = withdrawReceipt.event
+  const withdrawReceipt = await parseETHBurnReceipt(burnTx, auroraEvmAccount, nearProvider)
+  const amount = withdrawReceipt.event.amount
+  const recipient = withdrawReceipt.event.recipient
+  const etherCustodian: string = withdrawReceipt.event.etherCustodian
+
   const etherCustodianAddress: string = options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress
   if (etherCustodian.toLowerCase() !== etherCustodianAddress.toLowerCase()) {
     throw new Error(
@@ -323,55 +330,6 @@ export async function recover (
 
   // Check transfer status
   return await checkSync(transfer, options)
-}
-
-/**
- * Parse the burn receipt id and block height needed to complete
- * the step BURN
- * @param burnTx
- * @param auroraEvmAccount
- * @param nearProvider
- */
-export async function parseWithdrawReceipt (
-  burnTx: FinalExecutionOutcome,
-  auroraEvmAccount: string,
-  nearProvider: najProviders.Provider
-): Promise<{id: string, blockHeight: number, blockTimestamp: number, event: { amount: string, recipient: string, etherCustodian: string }}> {
-  // @ts-expect-error
-  const bridgeReceipt: any = burnTx.receipts_outcome.find(r => r.outcome.executor_id === auroraEvmAccount)
-  if (!bridgeReceipt) {
-    throw new Error(`Failed to parse bridge receipt for ${JSON.stringify(burnTx)}`)
-  }
-  const successValue = bridgeReceipt.outcome.status.SuccessValue
-  // eslint-disable-next-line @typescript-eslint/no-extraneous-class
-  class WithdrawEvent {
-    constructor (args: any) {
-      Object.assign(this, args)
-    }
-  }
-  const SCHEMA = new Map([
-    [WithdrawEvent, {
-      kind: 'struct',
-      fields: [
-        ['amount', 'u128'],
-        ['recipient_id', [20]],
-        ['eth_custodian_address', [20]]
-      ]
-    }]
-  ])
-  const rawEvent = deserializeBorsh(
-    SCHEMA, WithdrawEvent, Buffer.from(successValue, 'base64')
-  ) as { amount: BN, recipient_id: Uint8Array, eth_custodian_address: Uint8Array}
-  const event = {
-    amount: rawEvent.amount.toString(),
-    recipient: '0x' + Buffer.from(rawEvent.recipient_id).toString('hex'),
-    etherCustodian: '0x' + Buffer.from(rawEvent.eth_custodian_address).toString('hex')
-  }
-
-  const receiptBlock = await nearProvider.block({ blockId: bridgeReceipt.block_hash })
-  const blockHeight = Number(receiptBlock.header.height)
-  const blockTimestamp = Number(receiptBlock.header.timestamp)
-  return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
 }
 
 /**
@@ -637,7 +595,7 @@ export async function checkBurn (
   let withdrawReceipt
   try {
     const auroraEvmAccount = options.auroraEvmAccount ?? getBridgeParams().auroraEvmAccount
-    withdrawReceipt = await parseWithdrawReceipt(burnTx, auroraEvmAccount, nearProvider)
+    withdrawReceipt = await parseETHBurnReceipt(burnTx, auroraEvmAccount, nearProvider)
   } catch (e) {
     if (e instanceof TransferError) {
       if (clearParams) urlParams.clear(...clearParams)

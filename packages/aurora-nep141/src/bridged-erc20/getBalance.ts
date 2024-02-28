@@ -1,5 +1,5 @@
 import { ethers } from 'ethers'
-import { getAuroraProvider, getBridgeParams } from '@near-eth/client/dist/utils'
+import { getAuroraCloudProvider, getBridgeParams } from '@near-eth/client/dist/utils'
 import { erc20 } from '@near-eth/utils'
 
 export default async function getBalance (
@@ -9,12 +9,13 @@ export default async function getBalance (
     options?: {
       provider?: ethers.providers.Provider
       auroraErc20Abi?: string
+      auroraEvmAccount?: string
     }
   }
 ): Promise<string> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
-  const provider = options.provider ?? getAuroraProvider()
+  const provider = options.provider ?? getAuroraCloudProvider({ auroraEvmAccount: options.auroraEvmAccount })
   const erc20Abi = options.auroraErc20Abi ?? bridgeParams.auroraErc20Abi
 
   const balance = await erc20.getBalance({ erc20Address, owner, provider, erc20Abi })

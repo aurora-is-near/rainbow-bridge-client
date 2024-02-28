@@ -13,6 +13,7 @@ import {
 export { onChange } from './storage'
 export {
   getAuroraProvider,
+  getAuroraCloudProvider,
   getBridgeParams,
   getEthProvider,
   getNearAccount,
@@ -21,6 +22,7 @@ export {
   getNearAccountId,
   getSignerProvider,
   setAuroraProvider,
+  setAuroraCloudProviders,
   setBridgeParams,
   setEthProvider,
   setNearConnection,

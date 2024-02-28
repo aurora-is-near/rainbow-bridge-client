@@ -4,11 +4,16 @@ import { Trie } from 'lite-merkle-patricia-tree'
 // @ts-expect-error
 import { Header, Proof, Receipt, Log } from 'eth-object'
 import { rlp, toBuffer } from 'ethereumjs-util'
-import { serialize as serializeBorsh } from 'near-api-js/lib/utils/serialize'
+import {
+  deserialize as deserializeBorsh,
+  serialize as serializeBorsh
+} from 'near-api-js/lib/utils/serialize'
 import { IdType } from 'near-api-js/lib/providers/provider'
+import { FinalExecutionOutcome } from 'near-api-js/lib/providers'
 import { providers as najProviders } from 'near-api-js'
 import { ethers } from 'ethers'
 import bs58 from 'bs58'
+import BN from 'bn.js'
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 class BorshProof {
@@ -184,4 +189,181 @@ export async function findNearProof (
     light_client_head: clientBlockHashB58
   })
   return proof
+}
+
+/**
+ * Parse the burn receipt id and block height needed to build a proof.
+ * @param burnTx
+ * @param auroraEvmAccount
+ * @param nearProvider
+ */
+export async function parseETHBurnReceipt (
+  burnTx: FinalExecutionOutcome,
+  auroraEvmAccount: string,
+  nearProvider: najProviders.Provider
+): Promise<{id: string, blockHeight: number, blockTimestamp: number, event: { amount: string, recipient: string, etherCustodian: string }}> {
+  let event: any
+  let bridgeReceipt: any
+  burnTx.receipts_outcome.some((receipt) => {
+    // @ts-expect-error
+    if (receipt.outcome.executor_id !== auroraEvmAccount) return false
+    try {
+      // @ts-expect-error
+      const successValue = receipt.outcome.status.SuccessValue
+      // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+      class WithdrawEvent {
+        constructor (args: any) {
+          Object.assign(this, args)
+        }
+      }
+      const SCHEMA = new Map([
+        [WithdrawEvent, {
+          kind: 'struct',
+          fields: [
+            ['amount', 'u128'],
+            ['recipient_id', [20]],
+            ['eth_custodian_address', [20]]
+          ]
+        }]
+      ])
+      const rawEvent = deserializeBorsh(
+        SCHEMA, WithdrawEvent, Buffer.from(successValue, 'base64')
+      ) as { amount: BN, recipient_id: Uint8Array, eth_custodian_address: Uint8Array}
+      event = {
+        amount: rawEvent.amount.toString(),
+        recipient: '0x' + Buffer.from(rawEvent.recipient_id).toString('hex'),
+        etherCustodian: '0x' + Buffer.from(rawEvent.eth_custodian_address).toString('hex')
+      }
+      bridgeReceipt = receipt
+      return true
+    } catch (error) {
+      console.log(error)
+    }
+    return false
+  })
+  if (!bridgeReceipt || !event) {
+    throw new Error(`Failed to parse bridge receipt for ${JSON.stringify(burnTx)}`)
+  }
+  const receiptBlock = await nearProvider.block({ blockId: bridgeReceipt.block_hash })
+  const blockHeight = Number(receiptBlock.header.height)
+  const blockTimestamp = Number(receiptBlock.header.timestamp)
+  return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
+}
+
+/**
+ * Parse the lock receipt id and block height needed to build a proof.
+ * @param lockTx
+ * @param nativeNEARLockerAddress
+ * @param nearProvider
+ */
+export async function parseNEARLockReceipt (
+  lockTx: FinalExecutionOutcome,
+  nativeNEARLockerAddress: string,
+  nearProvider: najProviders.Provider
+): Promise<{id: string, blockHeight: number, blockTimestamp: number, event: { amount: string, recipient: string }}> {
+  let event: any
+  let bridgeReceipt: any
+  lockTx.receipts_outcome.some((receipt) => {
+    // @ts-expect-error
+    if (receipt.outcome.executor_id !== nativeNEARLockerAddress) return false
+    try {
+      // @ts-expect-error
+      const successValue = receipt.outcome.status.SuccessValue
+      // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+      class LockEvent {
+        constructor (args: any) {
+          Object.assign(this, args)
+        }
+      }
+      const SCHEMA = new Map([
+        [LockEvent, {
+          kind: 'struct',
+          fields: [
+            ['flag', 'u8'],
+            ['amount', 'u128'],
+            ['recipient', [20]]
+          ]
+        }]
+      ])
+      const rawEvent = deserializeBorsh(
+        SCHEMA, LockEvent, Buffer.from(successValue, 'base64')
+      ) as { amount: BN, recipient: Uint8Array }
+      event = {
+        amount: rawEvent.amount.toString(),
+        recipient: '0x' + Buffer.from(rawEvent.recipient).toString('hex')
+      }
+      bridgeReceipt = receipt
+      return true
+    } catch (error) {
+      console.log(error)
+    }
+    return false
+  })
+  if (!bridgeReceipt || !event) {
+    throw new Error(`Failed to parse bridge receipt for ${JSON.stringify(lockTx)}`)
+  }
+  const receiptBlock = await nearProvider.block({ blockId: bridgeReceipt.block_hash })
+  const blockHeight = Number(receiptBlock.header.height)
+  const blockTimestamp = Number(receiptBlock.header.timestamp)
+  return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
+}
+
+/**
+ * Parse the burn receipt id and block height needed to build a proof.
+ * @param burnTx
+ * @param nep141Factory
+ * @param nearProvider
+ */
+export async function parseNep141BurnReceipt (
+  burnTx: FinalExecutionOutcome,
+  nep141Factory: string,
+  nearProvider: najProviders.Provider
+): Promise<{id: string, blockHeight: number, blockTimestamp: number, event: { amount: string, token: string, recipient: string }}> {
+  let event: any
+  let bridgeReceipt: any
+  burnTx.receipts_outcome.some((receipt) => {
+    // @ts-expect-error
+    if (receipt.outcome.executor_id !== nep141Factory) return false
+    try {
+      // @ts-expect-error
+      const successValue = receipt.outcome.status.SuccessValue
+      // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+      class WithdrawEvent {
+        constructor (args: any) {
+          Object.assign(this, args)
+        }
+      }
+      const SCHEMA = new Map([
+        [WithdrawEvent, {
+          kind: 'struct',
+          fields: [
+            ['flag', 'u8'],
+            ['amount', 'u128'],
+            ['token', [20]],
+            ['recipient', [20]]
+          ]
+        }]
+      ])
+      const rawEvent = deserializeBorsh(
+        SCHEMA, WithdrawEvent, Buffer.from(successValue, 'base64')
+      ) as { amount: BN, token: Uint8Array, recipient: Uint8Array}
+      event = {
+        amount: rawEvent.amount.toString(),
+        token: '0x' + Buffer.from(rawEvent.token).toString('hex'),
+        recipient: '0x' + Buffer.from(rawEvent.recipient).toString('hex')
+      }
+      bridgeReceipt = receipt
+      return true
+    } catch (error) {
+      console.log(error)
+    }
+    return false
+  })
+  if (!bridgeReceipt || !event) {
+    throw new Error(`Failed to parse bridge receipt for ${JSON.stringify(burnTx)}`)
+  }
+  const receiptBlock = await nearProvider.block({ blockId: bridgeReceipt.block_hash })
+  const blockHeight = Number(receiptBlock.header.height)
+  const blockTimestamp = Number(receiptBlock.header.timestamp)
+  return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
 }
