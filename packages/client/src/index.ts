@@ -83,6 +83,10 @@ export function getTransferType (transfer: Transfer): ConnectorLib {
         return require('@near-eth/aurora-nep141/dist/bridged-erc20/sendToNear')
       case '@near-eth/aurora-nep141/bridged-ether/sendToNear':
         return require('@near-eth/aurora-nep141/dist/bridged-ether/sendToNear')
+      case '@near-eth/aurora-erc20/wnear/sendToEthereum':
+        return require('@near-eth/aurora-erc20/dist/wnear/sendToEthereum')
+      case '@near-eth/aurora-erc20/enear/sendToAurora':
+        return require('@near-eth/aurora-erc20/dist/enear/sendToAurora')
       default:
         throw new Error(`Unregistered library for transfer with type=${transfer.type}`)
     }
