@@ -1,4 +1,4 @@
-# [2.8.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.7.0...v2.8.0) (2024-05-10)
+# [2.8.1](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.7.0...v2.8.0) (2024-05-10)
 
 
 ### Features
