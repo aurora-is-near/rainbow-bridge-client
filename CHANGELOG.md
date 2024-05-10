@@ -1,3 +1,12 @@
+# [2.8.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.7.0...v2.8.0) (2024-05-10)
+
+
+### Features
+
+* NEAR transfer between Ethereum and Aurora. ([#94](https://github.com/aurora-is-near/rainbow-bridge-client/issues/94)) ([d1dc96a](https://github.com/aurora-is-near/rainbow-bridge-client/commit/d1dc96af74e0bfe47d64e4a75475e16e291dc48f))
+
+
+
 # [2.7.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.6.3...v2.7.0) (2024-02-28)
 
 
