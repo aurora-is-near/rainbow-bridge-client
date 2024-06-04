@@ -61,6 +61,10 @@ export function getTransferType (transfer: Transfer): ConnectorLib {
         return require('@near-eth/nep141-erc20/dist/natural-erc20/sendToNear')
       case '@near-eth/nep141-erc20/bridged-nep141/sendToEthereum':
         return require('@near-eth/nep141-erc20/dist/bridged-nep141/sendToEthereum')
+      case '@near-eth/nep141-erc20/natural-nep141/sendToEthereum':
+        return require('@near-eth/nep141-erc20/dist/natural-nep141/sendToEthereum')
+      case '@near-eth/nep141-erc20/bridged-erc20/sendToNear':
+        return require('@near-eth/nep141-erc20/dist/bridged-erc20/sendToNear')
       case '@near-eth/near-ether/natural-near/sendToEthereum':
         return require('@near-eth/near-ether/dist/natural-near/sendToEthereum')
       case '@near-eth/near-ether/bridged-near/sendToNear':
