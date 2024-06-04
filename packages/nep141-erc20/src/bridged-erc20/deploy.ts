@@ -97,6 +97,7 @@ export async function deploy (
     process.env.ethNearOnEthClientAbiText!
   )
   if (logBlockHeight > nearOnEthClientBlockHeight) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     throw new Error(`Wait for the light client sync: NEP-141 metadata log block height: ${logBlockHeight}, light client block height: ${nearOnEthClientBlockHeight}`)
   }
   const proof = await findNearProof(

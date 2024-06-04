@@ -484,6 +484,7 @@ export async function checkBurn (
   if (!burnReceipt) return transfer
 
   if (!burnReceipt.status) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     const error = `Transaction failed: ${burnReceipt.transactionHash}`
     return {
       ...transfer,
