@@ -516,8 +516,8 @@ setBridgeParams({
   eventRelayerAccount: 'event-relayer.near',
   wNearBridgeAddress: '0x5D5a9D3fB8BD3959B0C9266f90e126427E83872d',
   wNearBridgeAbi: process.env.wNearBridgeAbi,
-  nep141LockerAccount: 'TODO',
-  erc20FactoryAddress: 'TODO',
+  nep141LockerAccount: 'ft-locker.bridge.near',
+  erc20FactoryAddress: '0x252e87862A3A720287E7fd527cE6e8d0738427A2',
   erc20FactoryAbi: process.env.erc20FactoryAbi,
 })
 ```
