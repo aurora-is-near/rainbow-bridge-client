@@ -55,8 +55,7 @@ export async function logNep141Metadata (
 }
 
 export async function deploy (
-  { nep141Address, nep141MetadataLogTx, options }: {
-    nep141Address: string
+  { nep141MetadataLogTx, options }: {
     nep141MetadataLogTx: string
     options?: {
       erc20FactoryAddress?: string
@@ -115,6 +114,6 @@ export async function deploy (
     options.erc20FactoryAbi ?? bridgeParams.erc20FactoryAbi,
     provider.getSigner()
   )
-  const tx = await erc20Factory.newBridgeToken(nep141Address, borshProof, nearOnEthClientBlockHeight)
+  const tx = await erc20Factory.newBridgeToken(borshProof, nearOnEthClientBlockHeight)
   return tx
 }
