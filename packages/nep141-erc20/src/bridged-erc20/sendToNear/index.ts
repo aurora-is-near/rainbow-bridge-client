@@ -19,10 +19,12 @@ import {
   ethOnNearSyncHeight,
   findEthProof,
   findFinalizationTxOnNear,
-  ExplorerIndexerResult
+  ExplorerIndexerResult,
+  nep141
 } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 import { getDecimals, getSymbol } from '../getMetadata'
+import getNep141Address from '../getAddress'
 
 export const SOURCE_NETWORK = 'ethereum'
 export const DESTINATION_NETWORK = 'near'
@@ -626,6 +628,7 @@ export async function unlock (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const nearWallet = options.nearAccount ?? getNearWallet()
+  const nearProvider = options.nearProvider ?? getNearProvider()
   const isNajAccount = nearWallet instanceof Account
   const browserRedirect = typeof window !== 'undefined' && (isNajAccount || nearWallet.type === 'browser')
 
@@ -634,41 +637,55 @@ export async function unlock (
   if (transfer.status !== status.ACTION_NEEDED) return transfer
   const proof = transfer.proof
 
-  // NOTE:
-  // checkStatus should wait for NEAR wallet redirect if it didn't happen yet.
-  // On page load the dapp should clear urlParams if transactionHashes or errorCode are not present:
-  // this will allow checkStatus to handle the transfer as failed because the NEAR transaction could not be processed.
+  const nep141Address = await getNep141Address({
+    erc20Address: transfer.sourceToken,
+    options
+  })
+  const minStorageBalance = await nep141.getMinStorageBalance({
+    nep141Address: nep141Address, nearProvider
+  })
+  const userStorageBalance = await nep141.getStorageBalance({
+    nep141Address: nep141Address,
+    accountId: transfer.recipient,
+    nearProvider
+  })
+  const transactions = []
+  if (!userStorageBalance || new BN(userStorageBalance.total).lt(new BN(minStorageBalance))) {
+    transactions.push({
+      receiverId: nep141Address,
+      actions: [{
+        type: 'FunctionCall',
+        params: {
+          methodName: 'storage_deposit',
+          args: {
+            account_id: transfer.recipient,
+            registration_only: true
+          },
+          gas: '50' + '0'.repeat(12),
+          deposit: minStorageBalance
+        }
+      }]
+    })
+  }
+  transactions.push({
+    receiverId: options.nep141LockerAccount ?? bridgeParams.nep141LockerAccount,
+    actions: [{
+      type: 'FunctionCall',
+      params: {
+        methodName: 'withdraw',
+        args: Buffer.from(proof!),
+        gas: '250' + '0'.repeat(12),
+        deposit: '6' + '0'.repeat(22)
+      }
+    }]
+  })
+
   if (browserRedirect) urlParams.set({ unlocking: transfer.id })
   if (browserRedirect) transfer = await track({ ...transfer, status: status.IN_PROGRESS }) as Transfer
 
-  let tx
-  if (isNajAccount) {
-    tx = await nearWallet.functionCall({
-      contractId: options.nep141LockerAccount ?? bridgeParams.nep141LockerAccount,
-      methodName: 'withdraw',
-      args: proof!,
-      gas: new BN('250' + '0'.repeat(12)),
-      // We need to attach tokens because unlocking increases the contract state, by <600 bytes, which
-      // requires an additional 0.06 NEAR to be deposited to the account for state staking.
-      // Note technically 0.0537 NEAR should be enough, but we round it up to stay on the safe side.
-      attachedDeposit: new BN('6' + '0'.repeat(22))
-    })
-  } else {
-    tx = await nearWallet.signAndSendTransaction({
-      receiverId: options.nep141LockerAccount ?? bridgeParams.nep141LockerAccount,
-      actions: [
-        {
-          type: 'FunctionCall',
-          params: {
-            methodName: 'withdraw',
-            args: proof!,
-            gas: '250' + '0'.repeat(12),
-            deposit: '6' + '0'.repeat(22)
-          }
-        }
-      ]
-    })
-  }
+  // @ts-expect-error
+  const txs = await nearWallet.signAndSendTransactions({ transactions })
+  const tx = last(txs)
 
   return {
     ...transfer,
