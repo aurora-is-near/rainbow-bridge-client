@@ -66,6 +66,8 @@ export interface TransferOptions {
   provider?: ethers.providers.Provider
   etherCustodianAddress?: string
   etherCustodianAbi?: string
+  etherCustodianProxyAddress?: string
+  etherCustodianProxyAbi?: string
   sendToEthereumSyncInterval?: number
   ethChainId?: number
   nearAccount?: Account
@@ -817,8 +819,8 @@ export async function unlock (
   const borshProof = borshifyOutcomeProof(proof)
 
   const ethTokenLocker = new ethers.Contract(
-    options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
-    options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
+    options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress,
+    options.etherCustodianProxyAbi ?? bridgeParams.etherCustodianProxyAbi,
     options.signer ?? provider.getSigner()
   )
   // If this tx is dropped and replaced, lower the search boundary
