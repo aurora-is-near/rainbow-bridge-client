@@ -1,5 +1,6 @@
 import { Account, providers as najProviders } from 'near-api-js'
 import { FinalExecutionOutcome } from 'near-api-js/lib/providers'
+import { deserialize as deserializeBorsh } from 'near-api-js/lib/utils/serialize'
 import {
   getNearWallet,
   getNearProvider,
@@ -65,6 +66,8 @@ export async function deploy (
       provider?: providers.JsonRpcProvider
       ethChainId?: number
       nearProvider?: najProviders.Provider
+      ethClientAddress?: string
+      ethClientAbi?: string
     }
   }
 ): Promise<providers.TransactionResponse> {
@@ -80,20 +83,54 @@ export async function deploy (
       `Wrong network for deploying token, expected: ${expectedChainId}, got: ${ethChainId}`
     )
   }
-  const nearProvider = getNearProvider()
-  const logTx = await nearProvider.txStatus(nep141MetadataLogTx, process.env.nep141LockerAccount!)
-  const logReceipt = logTx.receipts_outcome[3]
+  const nearProvider = options.nearProvider ?? getNearProvider()
+  const logTx = await nearProvider.txStatus(nep141MetadataLogTx, nep141LockerAccount)
+  let logReceipt: any
+  logTx.receipts_outcome.some((receipt) => {
+    // @ts-expect-error
+    if (receipt.outcome.executor_id !== nep141LockerAccount) return false
+    try {
+      // @ts-expect-error
+      const successValue = receipt.outcome.status.SuccessValue
+      // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+      class LogEvent {
+        constructor (args: any) {
+          Object.assign(this, args)
+        }
+      }
+      const SCHEMA = new Map([
+        [LogEvent, {
+          kind: 'struct',
+          fields: [
+            ['prefix', [32]],
+            ['token', 'String'],
+            ['name', 'String'],
+            ['symbol', 'String'],
+            ['decimals', 'u8'],
+            ['block_height', 'u64']
+          ]
+        }]
+      ])
+      deserializeBorsh(
+        SCHEMA, LogEvent, Buffer.from(successValue, 'base64')
+      )
+      logReceipt = receipt
+      return true
+    } catch (error) {
+      console.log(error)
+    }
+    return false
+  })
   if (!logReceipt) {
     console.log(logReceipt)
     throw new Error('Failed to parse NEP-141 log metadata receipt.')
   }
-  // @ts-expect-error
   const receiptBlock = await nearProvider.block({ blockId: logReceipt.block_hash })
   const logBlockHeight = Number(receiptBlock.header.height)
   const nearOnEthClientBlockHeight = await nearOnEthSyncHeight(
     provider,
-    process.env.ethClientAddress!,
-    process.env.ethNearOnEthClientAbiText!
+    options.ethClientAddress ?? bridgeParams.ethClientAddress,
+    options.ethClientAbi ?? bridgeParams.ethClientAbi
   )
   if (logBlockHeight > nearOnEthClientBlockHeight) {
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
@@ -105,8 +142,8 @@ export async function deploy (
     nearOnEthClientBlockHeight,
     nearProvider,
     provider,
-    process.env.ethClientAddress!,
-    process.env.ethNearOnEthClientAbiText!
+    options.ethClientAddress ?? bridgeParams.ethClientAddress,
+    options.ethClientAbi ?? bridgeParams.ethClientAbi
   )
   const borshProof = borshifyOutcomeProof(proof)
   const erc20Factory = new Contract(

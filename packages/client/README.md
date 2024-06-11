@@ -514,9 +514,12 @@ setBridgeParams({
   nativeNEARLockerAddress: 'e-near.near',
   wNearNep141: 'wrap.near',
   eventRelayerAccount: 'event-relayer.near',
+  // https://github.com/Near-One/near-erc20-connector/blob/main/aurora/contracts/NearBridge.sol
   wNearBridgeAddress: '0x5D5a9D3fB8BD3959B0C9266f90e126427E83872d',
   wNearBridgeAbi: process.env.wNearBridgeAbi,
+  // https://github.com/Near-One/rainbow-token-connector/tree/master/token-locker
   nep141LockerAccount: 'ft-locker.bridge.near',
+  // https://github.com/Near-One/rainbow-token-connector/tree/master/erc20-bridge-token
   erc20FactoryAddress: '0x252e87862A3A720287E7fd527cE6e8d0738427A2',
   erc20FactoryAbi: process.env.erc20FactoryAbi,
 })
@@ -563,9 +566,12 @@ setBridgeParams({
   nativeNEARLockerAddress: 'enear.goerli.testnet',
   wNearNep141: 'wrap.testnet',
   eventRelayerAccount: 'event-relayer.goerli.testnet',
+  // https://github.com/Near-One/near-erc20-connector/blob/main/aurora/contracts/NearBridge.sol
   wNearBridgeAddress: '0x329242C003Df320166F5b198dCcb22b0CFF1d91B',
   wNearBridgeAbi: process.env.wNearBridgeAbi,
+  // https://github.com/Near-One/rainbow-token-connector/tree/master/token-locker
   nep141LockerAccount: 'ft-locker.sepolia.testnet',
+  // https://github.com/Near-One/rainbow-token-connector/tree/master/erc20-bridge-token
   erc20FactoryAddress: '0xa9108f7F83Fb661e611991116D526fCa1a9585ab',
   erc20FactoryAbi: process.env.erc20FactoryAbi,
 })
