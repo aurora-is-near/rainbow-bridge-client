@@ -1,3 +1,12 @@
+# [2.9.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.8.1...v2.9.0) (2024-06-12)
+
+
+### Features
+
+* Add native NEP-141 bridge to Ethereum. ([#96](https://github.com/aurora-is-near/rainbow-bridge-client/issues/96)) ([6292803](https://github.com/aurora-is-near/rainbow-bridge-client/commit/6292803bc5946f29ce288674ae169815750b01fe))
+
+
+
 # [2.8.1](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.7.0...v2.8.0) (2024-05-10)
 
 
