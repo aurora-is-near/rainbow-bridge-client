@@ -457,7 +457,15 @@ export async function burn (
     })
     txHash = transaction!.hash
   }
-  const pendingBurnTx = await provider.getTransaction(txHash)
+  let pendingBurnTx = null
+  while (!pendingBurnTx) {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      pendingBurnTx = await provider.getTransaction(txHash)
+    } catch (error) {
+      console.log(error)
+    }
+  }
 
   return {
     ...transfer,

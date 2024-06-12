@@ -354,7 +354,15 @@ export async function burn (
     data: exitToNearData,
     gas: ethers.BigNumber.from(121000).toHexString()
   }])
-  const tx = await provider.getTransaction(txHash)
+  let tx = null
+  while (!tx) {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      tx = await provider.getTransaction(txHash)
+    } catch (error) {
+      console.log(error)
+    }
+  }
 
   return {
     ...transfer,

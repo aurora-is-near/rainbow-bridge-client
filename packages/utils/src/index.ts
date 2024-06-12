@@ -11,6 +11,7 @@ export {
   findNearProof,
   parseETHBurnReceipt,
   parseNEARLockReceipt,
-  parseNep141BurnReceipt
+  parseNep141BurnReceipt,
+  parseNep141LockReceipt
 } from './findProof'
 export { buildIndexerTxQuery } from './indexer'
