@@ -188,6 +188,7 @@ export async function findAllTransactions (
       provider?: ethers.providers.Provider
       etherCustodianAddress?: string
       etherCustodianAbi?: string
+      etherCustodianProxyAddress?: string
     }
   }
 ): Promise<string[]> {
@@ -199,9 +200,9 @@ export async function findAllTransactions (
     options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
     provider
   )
-  const filter = ethTokenLocker.filters.Deposited!(sender)
+  const filter = ethTokenLocker.filters.Deposited!(options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress)
   const events = await ethTokenLocker.queryFilter(filter, fromBlock, toBlock)
-  return events.filter(event => !event.args!.recipient.startsWith('aurora:')).map(event => event.transactionHash)
+  return events.filter(async event => (await event.getTransaction()).from === sender).filter(event => !event.args!.recipient.startsWith('aurora:')).map(event => event.transactionHash)
 }
 
 /**
