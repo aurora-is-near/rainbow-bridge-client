@@ -200,7 +200,7 @@ export async function findAllTransactions (
     options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
     provider
   )
-  const filter = ethTokenLocker.filters.Deposited!(options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress)
+  const filter = ethTokenLocker.filters.Deposited!()
   const events = await ethTokenLocker.queryFilter(filter, fromBlock, toBlock)
   return events.filter(async event => (await event.getTransaction()).from === sender).filter(event => !event.args!.recipient.startsWith('aurora:')).map(event => event.transactionHash)
 }
@@ -392,7 +392,7 @@ export async function lock (
   // in case there was a reorg.
   const safeReorgHeight = await provider.getBlockNumber() - 20
   const pendingLockTx = await ethTokenLocker.depositToNear(
-    transfer.recipient, { value: transfer.amount }
+    transfer.recipient, 0, { value: transfer.amount }
   )
 
   return {
