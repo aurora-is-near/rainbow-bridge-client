@@ -174,7 +174,7 @@ export async function findAllTransactions (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
-  const etherCustodians: [string, string][] = [
+  const etherCustodians: Array<[string, string]> = [
     [options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress,
       options.etherCustodianProxyAbi ?? bridgeParams.etherCustodianProxyAbi],
     [options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
