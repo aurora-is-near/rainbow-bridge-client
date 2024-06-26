@@ -163,6 +163,8 @@ export async function findAllTransactions (
     sender: string
     options?: {
       provider?: ethers.providers.Provider
+      etherCustodianAddress?: string
+      etherCustodianAbi?: string
       etherCustodianProxyAddress?: string
       etherCustodianProxyAbi?: string
       auroraEvmAccount?: string
@@ -172,15 +174,27 @@ export async function findAllTransactions (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
-  const ethTokenLocker = new ethers.Contract(
-    options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress,
-    options.etherCustodianProxyAbi ?? bridgeParams.etherCustodianProxyAbi,
-    provider
-  )
-  const filter = ethTokenLocker.filters.Deposited!(sender)
-  const events = await ethTokenLocker.queryFilter(filter, fromBlock, toBlock)
+  const etherCustodians: [string, string][] = [
+    [options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress,
+      options.etherCustodianProxyAbi ?? bridgeParams.etherCustodianProxyAbi],
+    [options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
+      options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi]
+  ]
   const auroraAddress = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount as string + ':'
-  return events.filter(event => event.args!.recipient.startsWith(auroraAddress)).map(event => event.transactionHash)
+
+  const promises = etherCustodians.map(async ([ethCustodianAddress, ethCustodianAbi]) => {
+    const ethTokenLocker = new ethers.Contract(
+      ethCustodianAddress,
+      ethCustodianAbi,
+      provider
+    )
+    const filter = ethTokenLocker.filters.Deposited!(sender)
+    const events = await ethTokenLocker.queryFilter(filter, fromBlock, toBlock)
+    return events.filter(event => event.args!.recipient.startsWith(auroraAddress)).map(event => event.transactionHash)
+  })
+
+  const transactions = await Promise.all(promises)
+  return transactions.flat()
 }
 
 export async function findAllTransfers (
