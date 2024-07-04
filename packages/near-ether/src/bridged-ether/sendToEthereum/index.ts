@@ -294,15 +294,6 @@ export async function recover (
   const withdrawReceipt = await parseETHBurnReceipt(burnTx, auroraEvmAccount, nearProvider)
   const amount = withdrawReceipt.event.amount
   const recipient = withdrawReceipt.event.recipient
-  const etherCustodian: string = withdrawReceipt.event.etherCustodian
-
-  const etherCustodianAddress: string = options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress
-  if (etherCustodian.toLowerCase() !== etherCustodianAddress.toLowerCase()) {
-    throw new Error(
-      `Unexpected ether custodian: got ${etherCustodian},
-      expected ${etherCustodianAddress}`
-    )
-  }
   const symbol = 'ETH'
   const destinationTokenName = symbol
   const sourceTokenName = 'n' + symbol

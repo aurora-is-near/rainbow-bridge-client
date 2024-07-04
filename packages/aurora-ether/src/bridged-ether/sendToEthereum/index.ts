@@ -294,14 +294,6 @@ export async function recover (
     nearBurnReceipt = await parseETHBurnReceipt(burnTx, auroraEvmAccount, nearProvider)
     amount = nearBurnReceipt.event.amount
     recipient = nearBurnReceipt.event.recipient
-    const etherCustodian: string = nearBurnReceipt.event.etherCustodian
-    const etherCustodianAddress: string = options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress
-    if (etherCustodian.toLowerCase() !== etherCustodianAddress.toLowerCase()) {
-      throw new Error(
-        `Unexpected ether custodian: got ${etherCustodian},
-        expected ${etherCustodianAddress}`
-      )
-    }
   }
   // A silo might not use ETH as its base currency.
   const symbol = options.symbol ?? 'ETH'

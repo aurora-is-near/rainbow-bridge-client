@@ -261,9 +261,8 @@ export async function recover (
     options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
     provider
   )
-  const filter = ethTokenLocker.filters.Deposited!()
-  const events = await ethTokenLocker.queryFilter(filter, receipt.blockNumber, receipt.blockNumber)
-  const lockedEvent = events.find(event => event.transactionHash === lockTxHash)
+  const events = receipt.logs.map(log => ethTokenLocker.interface.parseLog(log))
+  const lockedEvent = last(events.filter(event => event.name === 'Deposited'))
   if (!lockedEvent) {
     throw new Error('Unable to process lock transaction event.')
   }
@@ -276,7 +275,7 @@ export async function recover (
   const destinationTokenName = 'n' + symbol
   const decimals = 18
 
-  const txBlock = await lockedEvent.getBlock()
+  const txBlock = await provider.getBlock(receipt.blockNumber)
 
   const transfer = {
     ...transferDraft,
