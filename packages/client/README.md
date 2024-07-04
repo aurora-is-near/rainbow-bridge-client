@@ -441,7 +441,7 @@ import {
 | from Ethereum | to NEAR                                         | to Aurora                                               |
 | :------------ | :---------------------------------------------- | :------------------------------------------------------ |
 | ERC-20        | nep141Erc20/naturalErc20/sendToNear             | auroraErc20/naturalErc20/sendToAurora                   |
-|               | nep141Erc20/bridgedErc20/sendToNear (TODO)      | auroraErc20/bridgedErc20/sendToAurora (TODO)            |
+|               | nep141Erc20/bridgedErc20/sendToNear             | auroraErc20/bridgedErc20/sendToAurora (TODO)            |
 | ETH           | nearEther/naturalETH/sendToNear                 | auroraEther/naturalEther/sendToAurora                   |
 | NEAR          | nearEther.bridgedNEAR.sendToNear                | (TODO)                                                  |
 | ERC-721       | (TODO)                                          | (TODO)                                                  |
@@ -449,9 +449,9 @@ import {
 | from NEAR     | to Ethereum                                     | to Aurora                                               |
 | :------------ | :---------------------------------------------- | :------------------------------------------------------ |
 | NEP-141       | nep141Erc20/bridgedNep141/sendToEthereum        | auroraNep141/naturalNep141/sendToAurora                 |
-|               | nep141Erc20/naturalNep141/sendToEthereum (TODO) | auroraNep141/bridgedNep141/sendToAurora (TODO)          |
+|               | nep141Erc20/naturalNep141/sendToEthereum        | auroraNep141/bridgedNep141/sendToAurora (TODO)          |
 | ETH           | nearEther/bridgedETH/sendToEthereum             | auroraNep141/naturalNep141/sendToAurora                 |
-| NEAR          | nearEther/naturalNEAR/sendToEthereum            | auroraNep141/naturalNep141/wrapAndSendNearToAurora \*\* |
+| NEAR          | nearEther/naturalNEAR/sendToEthereum            | auroraNep141/naturalNep141/wrapAndSendNearToAurora      |
 | ERC-721       | (TODO)                                          | (TODO)                                                  |
 
 | from Aurora   | to Ethereum                                     | to NEAR                                                 |
@@ -459,13 +459,10 @@ import {
 | ERC-20        | auroraErc20/bridgedErc20/sendToEthereum         | auroraNep141/bridgedErc20/sendToNear \*                 |
 |               | auroraErc20/naturalErc20/sendToEthereum (TODO)  | auroraNep141/naturalErc20/sendToNear (TODO) \*          |
 | ETH           | auroraEther/bridgedEther/sendToEthereum         | auroraNep141/bridgedEther/sendToNear \*                 |
-| NEAR          | (TODO)                                          | auroraNep141/bridgedErc20/sendToNear \* \*\*            |
+| NEAR          | auroraErc20/wNEAR/sendToEthereum                | auroraNep141/bridgedErc20/sendToNear \*                 |
 | ERC-721       | (TODO)                                          | (TODO)                                                  |
 
 \* WARNING: The recipient of transfers from Aurora to NEAR must have paid NEAR storage fees otherwise tokens may be lost.
-
-\*\* Received as wNEAR
-
 
 Author a custom connector library
 =================================
@@ -517,10 +514,18 @@ setBridgeParams({
   nativeNEARLockerAddress: 'e-near.near',
   wNearNep141: 'wrap.near',
   eventRelayerAccount: 'event-relayer.near',
+  // https://github.com/Near-One/near-erc20-connector/blob/main/aurora/contracts/NearBridge.sol
+  wNearBridgeAddress: '0x5D5a9D3fB8BD3959B0C9266f90e126427E83872d',
+  wNearBridgeAbi: process.env.wNearBridgeAbi,
+  // https://github.com/Near-One/rainbow-token-connector/tree/master/token-locker
+  nep141LockerAccount: 'ft-locker.bridge.near',
+  // https://github.com/Near-One/rainbow-token-connector/tree/master/erc20-bridge-token
+  erc20FactoryAddress: '0x252e87862A3A720287E7fd527cE6e8d0738427A2',
+  erc20FactoryAbi: process.env.erc20FactoryAbi,
 })
 ```
 
-Goerli Testnet Bridge addresses and parameters
+Sepolia Testnet Bridge addresses and parameters
 ==============================================
 ```js
 import { setBridgeParams } from '@near-eth/client'
@@ -561,12 +566,13 @@ setBridgeParams({
   nativeNEARLockerAddress: 'enear.goerli.testnet',
   wNearNep141: 'wrap.testnet',
   eventRelayerAccount: 'event-relayer.goerli.testnet',
+  // https://github.com/Near-One/near-erc20-connector/blob/main/aurora/contracts/NearBridge.sol
+  wNearBridgeAddress: '0x329242C003Df320166F5b198dCcb22b0CFF1d91B',
+  wNearBridgeAbi: process.env.wNearBridgeAbi,
+  // https://github.com/Near-One/rainbow-token-connector/tree/master/token-locker
+  nep141LockerAccount: 'ft-locker.sepolia.testnet',
+  // https://github.com/Near-One/rainbow-token-connector/tree/master/erc20-bridge-token
+  erc20FactoryAddress: '0xa9108f7F83Fb661e611991116D526fCa1a9585ab',
+  erc20FactoryAbi: process.env.erc20FactoryAbi,
 })
 ```
-
-Getting testnet tokens:
-
-- https://erc20faucet.com
-- https://goerlifaucet.com
-- https://goerli-faucet.mudit.blog
-- https://usdcfaucet.com

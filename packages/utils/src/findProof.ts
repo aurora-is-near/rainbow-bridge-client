@@ -367,3 +367,64 @@ export async function parseNep141BurnReceipt (
   const blockTimestamp = Number(receiptBlock.header.timestamp)
   return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
 }
+
+/**
+ * Parse the lock receipt id and block height needed to build a proof.
+ * @param lockTx
+ * @param nep141LockerAccount
+ * @param nearProvider
+ */
+export async function parseNep141LockReceipt (
+  lockTx: FinalExecutionOutcome,
+  nep141LockerAccount: string,
+  nearProvider: najProviders.Provider
+): Promise<{id: string, blockHeight: number, blockTimestamp: number, event: { amount: string, token: string, recipient: string }}> {
+  let event: any
+  let bridgeReceipt: any
+  lockTx.receipts_outcome.some((receipt) => {
+    // @ts-expect-error
+    if (receipt.outcome.executor_id !== nep141LockerAccount) return false
+    try {
+      // @ts-expect-error
+      const successValue = receipt.outcome.status.SuccessValue
+      // eslint-disable-next-line @typescript-eslint/no-extraneous-class
+      class LockEvent {
+        constructor (args: any) {
+          Object.assign(this, args)
+        }
+      }
+      const SCHEMA = new Map([
+        [LockEvent, {
+          kind: 'struct',
+          fields: [
+            ['prefix', [32]],
+            ['token', 'String'],
+            ['amount', 'u128'],
+            ['recipient', [20]]
+          ]
+        }]
+      ])
+      // const prefix = ethers.utils.keccak256('ResultType.Withdraw')
+      const rawEvent = deserializeBorsh(
+        SCHEMA, LockEvent, Buffer.from(successValue, 'base64')
+      ) as { prefix: Uint8Array, amount: BN, token: string, recipient: Uint8Array}
+      event = {
+        amount: rawEvent.amount.toString(),
+        token: rawEvent.token,
+        recipient: '0x' + Buffer.from(rawEvent.recipient).toString('hex')
+      }
+      bridgeReceipt = receipt
+      return true
+    } catch (error) {
+      console.log(error)
+    }
+    return false
+  })
+  if (!bridgeReceipt || !event) {
+    throw new Error(`Failed to parse bridge receipt for ${JSON.stringify(nep141LockerAccount)}`)
+  }
+  const receiptBlock = await nearProvider.block({ blockId: bridgeReceipt.block_hash })
+  const blockHeight = Number(receiptBlock.header.height)
+  const blockTimestamp = Number(receiptBlock.header.timestamp)
+  return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
+}

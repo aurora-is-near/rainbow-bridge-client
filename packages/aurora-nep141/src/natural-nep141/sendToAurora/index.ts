@@ -1,12 +1,11 @@
 import BN from 'bn.js'
 import { ethers } from 'ethers'
 import { transactions, Account, utils, providers as najProviders } from 'near-api-js'
-import { CodeResult } from 'near-api-js/lib/providers/provider'
 import { getBridgeParams, track, untrack } from '@near-eth/client'
 import { TransactionInfo, TransferStatus } from '@near-eth/client/dist/types'
 import * as status from '@near-eth/client/dist/statuses'
 import { getNearWallet, getNearAccountId, getNearProvider } from '@near-eth/client/dist/utils'
-import { urlParams, buildIndexerTxQuery } from '@near-eth/utils'
+import { urlParams, buildIndexerTxQuery, nep141 } from '@near-eth/utils'
 import getMetadata from '../getMetadata'
 
 export const SOURCE_NETWORK = 'near'
@@ -564,10 +563,10 @@ export async function lockNear (
   const auroraEvmAccount = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
 
   const actions = []
-  const minStorageBalance = await getMinStorageBalance({
+  const minStorageBalance = await nep141.getMinStorageBalance({
     nep141Address: wNearNep141, nearProvider
   })
-  const userStorageBalance = await getStorageBalance({
+  const userStorageBalance = await nep141.getStorageBalance({
     nep141Address: wNearNep141,
     accountId: transfer.sender,
     nearProvider
@@ -661,55 +660,6 @@ export async function lockNear (
   return {
     ...transfer,
     lockHashes: [tx.transaction.hash]
-  }
-}
-
-export async function getMinStorageBalance (
-  { nep141Address, nearProvider }: {
-    nep141Address: string
-    nearProvider: najProviders.Provider
-  }
-): Promise<string> {
-  try {
-    const result = await nearProvider.query<CodeResult>({
-      request_type: 'call_function',
-      account_id: nep141Address,
-      method_name: 'storage_balance_bounds',
-      args_base64: '',
-      finality: 'optimistic'
-    })
-    return JSON.parse(Buffer.from(result.result).toString()).min
-  } catch (e) {
-    const result = await nearProvider.query<CodeResult>({
-      request_type: 'call_function',
-      account_id: nep141Address,
-      method_name: 'storage_minimum_balance',
-      args_base64: '',
-      finality: 'optimistic'
-    })
-    return JSON.parse(Buffer.from(result.result).toString())
-  }
-}
-
-export async function getStorageBalance (
-  { nep141Address, accountId, nearProvider }: {
-    nep141Address: string
-    accountId: string
-    nearProvider: najProviders.Provider
-  }
-): Promise<null | {total: string}> {
-  try {
-    const result = await nearProvider.query<CodeResult>({
-      request_type: 'call_function',
-      account_id: nep141Address,
-      method_name: 'storage_balance_of',
-      args_base64: Buffer.from(JSON.stringify({ account_id: accountId })).toString('base64'),
-      finality: 'optimistic'
-    })
-    return JSON.parse(Buffer.from(result.result).toString())
-  } catch (e) {
-    console.warn(e, nep141Address)
-    return null
   }
 }
 
