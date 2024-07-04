@@ -165,6 +165,8 @@ export async function findAllTransactions (
       provider?: ethers.providers.Provider
       etherCustodianAddress?: string
       etherCustodianAbi?: string
+      etherCustodianProxyAddress?: string
+      etherCustodianProxyAbi?: string
       auroraEvmAccount?: string
     }
   }
@@ -172,15 +174,27 @@ export async function findAllTransactions (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
-  const ethTokenLocker = new ethers.Contract(
-    options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
-    options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
-    provider
-  )
-  const filter = ethTokenLocker.filters.Deposited!(sender)
-  const events = await ethTokenLocker.queryFilter(filter, fromBlock, toBlock)
+  const etherCustodians: Array<[string, string]> = [
+    [options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress,
+      options.etherCustodianProxyAbi ?? bridgeParams.etherCustodianProxyAbi],
+    [options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
+      options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi]
+  ]
   const auroraAddress = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount as string + ':'
-  return events.filter(event => event.args!.recipient.startsWith(auroraAddress)).map(event => event.transactionHash)
+
+  const promises = etherCustodians.map(async ([ethCustodianAddress, ethCustodianAbi]) => {
+    const ethTokenLocker = new ethers.Contract(
+      ethCustodianAddress,
+      ethCustodianAbi,
+      provider
+    )
+    const filter = ethTokenLocker.filters.Deposited!(sender)
+    const events = await ethTokenLocker.queryFilter(filter, fromBlock, toBlock)
+    return events.filter(event => event.args!.recipient.startsWith(auroraAddress)).map(event => event.transactionHash)
+  })
+
+  const transactions = await Promise.all(promises)
+  return transactions.flat()
 }
 
 export async function findAllTransfers (
@@ -216,9 +230,8 @@ export async function recover (
     options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
     provider
   )
-  const filter = ethTokenLocker.filters.Deposited!()
-  const events = await ethTokenLocker.queryFilter(filter, receipt.blockNumber, receipt.blockNumber)
-  const lockedEvent = events.find(event => event.transactionHash === lockTxHash)
+  const events = receipt.logs.map(log => ethTokenLocker.interface.parseLog(log))
+  const lockedEvent = last(events.filter(event => event?.name === 'Deposited'))
   if (!lockedEvent) {
     throw new Error('Unable to process lock transaction event.')
   }
@@ -238,7 +251,7 @@ export async function recover (
   const destinationTokenName = 'a' + symbol
   const decimals = 18
 
-  const txBlock = await lockedEvent.getBlock()
+  const txBlock = await provider.getBlock(receipt.blockNumber)
 
   const transfer = {
     ...transferDraft,
@@ -276,8 +289,8 @@ export async function recover (
  * @param params.options.sender Sender of tokens (defaults to the connected wallet address).
  * @param params.options.ethChainId Ethereum chain id of the bridge.
  * @param params.options.provider Ethereum provider to use.
- * @param params.options.etherCustodianAddress Rainbow bridge ether custodian address.
- * @param params.options.etherCustodianAbi Rainbow bridge ether custodian abi.
+ * @param params.options.etherCustodianProxyAddress Rainbow bridge ether custodian proxy address.
+ * @param params.options.etherCustodianProxyAbi Rainbow bridge ether custodian proxy abi.
  * @param params.options.auroraEvmAccount Aurora Cloud silo account on NEAR.
  * @param params.options.signer Ethers signer to use.
  * @returns The created transfer object.
@@ -292,8 +305,8 @@ export async function initiate (
       sender?: string
       ethChainId?: number
       provider?: ethers.providers.JsonRpcProvider
-      etherCustodianAddress?: string
-      etherCustodianAbi?: string
+      etherCustodianProxyAddress?: string
+      etherCustodianProxyAbi?: string
       auroraEvmAccount?: string
       signer?: ethers.Signer
     }
@@ -345,8 +358,8 @@ export async function lock (
   options?: {
     provider?: ethers.providers.JsonRpcProvider
     ethChainId?: number
-    etherCustodianAddress?: string
-    etherCustodianAbi?: string
+    etherCustodianProxyAddress?: string
+    etherCustodianProxyAbi?: string
     auroraEvmAccount?: string
     signer?: ethers.Signer
   }
@@ -365,8 +378,8 @@ export async function lock (
   }
 
   const ethTokenLocker = new ethers.Contract(
-    options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
-    options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
+    options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress,
+    options.etherCustodianProxyAbi ?? bridgeParams.etherCustodianProxyAbi,
     options.signer ?? provider.getSigner()
   )
 
