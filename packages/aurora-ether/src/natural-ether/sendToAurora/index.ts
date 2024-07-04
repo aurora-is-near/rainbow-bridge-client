@@ -231,7 +231,7 @@ export async function recover (
     provider
   )
   const events = receipt.logs.map(log => ethTokenLocker.interface.parseLog(log))
-  const lockedEvent = last(events.filter(event => event.name === 'Deposited'))
+  const lockedEvent = last(events.filter(event => event?.name === 'Deposited'))
   if (!lockedEvent) {
     throw new Error('Unable to process lock transaction event.')
   }
