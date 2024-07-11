@@ -40,8 +40,6 @@ const steps = [
   UNLOCK
 ]
 
-class TransferError extends Error {}
-
 export interface TransferDraft extends TransferStatus {
   type: string
   finalityBlockHeights: number[]
@@ -88,6 +86,8 @@ export interface TransferOptions {
   auroraProvider?: ethers.providers.JsonRpcProvider
   auroraEvmAccount?: string
   symbol?: string
+  etherNep141Factory?: string
+  etherNep141FactoryMigrationHeight?: number
 }
 
 const transferDraft: TransferDraft = {
@@ -246,6 +246,8 @@ export async function recover (
   sender: string = 'todo',
   options?: TransferOptions & {
     nep141Factory?: string
+    etherNep141Factory?: string
+    etherNep141FactoryMigrationHeight?: number
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -286,12 +288,19 @@ export async function recover (
   let recipient
   if (options.symbol && options.symbol !== 'ETH') {
     // Withdraw native currency from a silo which doesn't use ETH as native currency
-    const nep141Factory = options.nep141Factory ?? getBridgeParams().nep141Factory
+    const nep141Factory = options.nep141Factory ?? bridgeParams.nep141Factory
     nearBurnReceipt = await parseNep141BurnReceipt(burnTx, nep141Factory, nearProvider)
     amount = nearBurnReceipt.event.amount
     recipient = nearBurnReceipt.event.recipient
   } else {
-    nearBurnReceipt = await parseETHBurnReceipt(burnTx, auroraEvmAccount, nearProvider)
+    // @ts-expect-error
+    const txBlock = await nearProvider.block({ blockId: burnTx.transaction_outcome.block_hash })
+    const blockHeight = Number(txBlock.header.height)
+    const etherNep141FactoryMigrationHeight = options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight
+    const etherNep141Factory = blockHeight >= etherNep141FactoryMigrationHeight
+      ? (options.etherNep141Factory ?? bridgeParams.etherNep141Factory)
+      : auroraEvmAccount
+    nearBurnReceipt = await parseETHBurnReceipt(burnTx, etherNep141Factory, nearProvider)
     amount = nearBurnReceipt.event.amount
     recipient = nearBurnReceipt.event.recipient
   }
@@ -485,6 +494,8 @@ export async function checkBurn (
     nearAccount?: Account
     nearProvider?: najProviders.Provider
     nep141Factory?: string
+    etherNep141Factory?: string
+    etherNep141FactoryMigrationHeight?: number
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -580,25 +591,19 @@ export async function checkBurn (
   }
 
   let nearBurnReceipt
-  try {
-    if (transfer.symbol !== 'ETH') {
-      // Withdraw native currency from a silo which doesn't use ETH as native currency
-      const nep141Factory = options.nep141Factory ?? getBridgeParams().nep141Factory
-      nearBurnReceipt = await parseNep141BurnReceipt(nearBurnTx, nep141Factory, nearProvider)
-    } else {
-      nearBurnReceipt = await parseETHBurnReceipt(nearBurnTx, transfer.auroraEvmAccount ?? 'aurora', nearProvider)
-    }
-  } catch (e) {
-    if (e instanceof TransferError) {
-      return {
-        ...transfer,
-        errors: [...transfer.errors, e.message],
-        status: status.FAILED
-      }
-    }
-    // Any other error like provider connection error should throw
-    // so that the transfer stays in progress and checkWithdraw will be called again.
-    throw e
+  if (transfer.symbol !== 'ETH') {
+    // Withdraw native currency from a silo which doesn't use ETH as native currency
+    const nep141Factory = options.nep141Factory ?? bridgeParams.nep141Factory
+    nearBurnReceipt = await parseNep141BurnReceipt(nearBurnTx, nep141Factory, nearProvider)
+  } else {
+    // @ts-expect-error
+    const txBlock = await nearProvider.block({ blockId: nearBurnTx.transaction_outcome.block_hash })
+    const blockHeight = Number(txBlock.header.height)
+    const etherNep141FactoryMigrationHeight = options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight
+    const etherNep141Factory = blockHeight >= etherNep141FactoryMigrationHeight
+      ? (options.etherNep141Factory ?? bridgeParams.etherNep141Factory)
+      : bridgeParams.auroraEvmAccount
+    nearBurnReceipt = await parseETHBurnReceipt(nearBurnTx, etherNep141Factory, nearProvider)
   }
 
   return {
@@ -693,14 +698,16 @@ export async function checkSync (
     options.nearAccount?.connection.provider ??
     getNearProvider()
   if (nearOnEthClientBlockHeight > burnBlockHeight) {
+    const etherNep141FactoryMigrationHeight = options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight
+    const etherNep141Factory = burnBlockHeight >= etherNep141FactoryMigrationHeight
+      ? (options.etherNep141Factory ?? bridgeParams.etherNep141Factory)
+      : bridgeParams.auroraEvmAccount
     proof = await findNearProof(
       last(transfer.nearBurnReceiptIds),
-      // NOTE: options.auroraEvmAccount cannot be used because checkSync can be called by recover using a different silo's auroraEvmAccount.
-      // NOTE: If another token than ETH is being transfered with @near-eth/aurora-ether,
-      // it means that ETH is not the silo's native currency
+      // NOTE: If another token than ETH is being transfered with @near-eth/aurora-ether it means that ETH is not the silo's native currency
       transfer.symbol !== 'ETH'
         ? bridgeParams.nep141Factory
-        : bridgeParams.auroraEvmAccount,
+        : etherNep141Factory,
       nearOnEthClientBlockHeight,
       nearProvider,
       provider,
@@ -813,6 +820,7 @@ export async function unlock (
   // in case there was a reorg.
   const safeReorgHeight = await provider.getBlockNumber() - 20
   const pendingUnlockTx = await ethTokenLocker.withdraw(borshProof, transfer.nearOnEthClientBlockHeight)
+  // TODO: Handle erc20Locker.unlockToken when ETH is not the native silo token.
 
   return {
     ...transfer,

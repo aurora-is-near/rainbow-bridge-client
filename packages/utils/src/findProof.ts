@@ -199,14 +199,14 @@ export async function findNearProof (
  */
 export async function parseETHBurnReceipt (
   burnTx: FinalExecutionOutcome,
-  auroraEvmAccount: string,
+  etherNep141Factory: string,
   nearProvider: najProviders.Provider
 ): Promise<{id: string, blockHeight: number, blockTimestamp: number, event: { amount: string, recipient: string, etherCustodian: string }}> {
   let event: any
   let bridgeReceipt: any
   burnTx.receipts_outcome.some((receipt) => {
     // @ts-expect-error
-    if (receipt.outcome.executor_id !== auroraEvmAccount) return false
+    if (receipt.outcome.executor_id !== etherNep141Factory) return false
     try {
       // @ts-expect-error
       const successValue = receipt.outcome.status.SuccessValue

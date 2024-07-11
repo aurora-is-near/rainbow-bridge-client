@@ -61,6 +61,7 @@ export interface TransferOptions {
   nearClientAccount?: string
   callIndexer?: (query: string) => Promise<ExplorerIndexerResult[] | string>
   eventRelayerAccount?: string
+  etherNep141Factory?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -529,15 +530,25 @@ export async function checkSync (
       options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
       provider
     )
-    const result = await nearProvider.query<CodeResult>({
+    let result = await nearProvider.query<CodeResult>({
       request_type: 'call_function',
-      // NOTE: options.auroraEvmAccount cannot be used because checkSync can be called by recover using a different silo's auroraEvmAccount.
-      account_id: bridgeParams.auroraEvmAccount,
+      account_id: options.etherNep141Factory ?? bridgeParams.etherNep141Factory,
       method_name: 'is_used_proof',
       args_base64: Buffer.from(proof).toString('base64'),
       finality: 'optimistic'
     })
-    const proofAlreadyUsed = Boolean(result.result[0])
+    let proofAlreadyUsed = Boolean(result.result[0])
+    if (!proofAlreadyUsed) {
+      result = await nearProvider.query<CodeResult>({
+        request_type: 'call_function',
+        // NOTE: options.auroraEvmAccount cannot be used because checkSync can be called by recover using a different silo's auroraEvmAccount.
+        account_id: bridgeParams.auroraEvmAccount,
+        method_name: 'is_used_proof',
+        args_base64: Buffer.from(proof).toString('base64'),
+        finality: 'optimistic'
+      })
+      proofAlreadyUsed = Boolean(result.result[0])
+    }
     if (proofAlreadyUsed) {
       if (options.callIndexer) {
         try {
