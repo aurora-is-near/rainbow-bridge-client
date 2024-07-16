@@ -4,7 +4,8 @@ import {
   findNearProof,
   findFinalizationTxOnEthereum,
   parseNep141BurnReceipt,
-  parseETHBurnReceipt
+  parseETHBurnReceipt,
+  selectEtherNep141Factory
 } from '@near-eth/utils'
 import { ethers } from 'ethers'
 import bs58 from 'bs58'
@@ -261,8 +262,6 @@ export async function recover (
   options?: TransferOptions & {
     decimals?: number
     symbol?: string
-    etherNep141Factory?: string
-    etherNep141FactoryMigrationHeight?: number
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -311,13 +310,14 @@ export async function recover (
     decimals = options.decimals ?? await getDecimals({ erc20Address, options })
   } else {
     // Withdraw ERC-20 ETH from a silo which doesn't use ETH as native currency.
-    // @ts-expect-error
-    const txBlock = await nearProvider.block({ blockId: burnTx.transaction_outcome.block_hash })
-    const blockHeight = Number(txBlock.header.height)
-    const etherNep141FactoryMigrationHeight = options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight
-    const etherNep141Factory = blockHeight >= etherNep141FactoryMigrationHeight
-      ? (options.etherNep141Factory ?? bridgeParams.etherNep141Factory)
-      : auroraEvmAccount
+    const etherNep141Factory = await selectEtherNep141Factory({
+      etherNep141FactoryMigrationHeight: options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight,
+      etherNep141Factory: options.etherNep141Factory ?? bridgeParams.etherNep141Factory,
+      auroraEvmAccount,
+      // @ts-expect-error
+      blockHash: burnTx.transaction_outcome.block_hash,
+      nearProvider
+    })
     nearBurnReceipt = await parseETHBurnReceipt(burnTx, etherNep141Factory, nearProvider)
     amount = nearBurnReceipt.event.amount
     recipient = nearBurnReceipt.event.recipient
@@ -611,13 +611,14 @@ export async function checkBurn (
     nearBurnReceipt = await parseNep141BurnReceipt(nearBurnTx, nep141Factory, nearProvider)
   } else {
     // Withdraw ERC-20 ETH from a silo which doesn't use ETH as native currency.
-    // @ts-expect-error
-    const txBlock = await nearProvider.block({ blockId: nearBurnTx.transaction_outcome.block_hash })
-    const blockHeight = Number(txBlock.header.height)
-    const etherNep141FactoryMigrationHeight = options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight
-    const etherNep141Factory = blockHeight >= etherNep141FactoryMigrationHeight
-      ? (options.etherNep141Factory ?? bridgeParams.etherNep141Factory)
-      : bridgeParams.auroraEvmAccount
+    const etherNep141Factory = await selectEtherNep141Factory({
+      etherNep141FactoryMigrationHeight: options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight,
+      etherNep141Factory: options.etherNep141Factory ?? bridgeParams.etherNep141Factory,
+      auroraEvmAccount: bridgeParams.auroraEvmAccount,
+      // @ts-expect-error
+      blockHash: nearBurnTx.transaction_outcome.block_hash,
+      nearProvider
+    })
     nearBurnReceipt = await parseETHBurnReceipt(nearBurnTx, etherNep141Factory, nearProvider)
   }
 

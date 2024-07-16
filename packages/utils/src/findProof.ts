@@ -428,3 +428,23 @@ export async function parseNep141LockReceipt (
   const blockTimestamp = Number(receiptBlock.header.timestamp)
   return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
 }
+
+export async function selectEtherNep141Factory ({
+  etherNep141FactoryMigrationHeight,
+  etherNep141Factory,
+  auroraEvmAccount,
+  blockHash,
+  nearProvider
+}: {
+  blockHash: string
+  etherNep141FactoryMigrationHeight: number
+  etherNep141Factory: string
+  auroraEvmAccount: string
+  nearProvider: najProviders.Provider
+}): Promise<string> {
+  const txBlock = await nearProvider.block({ blockId: blockHash })
+  const blockHeight = Number(txBlock.header.height)
+  return blockHeight >= etherNep141FactoryMigrationHeight
+    ? etherNep141Factory
+    : auroraEvmAccount
+}

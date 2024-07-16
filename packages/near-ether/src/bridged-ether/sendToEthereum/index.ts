@@ -14,7 +14,8 @@ import {
   findNearProof,
   buildIndexerTxQuery,
   findFinalizationTxOnEthereum,
-  parseETHBurnReceipt
+  parseETHBurnReceipt,
+  selectEtherNep141Factory
 } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 import { getEthProvider, getNearWallet, getNearProvider, getNearAccountId, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
@@ -289,13 +290,14 @@ export async function recover (
     throw new Error(`Burn transaction failed: ${burnTxHash}`)
   }
 
-  // @ts-expect-error
-  const txBlock = await nearProvider.block({ blockId: burnTx.transaction_outcome.block_hash })
-  const blockHeight = Number(txBlock.header.height)
-  const etherNep141FactoryMigrationHeight = options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight
-  const etherNep141Factory = blockHeight >= etherNep141FactoryMigrationHeight
-    ? (options.etherNep141Factory ?? bridgeParams.etherNep141Factory)
-    : (options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount)
+  const etherNep141Factory = await selectEtherNep141Factory({
+    etherNep141FactoryMigrationHeight: options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight,
+    etherNep141Factory: options.etherNep141Factory ?? bridgeParams.etherNep141Factory,
+    auroraEvmAccount: bridgeParams.auroraEvmAccount,
+    // @ts-expect-error
+    blockHash: burnTx.transaction_outcome.block_hash,
+    nearProvider
+  })
   const withdrawReceipt = await parseETHBurnReceipt(burnTx, etherNep141Factory, nearProvider)
   const amount = withdrawReceipt.event.amount
   const recipient = withdrawReceipt.event.recipient
@@ -593,13 +595,14 @@ export async function checkBurn (
     }
   }
 
-  // @ts-expect-error
-  const txBlock = await nearProvider.block({ blockId: burnTx.transaction_outcome.block_hash })
-  const blockHeight = Number(txBlock.header.height)
-  const etherNep141FactoryMigrationHeight = options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight
-  const etherNep141Factory = blockHeight >= etherNep141FactoryMigrationHeight
-    ? (options.etherNep141Factory ?? bridgeParams.etherNep141Factory)
-    : (options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount)
+  const etherNep141Factory = await selectEtherNep141Factory({
+    etherNep141FactoryMigrationHeight: options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight,
+    etherNep141Factory: options.etherNep141Factory ?? bridgeParams.etherNep141Factory,
+    auroraEvmAccount: bridgeParams.auroraEvmAccount,
+    // @ts-expect-error
+    blockHash: burnTx.transaction_outcome.block_hash,
+    nearProvider
+  })
   const withdrawReceipt = await parseETHBurnReceipt(burnTx, etherNep141Factory, nearProvider)
 
   const startTime = new Date(withdrawReceipt.blockTimestamp / 10 ** 6).toISOString()
