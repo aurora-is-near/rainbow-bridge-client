@@ -349,7 +349,7 @@ export async function initiate (
     recipient: string
     options?: {
       sender?: string
-      auroraEvmAccount?: string
+      etherNep141Factory?: string
       nearAccount?: Account
     }
   }
@@ -360,7 +360,7 @@ export async function initiate (
   const symbol = 'ETH'
   const destinationTokenName = symbol
   const sourceTokenName = 'n' + symbol
-  const sourceToken = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
+  const sourceToken = options.etherNep141Factory ?? bridgeParams.etherNep141Factory
   const sender = options.sender ?? await getNearAccountId()
 
   // various attributes stored as arrays, to keep history of retries
