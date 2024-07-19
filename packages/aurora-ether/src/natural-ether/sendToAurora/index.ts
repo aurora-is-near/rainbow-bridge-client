@@ -530,24 +530,22 @@ export async function checkSync (
       options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
       provider
     )
-    let result = await nearProvider.query<CodeResult>({
-      request_type: 'call_function',
-      account_id: options.etherNep141Factory ?? bridgeParams.etherNep141Factory,
-      method_name: 'is_used_proof',
-      args_base64: Buffer.from(proof).toString('base64'),
-      finality: 'optimistic'
-    })
-    let proofAlreadyUsed = Boolean(result.result[0])
-    if (!proofAlreadyUsed) {
-      result = await nearProvider.query<CodeResult>({
+    const isProxyTransfer = lockReceipt.logs.find(
+      (log: { address: string }) => log.address.toLowerCase() === bridgeParams.etherCustodianProxyAddress.toLowerCase()
+    )
+    let proofAlreadyUsed = false
+    if (isProxyTransfer) {
+      const result = await nearProvider.query<CodeResult>({
         request_type: 'call_function',
-        // NOTE: options.auroraEvmAccount cannot be used because checkSync can be called by recover using a different silo's auroraEvmAccount.
-        account_id: bridgeParams.auroraEvmAccount,
+        account_id: options.etherNep141Factory ?? bridgeParams.etherNep141Factory,
         method_name: 'is_used_proof',
         args_base64: Buffer.from(proof).toString('base64'),
         finality: 'optimistic'
       })
       proofAlreadyUsed = Boolean(result.result[0])
+    } else {
+      // Transfers prior to ether custodian proxy migration were all finalized.
+      proofAlreadyUsed = true
     }
     if (proofAlreadyUsed) {
       if (options.callIndexer) {
