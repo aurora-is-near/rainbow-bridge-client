@@ -368,6 +368,7 @@ export async function sendToAurora (
       nearAccount?: Account
       nearProvider?: najProviders.Provider
       auroraEvmAccount?: string
+      etherNep141Factory?: string
     }
   }
 ): Promise<Transfer> {
@@ -422,6 +423,7 @@ export async function lock (
   options?: {
     nearAccount?: Account
     auroraEvmAccount?: string
+    etherNep141Factory?: string
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -430,10 +432,11 @@ export async function lock (
   const isNajAccount = nearWallet instanceof Account
   const browserRedirect = typeof window !== 'undefined' && (isNajAccount || nearWallet.type === 'browser')
   const auroraEvmAccount = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
+  const etherNep141Factory = options.etherNep141Factory ?? bridgeParams.etherNep141Factory
 
-  // nETH (aurora) transfers to Aurora have a different protocol:
+  // nETH (etherNep141Factory) transfers to Aurora have a different protocol:
   // <relayer_id>:<fee(32 bytes)><eth_address_receiver(20 bytes)>
-  const msgPrefix = transfer.sourceToken === auroraEvmAccount ? transfer.sender + ':' + '0'.repeat(64) : ''
+  const msgPrefix = transfer.sourceToken === etherNep141Factory ? transfer.sender + ':' + '0'.repeat(64) : ''
 
   // NOTE:
   // checkStatus should wait for NEAR wallet redirect if it didn't happen yet.
