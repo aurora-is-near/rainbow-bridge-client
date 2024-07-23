@@ -444,7 +444,7 @@ export async function selectEtherNep141Factory ({
 }): Promise<string> {
   const txBlock = await nearProvider.block({ blockId: blockHash })
   const blockHeight = Number(txBlock.header.height)
-  return blockHeight >= etherNep141FactoryMigrationHeight
+  return blockHeight > etherNep141FactoryMigrationHeight
     ? etherNep141Factory
     : auroraEvmAccount
 }

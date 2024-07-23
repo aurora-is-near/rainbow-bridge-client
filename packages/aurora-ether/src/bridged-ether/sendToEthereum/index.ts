@@ -700,7 +700,7 @@ export async function checkSync (
     getNearProvider()
   if (nearOnEthClientBlockHeight > burnBlockHeight) {
     const etherNep141FactoryMigrationHeight = options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight
-    const etherNep141Factory = burnBlockHeight >= etherNep141FactoryMigrationHeight
+    const etherNep141Factory = burnBlockHeight > etherNep141FactoryMigrationHeight
       ? (options.etherNep141Factory ?? bridgeParams.etherNep141Factory)
       : bridgeParams.auroraEvmAccount
     proof = await findNearProof(
