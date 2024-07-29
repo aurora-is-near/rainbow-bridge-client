@@ -822,7 +822,11 @@ export async function unlock (
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
   const safeReorgHeight = await provider.getBlockNumber() - 20
-  const pendingUnlockTx = await ethTokenLocker.withdraw(borshProof, transfer.nearOnEthClientBlockHeight)
+  const pendingUnlockTx = await ethTokenLocker.withdraw(
+    borshProof,
+    transfer.nearOnEthClientBlockHeight,
+    last(transfer.burnReceiptBlockHeights)
+  )
 
   return {
     ...transfer,
