@@ -141,7 +141,7 @@ export async function act (transfer: Transfer): Promise<Transfer> {
         return await unlock(transfer)
       } catch (error) {
         console.error(error)
-        if (error.message.includes('Failed to redirect to sign transaction')) {
+        if (error.message?.includes('Failed to redirect to sign transaction')) {
           // Increase time to redirect to wallet before recording an error
           await new Promise(resolve => setTimeout(resolve, 10000))
         }

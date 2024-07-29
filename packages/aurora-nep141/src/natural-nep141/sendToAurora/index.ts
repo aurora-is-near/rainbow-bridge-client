@@ -83,7 +83,7 @@ export async function act (transfer: Transfer): Promise<Transfer> {
         }
       } catch (error) {
         console.error(error)
-        if (error.message.includes('Failed to redirect to sign transaction')) {
+        if (error.message?.includes('Failed to redirect to sign transaction')) {
           // Increase time to redirect to wallet before recording an error
           await new Promise(resolve => setTimeout(resolve, 10000))
         }
@@ -403,7 +403,8 @@ export async function sendToAurora (
     // Track for injected NEAR wallet (Sender)
     if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
   } catch (error) {
-    if (error.message.includes('Failed to redirect to sign transaction')) {
+    console.error(error)
+    if (error.message?.includes('Failed to redirect to sign transaction')) {
       // Increase time to redirect to wallet before alerting an error
       await new Promise(resolve => setTimeout(resolve, 10000))
     }
@@ -528,7 +529,8 @@ export async function wrapAndSendNearToAurora (
     // Track for injected NEAR wallet (Sender)
     if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
   } catch (error) {
-    if (error.message.includes('Failed to redirect to sign transaction')) {
+    console.error(error)
+    if (error.message?.includes('Failed to redirect to sign transaction')) {
       // Increase time to redirect to wallet before alerting an error
       await new Promise(resolve => setTimeout(resolve, 10000))
     }

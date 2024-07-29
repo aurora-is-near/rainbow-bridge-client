@@ -45,7 +45,7 @@ export default async function getBalance (
     return JSON.parse(Buffer.from(result.result).toString())
   } catch (e) {
     console.warn(e)
-    if (e.message.includes('does not exist while viewing')) {
+    if (e.message?.includes('does not exist while viewing')) {
       return null
     }
     throw e
