@@ -198,12 +198,19 @@ export async function findAllTransactions (
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
 
-  const etherCustodians: Array<[string, string]> = [
-    [options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress,
-      options.etherCustodianProxyAbi ?? bridgeParams.etherCustodianProxyAbi],
-    [options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
-      options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi]
-  ]
+  const etherCustodianProxyAddress = options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress
+  const etherCustodianAddress = options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress
+  let etherCustodians: Array<[string, string]>
+  if (etherCustodianProxyAddress.toLowerCase() !== etherCustodianAddress.toLowerCase()) {
+    etherCustodians = [
+      [etherCustodianProxyAddress, options.etherCustodianProxyAbi ?? bridgeParams.etherCustodianProxyAbi],
+      [etherCustodianAddress, options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi]
+    ]
+  } else {
+    etherCustodians = [
+      [etherCustodianAddress, options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi]
+    ]
+  }
 
   const promises = etherCustodians.map(async ([ethCustodianAddress, ethCustodianAbi]) => {
     const ethTokenLocker = new ethers.Contract(
