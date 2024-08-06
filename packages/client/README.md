@@ -498,6 +498,10 @@ setBridgeParams({
   etherCustodianAddress: '0x6BFaD42cFC4EfC96f529D786D643Ff4A8B89FA52',
   // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/etherCustodian.full.abi
   etherCustodianAbi: process.env.etherCustodianAbi,
+  // https://github.com/aurora-is-near/eth-connector/tree/master/eth-custodian
+  etherCustodianProxyAddress: 'TODO',
+  // https://github.com/aurora-is-near/eth-connector/tree/master/eth-custodian
+  etherCustodianProxyAbi: process.env.etherCustodianProxyAbiText,
   auroraEvmAccount: 'aurora',
   auroraRelayerAccount: 'relay.aurora',
   etherExitToEthereumPrecompile: '0xb0bD02F6a392aF548bDf1CfAeE5dFa0EefcC8EaB',
@@ -553,6 +557,10 @@ setBridgeParams({
   etherCustodianAddress: '0x84a82Bb39c83989D5Dc07e1310281923D2544dC2',
   // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/etherCustodian.full.abi
   etherCustodianAbi: process.env.etherCustodianAbi,
+  // https://github.com/aurora-is-near/eth-connector/tree/master/eth-custodian
+  etherCustodianProxyAddress: '0x4C8afA2fD22dB1c6091A96c382e6546529475B5c',
+  // https://github.com/aurora-is-near/eth-connector/tree/master/eth-custodian
+  etherCustodianProxyAbi: process.env.etherCustodianProxyAbiText,
   auroraEvmAccount: 'aurora',
   auroraRelayerAccount: 'relay.aurora',
   etherExitToEthereumPrecompile: '0xb0bD02F6a392aF548bDf1CfAeE5dFa0EefcC8EaB',
