@@ -815,8 +815,10 @@ export async function unlock (
 
   const borshProof = borshifyOutcomeProof(proof)
 
+  const etherCustodianProxyAddress = options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress
+  const etherCustodianAddress = options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress
   const ethTokenLocker = new ethers.Contract(
-    options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress,
+    etherCustodianProxyAddress,
     options.etherCustodianProxyAbi ?? bridgeParams.etherCustodianProxyAbi,
     options.signer ?? provider.getSigner()
   )
@@ -824,9 +826,8 @@ export async function unlock (
   // in case there was a reorg.
   const safeReorgHeight = await provider.getBlockNumber() - 20
 
-  const withdrawAbi = ethTokenLocker.interface.functions.withdraw
   let pendingUnlockTx
-  if (withdrawAbi && withdrawAbi.inputs.length === 3) {
+  if (etherCustodianProxyAddress.toLowerCase() !== etherCustodianAddress.toLowerCase()) {
     pendingUnlockTx = await ethTokenLocker.withdraw(
       borshProof,
       transfer.nearOnEthClientBlockHeight,
