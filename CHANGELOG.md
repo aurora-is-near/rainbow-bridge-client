@@ -1,3 +1,13 @@
+# [3.0.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.9.0...v3.0.0) (2024-08-07)
+
+
+### Features
+
+* ETH connector migration. ([#98](https://github.com/aurora-is-near/rainbow-bridge-client/issues/98)) ([b401aee](https://github.com/aurora-is-near/rainbow-bridge-client/commit/b401aee8a98dcfd1f4ba5c070d89a7728bcb03e2))
+* Ether Custodian Proxy ([#97](https://github.com/aurora-is-near/rainbow-bridge-client/issues/97)) ([19bae80](https://github.com/aurora-is-near/rainbow-bridge-client/commit/19bae800cbfcfaa47dbefdcc401835fab0a9cf43))
+
+
+
 # [2.10.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.9.0...v2.10.0) (2024-07-04)
 
 

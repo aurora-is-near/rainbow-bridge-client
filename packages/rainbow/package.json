@@ -1,6 +1,6 @@
 {
   "name": "@near-eth/rainbow",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "license": "(MIT AND Apache-2.0)",
   "main": "dist/index.js",
   "files": [
