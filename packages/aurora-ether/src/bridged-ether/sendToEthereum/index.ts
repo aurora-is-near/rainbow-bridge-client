@@ -66,7 +66,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   symbol: string
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
-  proof?: Uint8Array
+  proof?: any
   auroraEvmAccount?: string
   auroraChainId?: string
 }
@@ -828,7 +828,7 @@ export async function unlock (
     pendingUnlockTx = await ethTokenLocker.withdraw(
       borshProof,
       transfer.nearOnEthClientBlockHeight,
-      last(transfer.nearBurnReceiptBlockHeights)
+      proof.block_header_lite.inner_lite.height
     )
   } else {
     pendingUnlockTx = await ethTokenLocker.withdraw(
