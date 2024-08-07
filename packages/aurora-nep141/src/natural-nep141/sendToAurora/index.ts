@@ -83,7 +83,7 @@ export async function act (transfer: Transfer): Promise<Transfer> {
         }
       } catch (error) {
         console.error(error)
-        if (error.message.includes('Failed to redirect to sign transaction')) {
+        if (error.message?.includes('Failed to redirect to sign transaction')) {
           // Increase time to redirect to wallet before recording an error
           await new Promise(resolve => setTimeout(resolve, 10000))
         }
@@ -368,6 +368,7 @@ export async function sendToAurora (
       nearAccount?: Account
       nearProvider?: najProviders.Provider
       auroraEvmAccount?: string
+      etherNep141Factory?: string
     }
   }
 ): Promise<Transfer> {
@@ -402,7 +403,8 @@ export async function sendToAurora (
     // Track for injected NEAR wallet (Sender)
     if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
   } catch (error) {
-    if (error.message.includes('Failed to redirect to sign transaction')) {
+    console.error(error)
+    if (error.message?.includes('Failed to redirect to sign transaction')) {
       // Increase time to redirect to wallet before alerting an error
       await new Promise(resolve => setTimeout(resolve, 10000))
     }
@@ -422,6 +424,7 @@ export async function lock (
   options?: {
     nearAccount?: Account
     auroraEvmAccount?: string
+    etherNep141Factory?: string
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -430,10 +433,11 @@ export async function lock (
   const isNajAccount = nearWallet instanceof Account
   const browserRedirect = typeof window !== 'undefined' && (isNajAccount || nearWallet.type === 'browser')
   const auroraEvmAccount = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
+  const etherNep141Factory = options.etherNep141Factory ?? bridgeParams.etherNep141Factory
 
-  // nETH (aurora) transfers to Aurora have a different protocol:
+  // nETH (etherNep141Factory) transfers to Aurora have a different protocol:
   // <relayer_id>:<fee(32 bytes)><eth_address_receiver(20 bytes)>
-  const msgPrefix = transfer.sourceToken === auroraEvmAccount ? transfer.sender + ':' + '0'.repeat(64) : ''
+  const msgPrefix = transfer.sourceToken === etherNep141Factory ? transfer.sender + ':' + '0'.repeat(64) : ''
 
   // NOTE:
   // checkStatus should wait for NEAR wallet redirect if it didn't happen yet.
@@ -525,7 +529,8 @@ export async function wrapAndSendNearToAurora (
     // Track for injected NEAR wallet (Sender)
     if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
   } catch (error) {
-    if (error.message.includes('Failed to redirect to sign transaction')) {
+    console.error(error)
+    if (error.message?.includes('Failed to redirect to sign transaction')) {
       // Increase time to redirect to wallet before alerting an error
       await new Promise(resolve => setTimeout(resolve, 10000))
     }

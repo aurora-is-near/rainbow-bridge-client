@@ -61,6 +61,7 @@ export interface TransferOptions {
   nearClientAccount?: string
   callIndexer?: (query: string) => Promise<ExplorerIndexerResult[] | string>
   eventRelayerAccount?: string
+  etherNep141Factory?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -174,12 +175,20 @@ export async function findAllTransactions (
   options = options ?? {}
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
-  const etherCustodians: Array<[string, string]> = [
-    [options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress,
-      options.etherCustodianProxyAbi ?? bridgeParams.etherCustodianProxyAbi],
-    [options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
-      options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi]
-  ]
+
+  const etherCustodianProxyAddress = options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress
+  const etherCustodianAddress = options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress
+  let etherCustodians: Array<[string, string]>
+  if (etherCustodianProxyAddress.toLowerCase() !== etherCustodianAddress.toLowerCase()) {
+    etherCustodians = [
+      [etherCustodianProxyAddress, options.etherCustodianProxyAbi ?? bridgeParams.etherCustodianProxyAbi],
+      [etherCustodianAddress, options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi]
+    ]
+  } else {
+    etherCustodians = [
+      [etherCustodianAddress, options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi]
+    ]
+  }
   const auroraAddress = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount as string + ':'
 
   const promises = etherCustodians.map(async ([ethCustodianAddress, ethCustodianAbi]) => {
@@ -529,15 +538,23 @@ export async function checkSync (
       options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
       provider
     )
-    const result = await nearProvider.query<CodeResult>({
-      request_type: 'call_function',
-      // NOTE: options.auroraEvmAccount cannot be used because checkSync can be called by recover using a different silo's auroraEvmAccount.
-      account_id: bridgeParams.auroraEvmAccount,
-      method_name: 'is_used_proof',
-      args_base64: Buffer.from(proof).toString('base64'),
-      finality: 'optimistic'
-    })
-    const proofAlreadyUsed = Boolean(result.result[0])
+    const isProxyTransfer = lockReceipt.logs.find(
+      (log: { address: string }) => log.address.toLowerCase() === bridgeParams.etherCustodianProxyAddress.toLowerCase()
+    )
+    let proofAlreadyUsed = false
+    if (isProxyTransfer) {
+      const result = await nearProvider.query<CodeResult>({
+        request_type: 'call_function',
+        account_id: options.etherNep141Factory ?? bridgeParams.etherNep141Factory,
+        method_name: 'is_used_proof',
+        args_base64: Buffer.from(proof).toString('base64'),
+        finality: 'optimistic'
+      })
+      proofAlreadyUsed = Boolean(result.result[0])
+    } else {
+      // Transfers prior to ether custodian proxy migration were all finalized.
+      proofAlreadyUsed = true
+    }
     if (proofAlreadyUsed) {
       if (options.callIndexer) {
         try {

@@ -14,7 +14,8 @@ import {
   findNearProof,
   buildIndexerTxQuery,
   findFinalizationTxOnEthereum,
-  parseETHBurnReceipt
+  parseETHBurnReceipt,
+  selectEtherNep141Factory
 } from '@near-eth/utils'
 import { findReplacementTx, TxValidationError } from 'find-replacement-tx'
 import { getEthProvider, getNearWallet, getNearProvider, getNearAccountId, formatLargeNum, getSignerProvider, getBridgeParams } from '@near-eth/client/dist/utils'
@@ -34,8 +35,6 @@ const steps = [
   SYNC,
   UNLOCK
 ]
-
-class TransferError extends Error {}
 
 export interface TransferDraft extends TransferStatus {
   type: string
@@ -60,7 +59,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   symbol: string
   checkSyncInterval?: number
   nextCheckSyncTimestamp?: Date
-  proof?: Uint8Array
+  proof?: any
 }
 export interface TransferOptions {
   provider?: ethers.providers.Provider
@@ -75,6 +74,8 @@ export interface TransferOptions {
   ethClientAddress?: string
   ethClientAbi?: string
   auroraEvmAccount?: string
+  etherNep141Factory?: string
+  etherNep141FactoryMigrationHeight?: number
 }
 
 const transferDraft: TransferDraft = {
@@ -159,7 +160,7 @@ export async function act (transfer: Transfer): Promise<Transfer> {
         return await burn(transfer)
       } catch (error) {
         console.error(error)
-        if (error.message.includes('Failed to redirect to sign transaction')) {
+        if (error.message?.includes('Failed to redirect to sign transaction')) {
           // Increase time to redirect to wallet before recording an error
           await new Promise(resolve => setTimeout(resolve, 10000))
         }
@@ -289,15 +290,21 @@ export async function recover (
     throw new Error(`Burn transaction failed: ${burnTxHash}`)
   }
 
-  const auroraEvmAccount = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
-
-  const withdrawReceipt = await parseETHBurnReceipt(burnTx, auroraEvmAccount, nearProvider)
+  const etherNep141Factory = await selectEtherNep141Factory({
+    etherNep141FactoryMigrationHeight: options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight,
+    etherNep141Factory: options.etherNep141Factory ?? bridgeParams.etherNep141Factory,
+    auroraEvmAccount: bridgeParams.auroraEvmAccount,
+    // @ts-expect-error
+    blockHash: burnTx.transaction_outcome.block_hash,
+    nearProvider
+  })
+  const withdrawReceipt = await parseETHBurnReceipt(burnTx, etherNep141Factory, nearProvider)
   const amount = withdrawReceipt.event.amount
   const recipient = withdrawReceipt.event.recipient
   const symbol = 'ETH'
   const destinationTokenName = symbol
   const sourceTokenName = 'n' + symbol
-  const sourceToken = auroraEvmAccount
+  const sourceToken = etherNep141Factory
   const decimals = 18
 
   // various attributes stored as arrays, to keep history of retries
@@ -342,7 +349,7 @@ export async function initiate (
     recipient: string
     options?: {
       sender?: string
-      auroraEvmAccount?: string
+      etherNep141Factory?: string
       nearAccount?: Account
     }
   }
@@ -353,7 +360,7 @@ export async function initiate (
   const symbol = 'ETH'
   const destinationTokenName = symbol
   const sourceTokenName = 'n' + symbol
-  const sourceToken = options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount
+  const sourceToken = options.etherNep141Factory ?? bridgeParams.etherNep141Factory
   const sender = options.sender ?? await getNearAccountId()
 
   // various attributes stored as arrays, to keep history of retries
@@ -377,7 +384,8 @@ export async function initiate (
     // Track for injected NEAR wallet (Sender)
     if (typeof window !== 'undefined') transfer = await track(transfer) as Transfer
   } catch (error) {
-    if (error.message.includes('Failed to redirect to sign transaction')) {
+    console.error(error)
+    if (error.message?.includes('Failed to redirect to sign transaction')) {
       // Increase time to redirect to wallet before alerting an error
       await new Promise(resolve => setTimeout(resolve, 10000))
     }
@@ -482,9 +490,12 @@ export async function checkBurn (
     nearAccount?: Account
     nearProvider?: najProviders.Provider
     auroraEvmAccount?: string
+    etherNep141Factory?: string
+    etherNep141FactoryMigrationHeight?: number
   }
 ): Promise<Transfer> {
   options = options ?? {}
+  const bridgeParams = getBridgeParams()
   let txHash: string
   let clearParams
   if (transfer.burnHashes.length === 0) {
@@ -585,24 +596,15 @@ export async function checkBurn (
     }
   }
 
-  let withdrawReceipt
-  try {
-    const auroraEvmAccount = options.auroraEvmAccount ?? getBridgeParams().auroraEvmAccount
-    withdrawReceipt = await parseETHBurnReceipt(burnTx, auroraEvmAccount, nearProvider)
-  } catch (e) {
-    if (e instanceof TransferError) {
-      if (clearParams) urlParams.clear(...clearParams)
-      return {
-        ...transfer,
-        errors: [...transfer.errors, e.message],
-        status: status.FAILED,
-        burnHashes: [...transfer.burnHashes, txHash]
-      }
-    }
-    // Any other error like provider connection error should throw
-    // so that the transfer stays in progress and checkBurn will be called again.
-    throw e
-  }
+  const etherNep141Factory = await selectEtherNep141Factory({
+    etherNep141FactoryMigrationHeight: options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight,
+    etherNep141Factory: options.etherNep141Factory ?? bridgeParams.etherNep141Factory,
+    auroraEvmAccount: bridgeParams.auroraEvmAccount,
+    // @ts-expect-error
+    blockHash: burnTx.transaction_outcome.block_hash,
+    nearProvider
+  })
+  const withdrawReceipt = await parseETHBurnReceipt(burnTx, etherNep141Factory, nearProvider)
 
   const startTime = new Date(withdrawReceipt.blockTimestamp / 10 ** 6).toISOString()
 
@@ -704,9 +706,13 @@ export async function checkSync (
     options.nearAccount?.connection.provider ??
     getNearProvider()
   if (nearOnEthClientBlockHeight > withdrawBlockHeight) {
+    const etherNep141FactoryMigrationHeight = options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight
+    const etherNep141Factory = withdrawBlockHeight > etherNep141FactoryMigrationHeight
+      ? (options.etherNep141Factory ?? bridgeParams.etherNep141Factory)
+      : bridgeParams.auroraEvmAccount
     proof = await findNearProof(
       last(transfer.burnReceiptIds),
-      options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
+      etherNep141Factory,
       nearOnEthClientBlockHeight,
       nearProvider,
       provider,
@@ -809,15 +815,30 @@ export async function unlock (
 
   const borshProof = borshifyOutcomeProof(proof)
 
+  const etherCustodianProxyAddress = options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress
+  const etherCustodianAddress = options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress
   const ethTokenLocker = new ethers.Contract(
-    options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress,
+    etherCustodianProxyAddress,
     options.etherCustodianProxyAbi ?? bridgeParams.etherCustodianProxyAbi,
     options.signer ?? provider.getSigner()
   )
   // If this tx is dropped and replaced, lower the search boundary
   // in case there was a reorg.
   const safeReorgHeight = await provider.getBlockNumber() - 20
-  const pendingUnlockTx = await ethTokenLocker.withdraw(borshProof, transfer.nearOnEthClientBlockHeight)
+
+  let pendingUnlockTx
+  if (etherCustodianProxyAddress.toLowerCase() !== etherCustodianAddress.toLowerCase()) {
+    pendingUnlockTx = await ethTokenLocker.withdraw(
+      borshProof,
+      transfer.nearOnEthClientBlockHeight,
+      proof.block_header_lite.inner_lite.height
+    )
+  } else {
+    pendingUnlockTx = await ethTokenLocker.withdraw(
+      borshProof,
+      transfer.nearOnEthClientBlockHeight
+    )
+  }
 
   return {
     ...transfer,

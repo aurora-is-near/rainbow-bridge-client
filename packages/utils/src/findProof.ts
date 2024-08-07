@@ -199,14 +199,14 @@ export async function findNearProof (
  */
 export async function parseETHBurnReceipt (
   burnTx: FinalExecutionOutcome,
-  auroraEvmAccount: string,
+  etherNep141Factory: string,
   nearProvider: najProviders.Provider
 ): Promise<{id: string, blockHeight: number, blockTimestamp: number, event: { amount: string, recipient: string, etherCustodian: string }}> {
   let event: any
   let bridgeReceipt: any
   burnTx.receipts_outcome.some((receipt) => {
     // @ts-expect-error
-    if (receipt.outcome.executor_id !== auroraEvmAccount) return false
+    if (receipt.outcome.executor_id !== etherNep141Factory) return false
     try {
       // @ts-expect-error
       const successValue = receipt.outcome.status.SuccessValue
@@ -427,4 +427,24 @@ export async function parseNep141LockReceipt (
   const blockHeight = Number(receiptBlock.header.height)
   const blockTimestamp = Number(receiptBlock.header.timestamp)
   return { id: bridgeReceipt.id, blockHeight, blockTimestamp, event }
+}
+
+export async function selectEtherNep141Factory ({
+  etherNep141FactoryMigrationHeight,
+  etherNep141Factory,
+  auroraEvmAccount,
+  blockHash,
+  nearProvider
+}: {
+  blockHash: string
+  etherNep141FactoryMigrationHeight: number
+  etherNep141Factory: string
+  auroraEvmAccount: string
+  nearProvider: najProviders.Provider
+}): Promise<string> {
+  const txBlock = await nearProvider.block({ blockId: blockHash })
+  const blockHeight = Number(txBlock.header.height)
+  return blockHeight > etherNep141FactoryMigrationHeight
+    ? etherNep141Factory
+    : auroraEvmAccount
 }

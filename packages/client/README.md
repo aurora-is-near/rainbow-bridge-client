@@ -443,7 +443,7 @@ import {
 | ERC-20        | nep141Erc20/naturalErc20/sendToNear             | auroraErc20/naturalErc20/sendToAurora                   |
 |               | nep141Erc20/bridgedErc20/sendToNear             | auroraErc20/bridgedErc20/sendToAurora (TODO)            |
 | ETH           | nearEther/naturalETH/sendToNear                 | auroraEther/naturalEther/sendToAurora                   |
-| NEAR          | nearEther.bridgedNEAR.sendToNear                | (TODO)                                                  |
+| NEAR          | nearEther.bridgedNEAR.sendToNear                | auroraErc20/eNEAR/sendToAurora                          |
 | ERC-721       | (TODO)                                          | (TODO)                                                  |
 
 | from NEAR     | to Ethereum                                     | to Aurora                                               |
@@ -498,6 +498,10 @@ setBridgeParams({
   etherCustodianAddress: '0x6BFaD42cFC4EfC96f529D786D643Ff4A8B89FA52',
   // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/etherCustodian.full.abi
   etherCustodianAbi: process.env.etherCustodianAbi,
+  // https://github.com/aurora-is-near/eth-connector/tree/master/eth-custodian
+  etherCustodianProxyAddress: 'TODO',
+  // https://github.com/aurora-is-near/eth-connector/tree/master/eth-custodian
+  etherCustodianProxyAbi: process.env.etherCustodianProxyAbiText,
   auroraEvmAccount: 'aurora',
   auroraRelayerAccount: 'relay.aurora',
   etherExitToEthereumPrecompile: '0xb0bD02F6a392aF548bDf1CfAeE5dFa0EefcC8EaB',
@@ -522,6 +526,9 @@ setBridgeParams({
   // https://github.com/Near-One/rainbow-token-connector/tree/master/erc20-bridge-token
   erc20FactoryAddress: '0x252e87862A3A720287E7fd527cE6e8d0738427A2',
   erc20FactoryAbi: process.env.erc20FactoryAbi,
+  // https://github.com/Near-One/aurora-eth-connector
+  etherNep141Factory: 'eth.bridge.near',
+  etherNep141FactoryMigrationHeight: 0, // TODO
 })
 ```
 
@@ -550,6 +557,10 @@ setBridgeParams({
   etherCustodianAddress: '0x84a82Bb39c83989D5Dc07e1310281923D2544dC2',
   // https://github.com/aurora-is-near/rainbow-bridge-frontend/blob/master/abi/etherCustodian.full.abi
   etherCustodianAbi: process.env.etherCustodianAbi,
+  // https://github.com/aurora-is-near/eth-connector/tree/master/eth-custodian
+  etherCustodianProxyAddress: '0x4C8afA2fD22dB1c6091A96c382e6546529475B5c',
+  // https://github.com/aurora-is-near/eth-connector/tree/master/eth-custodian
+  etherCustodianProxyAbi: process.env.etherCustodianProxyAbiText,
   auroraEvmAccount: 'aurora',
   auroraRelayerAccount: 'relay.aurora',
   etherExitToEthereumPrecompile: '0xb0bD02F6a392aF548bDf1CfAeE5dFa0EefcC8EaB',
@@ -574,5 +585,8 @@ setBridgeParams({
   // https://github.com/Near-One/rainbow-token-connector/tree/master/erc20-bridge-token
   erc20FactoryAddress: '0xa9108f7F83Fb661e611991116D526fCa1a9585ab',
   erc20FactoryAbi: process.env.erc20FactoryAbi,
+  // https://github.com/Near-One/aurora-eth-connector
+  etherNep141Factory: 'eth.sepolia.testnet',
+  etherNep141FactoryMigrationHeight: 0, // TODO
 })
 ```

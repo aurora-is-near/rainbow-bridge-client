@@ -60,6 +60,7 @@ export interface TransferOptions {
   nearClientAccount?: string
   callIndexer?: (query: string) => Promise<ExplorerIndexerResult[] | string>
   eventRelayerAccount?: string
+  etherNep141Factory?: string
 }
 
 const transferDraft: TransferDraft = {
@@ -143,7 +144,7 @@ export async function act (transfer: Transfer): Promise<Transfer> {
         return await mint(transfer)
       } catch (error) {
         console.error(error)
-        if (error.message.includes('Failed to redirect to sign transaction')) {
+        if (error.message?.includes('Failed to redirect to sign transaction')) {
           // Increase time to redirect to wallet before recording an error
           await new Promise(resolve => setTimeout(resolve, 10000))
         }
@@ -197,12 +198,19 @@ export async function findAllTransactions (
   const bridgeParams = getBridgeParams()
   const provider = options.provider ?? getEthProvider()
 
-  const etherCustodians: Array<[string, string]> = [
-    [options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress,
-      options.etherCustodianProxyAbi ?? bridgeParams.etherCustodianProxyAbi],
-    [options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress,
-      options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi]
-  ]
+  const etherCustodianProxyAddress = options.etherCustodianProxyAddress ?? bridgeParams.etherCustodianProxyAddress
+  const etherCustodianAddress = options.etherCustodianAddress ?? bridgeParams.etherCustodianAddress
+  let etherCustodians: Array<[string, string]>
+  if (etherCustodianProxyAddress.toLowerCase() !== etherCustodianAddress.toLowerCase()) {
+    etherCustodians = [
+      [etherCustodianProxyAddress, options.etherCustodianProxyAbi ?? bridgeParams.etherCustodianProxyAbi],
+      [etherCustodianAddress, options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi]
+    ]
+  } else {
+    etherCustodians = [
+      [etherCustodianAddress, options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi]
+    ]
+  }
 
   const promises = etherCustodians.map(async ([ethCustodianAddress, ethCustodianAbi]) => {
     const ethTokenLocker = new ethers.Contract(
@@ -544,14 +552,23 @@ export async function checkSync (
       options.etherCustodianAbi ?? bridgeParams.etherCustodianAbi,
       provider
     )
-    const result = await nearProvider.query<CodeResult>({
-      request_type: 'call_function',
-      account_id: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
-      method_name: 'is_used_proof',
-      args_base64: Buffer.from(proof).toString('base64'),
-      finality: 'optimistic'
-    })
-    const proofAlreadyUsed = Boolean(result.result[0])
+    const isProxyTransfer = lockReceipt.logs.find(
+      (log: { address: string }) => log.address.toLowerCase() === bridgeParams.etherCustodianProxyAddress.toLowerCase()
+    )
+    let proofAlreadyUsed = false
+    if (isProxyTransfer) {
+      const result = await nearProvider.query<CodeResult>({
+        request_type: 'call_function',
+        account_id: options.etherNep141Factory ?? bridgeParams.etherNep141Factory,
+        method_name: 'is_used_proof',
+        args_base64: Buffer.from(proof).toString('base64'),
+        finality: 'optimistic'
+      })
+      proofAlreadyUsed = Boolean(result.result[0])
+    } else {
+      // Transfers prior to ether custodian proxy migration were all finalized.
+      proofAlreadyUsed = true
+    }
     if (proofAlreadyUsed) {
       if (options.callIndexer) {
         try {
@@ -636,7 +653,7 @@ export async function mint (
   let tx
   if (isNajAccount) {
     tx = await nearWallet.functionCall({
-      contractId: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
+      contractId: options.etherNep141Factory ?? bridgeParams.etherNep141Factory,
       methodName: 'deposit',
       args: proof!,
       // 200Tgas: enough for execution, not too much so that a 2fa tx is within 300Tgas
@@ -648,7 +665,7 @@ export async function mint (
     })
   } else {
     tx = await nearWallet.signAndSendTransaction({
-      receiverId: options.auroraEvmAccount ?? bridgeParams.auroraEvmAccount,
+      receiverId: options.etherNep141Factory ?? bridgeParams.etherNep141Factory,
       actions: [
         {
           type: 'FunctionCall',
