@@ -1,3 +1,12 @@
+## [3.0.1](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v3.0.0...v3.0.1) (2025-03-31)
+
+
+### Bug Fixes
+
+* Pectra upgrade eth-object ([2a6fe9e](https://github.com/aurora-is-near/rainbow-bridge-client/commit/2a6fe9e2becdef76586f8cfc0f3634d52e97f5ca))
+
+
+
 # [3.0.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v2.9.0...v3.0.0) (2024-08-07)
 
 
