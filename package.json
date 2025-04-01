@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "build": "yarn workspaces foreach -Apt run build",
-    "release": "yarn workspaces foreach -Apt npm publish --access public --tolerate-republish",
+    "release": "yarn workspaces foreach -Apt --no-private npm publish --access public --tolerate-republish",
     "lint": "eslint packages/**/src",
     "lint:fix": "eslint packages/**/src --fix",
     "commitlint": "commitlint --from HEAD~1 --to HEAD --verbose",
