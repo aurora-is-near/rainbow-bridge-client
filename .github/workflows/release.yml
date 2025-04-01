@@ -1,0 +1,30 @@
+name: Release
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          version: 20
+          cache: yarn
+      - name: Install deps
+        run: yarn
+      - name: Build
+        run: yarn build
+      - name: Publish
+        run: yarn npm publish --access public
+        env:
+          YARN_NPM_AUTH_TOKEN: ${secrets.NPM_TOKEN_NEAR_ETH}
