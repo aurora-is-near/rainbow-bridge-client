@@ -1,3 +1,12 @@
+## [3.0.2](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v3.0.1...v3.0.2) (2025-04-02)
+
+
+### Features
+
+* custom enear check proof address ([#102](https://github.com/aurora-is-near/rainbow-bridge-client/issues/102)) ([cf755c2](https://github.com/aurora-is-near/rainbow-bridge-client/commit/cf755c24bf26b6c7f3b7420e1c0c311d526c510f))
+
+
+
 ## [3.0.1](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v3.0.0...v3.0.1) (2025-03-31)
 
 
