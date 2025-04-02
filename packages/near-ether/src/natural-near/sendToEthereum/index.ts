@@ -704,7 +704,7 @@ export async function checkSync (
     if (await proofAlreadyUsed(
       provider,
       proof,
-      options.eNEARAddress ?? bridgeParams.eNEARAddress,
+      options.eNEARAddress ?? bridgeParams.customCheckProofeNearAddress ?? bridgeParams.eNEARAddress,
       options.eNEARAbi ?? bridgeParams.eNEARAbi
     )) {
       try {
