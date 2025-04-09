@@ -1,10 +1,11 @@
 {
   "name": "rainbow-bridge-client-monorepo",
   "license": "(MIT AND Apache-2.0)",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "private": true,
   "scripts": {
     "build": "yarn workspaces foreach -Apt run build",
+    "version:apply": "yarn version apply && yarn workspaces foreach -Apt --no-private version apply",
     "release": "yarn workspaces foreach -Apt --no-private npm publish --access public --tolerate-republish",
     "lint": "eslint packages/**/src",
     "lint:fix": "eslint packages/**/src --fix",
