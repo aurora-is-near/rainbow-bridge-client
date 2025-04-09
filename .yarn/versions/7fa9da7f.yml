@@ -1,0 +1,3 @@
+releases:
+  "@near-eth/near-ether": patch
+  "@near-eth/rainbow": patch
