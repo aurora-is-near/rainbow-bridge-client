@@ -1,3 +1,12 @@
+## [3.0.3](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v3.0.2...v3.0.3) (2025-04-09)
+
+
+### Features
+
+* add ablity to use legacy ether nep141 factory ([#104](https://github.com/aurora-is-near/rainbow-bridge-client/issues/104)) ([934af7d](https://github.com/aurora-is-near/rainbow-bridge-client/commit/934af7d64534678bcdbafa3793e08a8553161c1f))
+
+
+
 ## [3.0.2](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v3.0.1...v3.0.2) (2025-04-02)
 
 

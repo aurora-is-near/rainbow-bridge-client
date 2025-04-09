@@ -1,4 +1,0 @@
-releases:
-  "@near-eth/near-ether": patch
-  "@near-eth/rainbow": patch
-  rainbow-bridge-client-monorepo: patch
