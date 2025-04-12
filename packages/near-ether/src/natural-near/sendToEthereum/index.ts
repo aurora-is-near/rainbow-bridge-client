@@ -778,7 +778,7 @@ export async function mint (
   options?: Omit<TransferOptions, 'provider'> & {
     provider?: ethers.providers.JsonRpcProvider
     signer?: ethers.Signer
-}
+  }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()

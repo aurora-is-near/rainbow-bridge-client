@@ -420,11 +420,11 @@ export async function initiate (
 export async function burn (
   transfer: Transfer,
   options?: {
-      provider?: ethers.providers.JsonRpcProvider
-      auroraChainId?: number
-      etherExitToEthereumPrecompile?: string
-      signer?: ethers.Signer
-    }
+    provider?: ethers.providers.JsonRpcProvider
+    auroraChainId?: number
+    etherExitToEthereumPrecompile?: string
+    signer?: ethers.Signer
+  }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -792,7 +792,7 @@ export async function unlock (
   options?: Omit<TransferOptions, 'provider'> & {
     provider?: ethers.providers.JsonRpcProvider
     signer?: ethers.Signer
-}
+  }
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
