@@ -27,7 +27,7 @@ export interface Transfer extends TransactionInfo, TransferDraft {
   symbol: string
   startTime?: string
   auroraEvmAccount?: string
-  auroraChainId?: string
+  auroraChainId?: number
 }
 
 const transferDraft: TransferDraft = {

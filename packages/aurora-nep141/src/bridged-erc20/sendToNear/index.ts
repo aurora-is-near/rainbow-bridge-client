@@ -32,7 +32,7 @@ export interface Transfer extends TransactionInfo, TransferDraft {
   symbol: string
   startTime?: string
   auroraEvmAccount?: string
-  auroraChainId?: string
+  auroraChainId?: number
 }
 
 const transferDraft: TransferDraft = {
@@ -194,7 +194,7 @@ export async function recover (
     nearProvider?: najProviders.Provider
     decimals?: number
     symbol?: string
-    auroraChainId?: string
+    auroraChainId?: number
   }
 ): Promise<Transfer> {
   options = options ?? {}

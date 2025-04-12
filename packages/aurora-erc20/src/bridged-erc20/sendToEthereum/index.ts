@@ -70,7 +70,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   nextCheckSyncTimestamp?: Date
   proof?: Uint8Array
   auroraEvmAccount?: string
-  auroraChainId?: string
+  auroraChainId?: number
 }
 
 export interface TransferOptions {
@@ -81,7 +81,7 @@ export interface TransferOptions {
   erc20Abi?: string
   sendToEthereumSyncInterval?: number
   ethChainId?: number
-  auroraChainId?: string
+  auroraChainId?: number
   nearAccount?: Account
   nearProvider?: najProviders.Provider
   ethClientAddress?: string
@@ -394,7 +394,7 @@ export async function initiate (
       auroraErc20Address?: string
       auroraEvmAccount?: string
       nep141Factory?: string
-      provider?: ethers.providers.JsonRpcProvider
+      provider?: ethers.providers.Provider
       nearAccount?: Account
       nearProvider?: najProviders.Provider
       signer?: ethers.Signer
@@ -453,7 +453,7 @@ export async function initiate (
 export async function burn (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.JsonRpcProvider
+    provider?: ethers.providers.Provider
     auroraChainId?: number
     auroraErc20Abi?: string
     signer?: ethers.Signer
@@ -806,10 +806,7 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
  */
 export async function unlock (
   transfer: Transfer | string,
-  options?: Omit<TransferOptions, 'provider'> & {
-    provider?: ethers.providers.JsonRpcProvider
-    signer?: ethers.Signer
-  }
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()

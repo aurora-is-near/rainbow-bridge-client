@@ -791,10 +791,7 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
  */
 export async function unlock (
   transfer: Transfer | string,
-  options?: Omit<TransferOptions, 'provider'> & {
-    provider?: ethers.providers.JsonRpcProvider
-    signer?: ethers.Signer
-  }
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()

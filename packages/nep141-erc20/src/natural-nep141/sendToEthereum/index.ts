@@ -426,7 +426,7 @@ export async function lock (
   transfer: Transfer,
   options?: {
     nearAccount?: Account
-    nep141LockerAccount?: Account
+    nep141LockerAccount?: Account | string
   }
 ): Promise<Transfer> {
   options = options ?? {}
@@ -775,10 +775,7 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
 
 export async function mint (
   transfer: Transfer | string,
-  options?: Omit<TransferOptions, 'provider'> & {
-    provider?: ethers.providers.JsonRpcProvider
-    signer?: ethers.Signer
-  }
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
