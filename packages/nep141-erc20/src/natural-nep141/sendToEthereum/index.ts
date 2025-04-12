@@ -427,7 +427,7 @@ export async function lock (
   transfer: Transfer,
   options?: {
     nearAccount?: Account
-    nep141LockerAccount?: Account | string
+    nep141LockerAccount?: string
   }
 ): Promise<Transfer> {
   options = options ?? {}
