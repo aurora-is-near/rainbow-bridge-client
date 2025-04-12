@@ -77,4 +77,4 @@ export interface ConnectorLib {
 /**
  * @description Here you can pass through custom options for any act action.
  */
-export type UnitedTransferOptions = Record<string,any>
+export type UnitedTransferOptions = Record<string, any>

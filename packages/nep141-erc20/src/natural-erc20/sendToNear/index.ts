@@ -146,12 +146,12 @@ export const i18n = {
  */
 export async function act (transfer: Transfer, options?: TransferOptions): Promise<Transfer> {
   switch (transfer.completedStep) {
-    case null: return await lock(transfer,options)
-    case APPROVE: return await lock(transfer,options) // TODO: remove. This was only needed to prevent breaking user's ongoing transfer
-    case LOCK: return await checkSync(transfer,options)
+    case null: return await lock(transfer, options)
+    case APPROVE: return await lock(transfer, options) // TODO: remove. This was only needed to prevent breaking user's ongoing transfer
+    case LOCK: return await checkSync(transfer, options)
     case SYNC:
       try {
-        return await mint(transfer,options)
+        return await mint(transfer, options)
       } catch (error) {
         console.error(error)
         if (error.message?.includes('Failed to redirect to sign transaction')) {

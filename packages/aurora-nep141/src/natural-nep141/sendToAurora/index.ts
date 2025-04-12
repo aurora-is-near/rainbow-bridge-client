@@ -68,7 +68,7 @@ export const i18n = {
 }
 /* eslint-enable @typescript-eslint/restrict-template-expressions */
 
-export interface TransferOptions  {
+export interface TransferOptions {
   nearAccount?: Account
   nearProvider?: najProviders.Provider
   auroraEvmAccount?: string
@@ -84,9 +84,9 @@ export async function act (transfer: Transfer, options?: TransferOptions): Promi
     case null:
       try {
         if (transfer.sourceToken === 'NEAR') {
-          return await lockNear(transfer,options)
+          return await lockNear(transfer, options)
         } else {
-          return await lock(transfer,options)
+          return await lock(transfer, options)
         }
       } catch (error) {
         console.error(error)

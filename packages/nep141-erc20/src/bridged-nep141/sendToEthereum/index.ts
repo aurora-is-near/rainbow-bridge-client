@@ -168,8 +168,8 @@ export async function act (transfer: Transfer, options?: TransferOptions): Promi
         if (typeof window !== 'undefined') urlParams.clear('withdrawing')
         throw error
       }
-    case AWAIT_FINALITY: return await checkSync(transfer,options)
-    case SYNC: return await unlock(transfer,options)
+    case AWAIT_FINALITY: return await checkSync(transfer, options)
+    case SYNC: return await unlock(transfer, options)
     default: throw new Error(`Don't know how to act on transfer: ${JSON.stringify(transfer)}`)
   }
 }

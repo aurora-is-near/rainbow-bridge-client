@@ -306,7 +306,7 @@ export async function act (id: string, options?: UnitedTransferOptions): Promise
   const type = getTransferType(transfer)
 
   try {
-    await storage.update(await type.act(transfer,options))
+    await storage.update(await type.act(transfer, options))
   } catch (error) {
     await storage.update(transfer, {
       status: status.FAILED,

@@ -71,8 +71,8 @@ export interface TransferOptions {
   auroraEvmAccount?: string
   callIndexer?: (query: string) => Promise<ExplorerIndexerResult[] | string>
   eventRelayerAccount?: string
-  ethChainId?: number;
-  signer?: ethers.Signer;
+  ethChainId?: number
+  signer?: ethers.Signer
 }
 
 const transferDraft: TransferDraft = {
@@ -149,8 +149,8 @@ export const i18n = {
  */
 export async function act (transfer: Transfer, options?: TransferOptions): Promise<Transfer> {
   switch (transfer.completedStep) {
-    case null: return await lock(transfer,options)
-    case LOCK: return await checkSync(transfer,options)
+    case null: return await lock(transfer, options)
+    case LOCK: return await checkSync(transfer, options)
     // case SYNC: return mint(transfer) // Not implemented, done by relayer
     default: throw new Error(`Don't know how to act on transfer: ${transfer.id}`)
   }

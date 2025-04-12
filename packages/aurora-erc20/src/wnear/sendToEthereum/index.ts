@@ -174,9 +174,9 @@ export const i18n = {
  */
 export async function act (transfer: Transfer, options?: TransferOptions): Promise<Transfer> {
   switch (transfer.completedStep) {
-    case null: return await burn(transfer,options)
-    case AWAIT_FINALITY: return await checkSync(transfer,options)
-    case SYNC: return await mint(transfer,options)
+    case null: return await burn(transfer, options)
+    case AWAIT_FINALITY: return await checkSync(transfer, options)
+    case SYNC: return await mint(transfer, options)
     default: throw new Error(`Don't know how to act on transfer: ${transfer.id}`)
   }
 }

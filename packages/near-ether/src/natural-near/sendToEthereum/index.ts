@@ -156,7 +156,7 @@ export async function act (transfer: Transfer, options?: TransferOptions): Promi
   switch (transfer.completedStep) {
     case null:
       try {
-        return await lock(transfer,options)
+        return await lock(transfer, options)
       } catch (error) {
         console.error(error)
         if (error.message?.includes('Failed to redirect to sign transaction')) {
@@ -166,8 +166,8 @@ export async function act (transfer: Transfer, options?: TransferOptions): Promi
         if (typeof window !== 'undefined') urlParams.clear('locking')
         throw error
       }
-    case AWAIT_FINALITY: return await checkSync(transfer,options)
-    case SYNC: return await mint(transfer,options)
+    case AWAIT_FINALITY: return await checkSync(transfer, options)
+    case SYNC: return await mint(transfer, options)
     default: throw new Error(`Don't know how to act on transfer: ${JSON.stringify(transfer)}`)
   }
 }
