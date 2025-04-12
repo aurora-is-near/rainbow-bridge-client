@@ -61,6 +61,14 @@ const transferDraft: TransferDraft = {
   burnReceipts: []
 }
 
+export interface TransferOptions {
+  provider?: ethers.providers.JsonRpcProvider
+  auroraChainId?: number
+  auroraErc20Abi?: string
+  signer?: ethers.Signer
+  unwrapWNear?: boolean
+}
+
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 export const i18n = {
   en_US: {
@@ -84,9 +92,9 @@ export const i18n = {
  * Called when status is FAILED
  * @param transfer Transfer object to act on.
  */
-export async function act (transfer: Transfer): Promise<Transfer> {
+export async function act (transfer: Transfer, options?: TransferOptions): Promise<Transfer> {
   switch (transfer.completedStep) {
-    case null: return await burn(transfer)
+    case null: return await burn(transfer,options)
     default: throw new Error(`Don't know how to act on transfer: ${JSON.stringify(transfer)}`)
   }
 }

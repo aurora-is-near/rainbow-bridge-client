@@ -7,7 +7,8 @@ import {
   Step,
   UnsavedTransfer,
   CustomTransferTypes,
-  Transfers
+  Transfers,
+  UnitedTransferOptions
 } from './types'
 
 export { onChange } from './storage'
@@ -293,7 +294,7 @@ export async function checkStatusAll (
  *
  * If the transfer failed, this will retry it.
  */
-export async function act (id: string): Promise<void> {
+export async function act (id: string, options?: UnitedTransferOptions): Promise<void> {
   const transfer = storage.get(id)
   if (!transfer) {
     throw new Error(`Cannot find and act on transfer with id ${id}`)
@@ -305,7 +306,7 @@ export async function act (id: string): Promise<void> {
   const type = getTransferType(transfer)
 
   try {
-    await storage.update(await type.act(transfer))
+    await storage.update(await type.act(transfer,options))
   } catch (error) {
     await storage.update(transfer, {
       status: status.FAILED,

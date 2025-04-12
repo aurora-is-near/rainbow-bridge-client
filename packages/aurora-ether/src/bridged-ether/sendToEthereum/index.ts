@@ -89,6 +89,8 @@ export interface TransferOptions {
   symbol?: string
   etherNep141Factory?: string
   etherNep141FactoryMigrationHeight?: number
+  etherExitToEthereumPrecompile?: string
+  signer?: ethers.Signer
 }
 
 const transferDraft: TransferDraft = {
@@ -170,11 +172,11 @@ export const i18n = {
  * Called when status is ACTION_NEEDED or FAILED
  * @param transfer Transfer object to act on.
  */
-export async function act (transfer: Transfer): Promise<Transfer> {
+export async function act (transfer: Transfer, options?:TransferOptions): Promise<Transfer> {
   switch (transfer.completedStep) {
-    case null: return await burn(transfer)
-    case AWAIT_FINALITY: return await checkSync(transfer)
-    case SYNC: return await unlock(transfer)
+    case null: return await burn(transfer,options)
+    case AWAIT_FINALITY: return await checkSync(transfer,options)
+    case SYNC: return await unlock(transfer,options)
     default: throw new Error(`Don't know how to act on transfer: ${transfer.id}`)
   }
 }

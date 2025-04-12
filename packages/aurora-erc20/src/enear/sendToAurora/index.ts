@@ -61,6 +61,8 @@ export interface TransferOptions {
   auroraEvmAccount?: string
   callIndexer?: (query: string) => Promise<ExplorerIndexerResult[] | string>
   eventRelayerAccount?: string
+  ethChainId?: number
+  signer?: ethers.Signer
 }
 
 const transferDraft: TransferDraft = {
@@ -134,10 +136,10 @@ export const i18n = {
  * Called when status is ACTION_NEEDED or FAILED
  * @param transfer Transfer object to act on.
  */
-export async function act (transfer: Transfer): Promise<Transfer> {
+export async function act (transfer: Transfer, options?: TransferOptions): Promise<Transfer> {
   switch (transfer.completedStep) {
-    case null: return await burn(transfer)
-    case BURN: return await checkSync(transfer)
+    case null: return await burn(transfer,options)
+    case BURN: return await checkSync(transfer,options)
     default: throw new Error(`Don't know how to act on transfer: ${transfer.id}`)
   }
 }

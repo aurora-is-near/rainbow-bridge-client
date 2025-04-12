@@ -132,13 +132,13 @@ export const i18n = {
  * Called when status is ACTION_NEEDED or FAILED
  * @param transfer Transfer object to act on.
  */
-export async function act (transfer: Transfer): Promise<Transfer> {
+export async function act (transfer: Transfer, options?: TransferOptions): Promise<Transfer> {
   switch (transfer.completedStep) {
-    case null: return await burn(transfer)
-    case BURN: return await checkSync(transfer)
+    case null: return await burn(transfer,options)
+    case BURN: return await checkSync(transfer,options)
     case SYNC:
       try {
-        return await unlock(transfer)
+        return await unlock(transfer,options)
       } catch (error) {
         console.error(error)
         if (error.message?.includes('Failed to redirect to sign transaction')) {

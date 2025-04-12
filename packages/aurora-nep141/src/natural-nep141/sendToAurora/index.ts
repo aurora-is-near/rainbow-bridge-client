@@ -68,18 +68,25 @@ export const i18n = {
 }
 /* eslint-enable @typescript-eslint/restrict-template-expressions */
 
+export interface TransferOptions  {
+  nearAccount?: Account
+  nearProvider?: najProviders.Provider
+  auroraEvmAccount?: string
+  wNearNep141?: string
+  etherNep141Factory?: string
+}
 /**
  * Called when status is FAILED
  * @param transfer Transfer object to act on.
  */
-export async function act (transfer: Transfer): Promise<Transfer> {
+export async function act (transfer: Transfer, options?: TransferOptions): Promise<Transfer> {
   switch (transfer.completedStep) {
     case null:
       try {
         if (transfer.sourceToken === 'NEAR') {
-          return await lockNear(transfer)
+          return await lockNear(transfer,options)
         } else {
-          return await lock(transfer)
+          return await lock(transfer,options)
         }
       } catch (error) {
         console.error(error)
@@ -421,11 +428,7 @@ export async function sendToAurora (
 
 export async function lock (
   transfer: Transfer,
-  options?: {
-    nearAccount?: Account
-    auroraEvmAccount?: string
-    etherNep141Factory?: string
-  }
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
@@ -548,12 +551,7 @@ export async function wrapAndSendNearToAurora (
 
 export async function lockNear (
   transfer: Transfer,
-  options?: {
-    nearAccount?: Account
-    nearProvider?: najProviders.Provider
-    auroraEvmAccount?: string
-    wNearNep141?: string
-  }
+  options?: TransferOptions
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()

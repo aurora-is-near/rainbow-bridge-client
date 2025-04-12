@@ -153,11 +153,11 @@ export const i18n = {
  * Called when status is ACTION_NEEDED or FAILED
  * @param transfer Transfer object to act on.
  */
-export async function act (transfer: Transfer): Promise<Transfer> {
+export async function act (transfer: Transfer, options?: TransferOptions): Promise<Transfer> {
   switch (transfer.completedStep) {
     case null:
       try {
-        return await burn(transfer)
+        return await burn(transfer,options)
       } catch (error) {
         console.error(error)
         if (error.message?.includes('Failed to redirect to sign transaction')) {
@@ -167,8 +167,8 @@ export async function act (transfer: Transfer): Promise<Transfer> {
         if (typeof window !== 'undefined') urlParams.clear('withdrawing')
         throw error
       }
-    case AWAIT_FINALITY: return await checkSync(transfer)
-    case SYNC: return await unlock(transfer)
+    case AWAIT_FINALITY: return await checkSync(transfer,options)
+    case SYNC: return await unlock(transfer,options)
     default: throw new Error(`Don't know how to act on transfer: ${JSON.stringify(transfer)}`)
   }
 }
@@ -708,7 +708,7 @@ export async function checkSync (
   if (nearOnEthClientBlockHeight > withdrawBlockHeight) {
     const etherNep141FactoryMigrationHeight = options.etherNep141FactoryMigrationHeight ?? bridgeParams.etherNep141FactoryMigrationHeight
     const etherNep141Factory = withdrawBlockHeight > etherNep141FactoryMigrationHeight
-      ? (bridgeParams.legacyEtherNep141Factory ?? options.etherNep141Factory ?? bridgeParams.etherNep141Factory)
+      ? (options.etherNep141Factory ?? bridgeParams.etherNep141Factory)
       : bridgeParams.auroraEvmAccount
     proof = await findNearProof(
       last(transfer.burnReceiptIds),
