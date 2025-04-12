@@ -61,7 +61,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
 }
 
 export interface TransferOptions {
-  provider?: ethers.providers.Provider
+  provider?: ethers.providers.JsonRpcProvider
   eNEARAddress?: string
   eNEARAbi?: string
   sendToEthereumSyncInterval?: number

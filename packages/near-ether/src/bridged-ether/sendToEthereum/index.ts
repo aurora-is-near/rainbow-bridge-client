@@ -62,7 +62,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
   proof?: any
 }
 export interface TransferOptions {
-  provider?: ethers.providers.Provider
+  provider?: ethers.providers.JsonRpcProvider
   etherCustodianAddress?: string
   etherCustodianAbi?: string
   etherCustodianProxyAddress?: string
@@ -76,6 +76,7 @@ export interface TransferOptions {
   auroraEvmAccount?: string
   etherNep141Factory?: string
   etherNep141FactoryMigrationHeight?: number
+  signer?: ethers.Signer
 }
 
 const transferDraft: TransferDraft = {

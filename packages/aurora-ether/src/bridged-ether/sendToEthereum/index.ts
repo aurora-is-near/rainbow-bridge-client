@@ -72,7 +72,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
 }
 
 export interface TransferOptions {
-  provider?: ethers.providers.Provider
+  provider?: ethers.providers.JsonRpcProvider
   etherCustodianAddress?: string
   etherCustodianAbi?: string
   etherCustodianProxyAddress?: string

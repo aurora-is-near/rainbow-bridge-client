@@ -72,7 +72,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
 }
 
 export interface TransferOptions {
-  provider?: ethers.providers.Provider
+  provider?: ethers.providers.JsonRpcProvider
   auroraProvider?: ethers.providers.JsonRpcProvider
   erc20LockerAddress?: string
   erc20LockerAbi?: string
@@ -90,6 +90,7 @@ export interface TransferOptions {
   wNearBridgeAddress?: string
   wNearBridgeAbi?: string
   auroraEvmAccount?: string
+  signer?: ethers.Signer
 }
 
 const transferDraft: TransferDraft = {
@@ -408,7 +409,7 @@ export async function initiate (
 export async function burn (
   transfer: Transfer,
   options?: {
-    provider?: ethers.providers.Provider
+    provider?: ethers.providers.JsonRpcProvider
     auroraChainId?: number
     wNearBridgeAbi?: string
     wNearBridgeAddress?: string

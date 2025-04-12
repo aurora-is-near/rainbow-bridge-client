@@ -71,7 +71,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
 }
 
 export interface TransferOptions {
-  provider?: ethers.providers.Provider
+  provider?: ethers.providers.JsonRpcProvider
   sendToEthereumSyncInterval?: number
   ethChainId?: number
   nearAccount?: Account
@@ -81,6 +81,7 @@ export interface TransferOptions {
   nep141LockerAccount?: string
   erc20FactoryAbi?: string
   erc20FactoryAddress?: string
+  signer?: ethers.Signer
 }
 
 class TransferError extends Error {}
