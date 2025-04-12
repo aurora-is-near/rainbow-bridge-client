@@ -776,7 +776,10 @@ export async function proofAlreadyUsed (provider: ethers.providers.Provider, pro
 
 export async function mint (
   transfer: Transfer | string,
-  options?: TransferOptions
+  options?: Omit<TransferOptions, 'provider'> & {
+    provider?: ethers.providers.JsonRpcProvider
+    signer?: ethers.Signer
+}
 ): Promise<Transfer> {
   options = options ?? {}
   const bridgeParams = getBridgeParams()
