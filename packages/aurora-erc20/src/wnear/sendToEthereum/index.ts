@@ -72,7 +72,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
 }
 
 export interface TransferOptions {
-  provider?: ethers.providers.JsonRpcProvider
+  provider?: ethers.providers.Provider
   auroraProvider?: ethers.providers.JsonRpcProvider
   erc20LockerAddress?: string
   erc20LockerAbi?: string
@@ -172,7 +172,7 @@ export const i18n = {
  * Called when status is ACTION_NEEDED or FAILED
  * @param transfer Transfer object to act on.
  */
-export async function act (transfer: Transfer, options?: TransferOptions): Promise<Transfer> {
+export async function act (transfer: Transfer, options?: Omit<TransferOptions, 'provider'> & { provider?: ethers.providers.JsonRpcProvider}): Promise<Transfer> {
   switch (transfer.completedStep) {
     case null: return await burn(transfer, options)
     case AWAIT_FINALITY: return await checkSync(transfer, options)

@@ -71,7 +71,7 @@ export interface Transfer extends TransferDraft, TransactionInfo {
 }
 
 export interface TransferOptions {
-  provider?: ethers.providers.JsonRpcProvider
+  provider?: ethers.providers.Provider
   sendToEthereumSyncInterval?: number
   ethChainId?: number
   nearAccount?: Account
@@ -161,7 +161,7 @@ export const i18n = {
  * Called when status is ACTION_NEEDED or FAILED
  * @param transfer Transfer object to act on.
  */
-export async function act (transfer: Transfer, options?: TransferOptions): Promise<Transfer> {
+export async function act (transfer: Transfer, options?: Omit<TransferOptions, 'provider'> & { provider?: ethers.providers.JsonRpcProvider}): Promise<Transfer> {
   switch (transfer.completedStep) {
     case null:
       try {
