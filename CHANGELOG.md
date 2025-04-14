@@ -1,12 +1,3 @@
-# [3.1.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v3.0.3...v3.1.0) (2025-04-14)
-
-### Features
-
-* add options arg to act in near client ([bd015a2](https://github.com/aurora-is-near/rainbow-bridge-client/commit/bd015a292d041c35385fdf5fd665fc5bf5c42219))
-* improve types ([3f9729c](https://github.com/aurora-is-near/rainbow-bridge-client/commit/3f9729cb42ed8d366fd52a8f31729e2a0d01f1bd))
-
-
-
 ## [3.0.3](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v3.0.2...v3.0.3) (2025-04-09)
 
 
