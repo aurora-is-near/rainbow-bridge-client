@@ -70,6 +70,11 @@ export interface ConnectorLib {
   DESTINATION_NETWORK: string
   TOKEN_TYPE: string
   i18n: { [key: string]: Localizations }
-  act: (t: Transfer) => Promise<Transfer>
+  act: (t: Transfer, options?: UnitedTransferOptions) => Promise<Transfer>
   checkStatus: (t: Transfer) => Promise<Transfer>
 }
+
+/**
+ * @description Here you can pass through custom options for any act action.
+ */
+export type UnitedTransferOptions = Record<string, any>

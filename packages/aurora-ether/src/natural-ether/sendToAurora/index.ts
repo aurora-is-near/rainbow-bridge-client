@@ -62,6 +62,10 @@ export interface TransferOptions {
   callIndexer?: (query: string) => Promise<ExplorerIndexerResult[] | string>
   eventRelayerAccount?: string
   etherNep141Factory?: string
+  ethChainId?: number
+  etherCustodianProxyAddress?: string
+  etherCustodianProxyAbi?: string
+  signer?: ethers.Signer
 }
 
 const transferDraft: TransferDraft = {
@@ -135,10 +139,10 @@ export const i18n = {
  * Called when status is ACTION_NEEDED or FAILED
  * @param transfer Transfer object to act on.
  */
-export async function act (transfer: Transfer): Promise<Transfer> {
+export async function act (transfer: Transfer, options?: TransferOptions): Promise<Transfer> {
   switch (transfer.completedStep) {
-    case null: return await lock(transfer)
-    case LOCK: return await checkSync(transfer)
+    case null: return await lock(transfer, options)
+    case LOCK: return await checkSync(transfer, options)
     // case SYNC: return mint(transfer) // Not implemented, done by relayer
     default: throw new Error(`Don't know how to act on transfer: ${transfer.id}`)
   }

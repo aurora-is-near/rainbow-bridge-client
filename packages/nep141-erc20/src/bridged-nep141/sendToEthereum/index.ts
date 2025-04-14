@@ -74,6 +74,7 @@ export interface TransferOptions {
   erc20Abi?: string
   nep141Factory?: string
   erc20LockerAbi?: string
+  signer?: ethers.Signer
 }
 
 class TransferError extends Error {}
@@ -153,7 +154,7 @@ export const i18n = {
  * Called when status is ACTION_NEEDED or FAILED
  * @param transfer Transfer object to act on.
  */
-export async function act (transfer: Transfer): Promise<Transfer> {
+export async function act (transfer: Transfer, options?: Omit<TransferOptions, 'provider'> & { provider?: ethers.providers.JsonRpcProvider}): Promise<Transfer> {
   switch (transfer.completedStep) {
     case null:
       try {
@@ -167,8 +168,8 @@ export async function act (transfer: Transfer): Promise<Transfer> {
         if (typeof window !== 'undefined') urlParams.clear('withdrawing')
         throw error
       }
-    case AWAIT_FINALITY: return await checkSync(transfer)
-    case SYNC: return await unlock(transfer)
+    case AWAIT_FINALITY: return await checkSync(transfer, options)
+    case SYNC: return await unlock(transfer, options)
     default: throw new Error(`Don't know how to act on transfer: ${JSON.stringify(transfer)}`)
   }
 }

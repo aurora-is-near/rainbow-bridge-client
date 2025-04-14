@@ -81,6 +81,7 @@ export interface TransferOptions {
   nep141LockerAccount?: string
   erc20FactoryAbi?: string
   erc20FactoryAddress?: string
+  signer?: ethers.Signer
 }
 
 class TransferError extends Error {}
@@ -160,11 +161,11 @@ export const i18n = {
  * Called when status is ACTION_NEEDED or FAILED
  * @param transfer Transfer object to act on.
  */
-export async function act (transfer: Transfer): Promise<Transfer> {
+export async function act (transfer: Transfer, options?: Omit<TransferOptions, 'provider'> & { provider?: ethers.providers.JsonRpcProvider}): Promise<Transfer> {
   switch (transfer.completedStep) {
     case null:
       try {
-        return await lock(transfer)
+        return await lock(transfer, options)
       } catch (error) {
         console.error(error)
         if (error.message?.includes('Failed to redirect to sign transaction')) {
@@ -174,8 +175,8 @@ export async function act (transfer: Transfer): Promise<Transfer> {
         if (typeof window !== 'undefined') urlParams.clear('locking')
         throw error
       }
-    case AWAIT_FINALITY: return await checkSync(transfer)
-    case SYNC: return await mint(transfer)
+    case AWAIT_FINALITY: return await checkSync(transfer, options)
+    case SYNC: return await mint(transfer, options)
     default: throw new Error(`Don't know how to act on transfer: ${JSON.stringify(transfer)}`)
   }
 }
@@ -426,7 +427,7 @@ export async function lock (
   transfer: Transfer,
   options?: {
     nearAccount?: Account
-    nep141LockerAccount?: Account
+    nep141LockerAccount?: string
   }
 ): Promise<Transfer> {
   options = options ?? {}

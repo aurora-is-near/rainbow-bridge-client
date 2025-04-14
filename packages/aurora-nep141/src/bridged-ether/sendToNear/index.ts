@@ -27,7 +27,7 @@ export interface Transfer extends TransactionInfo, TransferDraft {
   symbol: string
   startTime?: string
   auroraEvmAccount?: string
-  auroraChainId?: string
+  auroraChainId?: number
 }
 
 const transferDraft: TransferDraft = {
@@ -73,15 +73,22 @@ export const i18n = {
     }
   }
 }
+
+export interface TransferOptions {
+  provider?: ethers.providers.JsonRpcProvider
+  auroraChainId?: number
+  etherExitToNearPrecompile?: string
+  signer?: ethers.Signer
+}
 /* eslint-enable @typescript-eslint/restrict-template-expressions */
 
 /**
  * Called when status is FAILED
  * @param transfer Transfer object to act on.
  */
-export async function act (transfer: Transfer): Promise<Transfer> {
+export async function act (transfer: Transfer, options?: TransferOptions): Promise<Transfer> {
   switch (transfer.completedStep) {
-    case null: return await burn(transfer)
+    case null: return await burn(transfer, options)
     default: throw new Error(`Don't know how to act on transfer: ${JSON.stringify(transfer)}`)
   }
 }
