@@ -8,6 +8,7 @@ jobs:
   check:
     name: Check yarn2 deferred version
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || !startsWith(github.event.pull_request.head.ref, 'release/')
     steps:
       - name: Clone the repository
         uses: actions/checkout@v2
