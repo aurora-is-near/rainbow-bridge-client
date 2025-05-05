@@ -1,3 +1,12 @@
+## [3.1.1](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v3.1.0...v3.1.1) (2025-05-05)
+
+
+### Bug Fixes
+
+* bump aurora-erc20 ([5dcf6a7](https://github.com/aurora-is-near/rainbow-bridge-client/commit/5dcf6a724cb94647ef55bf6917eccc912da0ad17))
+
+
+
 # [3.1.0](https://github.com/aurora-is-near/rainbow-bridge-client/compare/v3.0.3...v3.1.0) (2025-04-14)
 
 
